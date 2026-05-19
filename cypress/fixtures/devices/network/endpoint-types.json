@@ -1,0 +1,9 @@
+{
+  "types": [
+    {
+      "name": "Mock Machine",
+      "description": "Mock Description",
+      "defaultIP": "172.22.220.1"
+    }
+  ]
+}

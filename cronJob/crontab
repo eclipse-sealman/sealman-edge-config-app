@@ -1,0 +1,1 @@
+0 12 * * * sleep $(($RANDOM % 7200)); docker run --rm --name certbot -v "certbot:/var/www/certbot" -v "letsencrypt:/etc/letsencrypt" certbot/certbot:v2.11.0 renew --webroot --webroot-path /var/www/certbot/ --non-interactive

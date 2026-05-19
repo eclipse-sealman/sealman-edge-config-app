@@ -1,0 +1,57 @@
+{
+  "scanResults": [
+    {
+      "ip": "172.22.220.1",
+      "status": "online",
+      "lastStatusChange": "2025-02-10T11:07:01.957535+00:00",
+      "ports": {
+        "21": {
+          "status": "offline",
+          "lastStatusChange": "2025-02-10T11:07:01.957535+00:00"
+        },
+        "80": {
+          "status": "online",
+          "lastStatusChange": "2025-02-10T11:07:01.957535+00:00"
+        },
+        "5900": {
+          "status": "online",
+          "lastStatusChange": "2025-02-10T11:07:01.957535+00:00"
+        }
+      }
+    },
+    {
+      "ip": "172.22.220.2",
+      "status": "online",
+      "lastStatusChange": "2025-02-10T11:07:01.957535+00:00",
+      "ports": {
+        "21": {
+          "status": "offline",
+          "lastStatusChange": "2025-02-10T11:07:01.957535+00:00"
+        },
+        "80": {
+          "status": "online",
+          "lastStatusChange": "2025-02-10T11:07:01.957535+00:00"
+        },
+        "5900": {
+          "status": "online",
+          "lastStatusChange": "2025-02-10T11:07:01.957535+00:00"
+        }
+      }
+    }
+  ],
+  "scanDefinition": {
+    "networkDefinition": "172.22.220.0",
+    "ports": [
+      443,
+      4840,
+      5900,
+      8080,
+      9090,
+      9443,
+      21,
+      80,
+      8081
+    ],
+    "subnetMask": 23
+  }
+}

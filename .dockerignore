@@ -1,0 +1,10 @@
+.vscode
+.gitignore
+compose.yaml
+README.md
+build
+node_modules
+pipelines
+.devcontainer
+.cronJob
+.cypress

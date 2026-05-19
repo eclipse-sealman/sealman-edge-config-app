@@ -1,0 +1,100 @@
+{
+  "$edgeAgent": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "$edgeHub": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "seal-app-manager": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "seal-app-mqtt": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "seal-app-system-metrics": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "seal-app-remote-control": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "seal-app-opcua-client": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "seal-app-webssh": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "seal-app-net-discover": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "seal-app-cmd-proxy": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "seal-app-webftp": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": null
+  },
+  "vpncontainerclient": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": ""
+  },
+  "seal-app-conn-check-api": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": ""
+  },
+  "seal-app-conn-check-ui": {
+    "desiredConfId": null,
+    "reportedConfId": null,
+    "confStatus": "NO_CONFIG",
+    "appStatus": "NO_STATUS",
+    "appMessage": ""
+  }
+}
