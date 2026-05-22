@@ -10,6 +10,7 @@ import {
 import { Centered } from "@/features/Devices/Network/components";
 import { SmartEMSVpnCard } from "../../smart_ems/layouts/SmartEmsVPNCard";
 import { useHandleSelectedEndpoint } from "../../useHandleSelectedEndpoint";
+import { loadNetworkMeta } from "@/features/Devices/Network/api/networkMeta";
 
 export default function EndpointContentContainer() {
   // Ensure the selected endpoint IP is set from the URL search params
@@ -28,7 +29,12 @@ export default function EndpointContentContainer() {
       return;
     }
 
-    setSelectedEndpointState(endpointConfigList[selectedEndpointIp] || { name: "", serviceNames: {} } , selectedEndpointIp);
+    loadNetworkMeta().then(() => {
+      setSelectedEndpointState(
+        endpointConfigList[selectedEndpointIp] || { name: "", serviceNames: {} },
+        selectedEndpointIp
+      );
+    });
   }, [endpointConfigList, selectedEndpointIp, setSelectedEndpointState]);
 
   // I don't think we need to move that to another component as there is no extra logic delacre in it.

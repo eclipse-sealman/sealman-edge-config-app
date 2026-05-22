@@ -57,8 +57,8 @@ export default create<SelectedEndpointStore>((set) => {
       }
 
       set(() => ({
-        name: data.name === "" ? currentMachineName : data.name,
-        description: data.description === "" ? currentMachineDescription : data.description,
+        name: !data.name ? currentMachineName : data.name,
+        description: !data.description ? currentMachineDescription : data.description,
         services: mergedServices,
         initialConfig: data
       }))

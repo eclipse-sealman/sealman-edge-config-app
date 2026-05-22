@@ -9,14 +9,14 @@ interface props {
   setOpen: (open: boolean) => void
 }
 
-const types = getEndpointTypes()
-let machines = types?.map((t: any) => t.name) ?? []
-
 // This component relies a lot on ShadCN component making it difficult to UniTest
 // TODO CYPRESS: cover with cypress test
 export default function MachineList({ setOpen }: props) {
   const name = useSelectedEndpointStore((state) => state.name)
   const updateName = useSelectedEndpointStore((state) => state.updateName)
+
+  const types = getEndpointTypes()
+  const machines = types?.map((t: any) => t.name) ?? []
 
   // TODO THOMAS: decide what to do with zooming
   useLockZoom()
