@@ -44,17 +44,25 @@ export default create<SelectedEndpointStore>((set) => {
     services: {},
     initialConfig: { name: "", serviceNames: {}},
     setSelectedEndpointState: (data, selectedIp) => {
-    const endpointTypesArr = getEndpointTypes() ?? []
-    let machineNameIndex = endpointTypesArr?.findIndex(obj => obj.defaultIP === selectedIp)
-    let currentMachineName = endpointTypesArr[machineNameIndex]?.name
-    let currentMachineDescription = endpointTypesArr[machineNameIndex]?.description
-    set(() => ({
-      name: data.name === "" ? currentMachineName : data.name,
-      description: data.description === "" ? currentMachineDescription : data.description,
-      services: data.serviceNames,
-      initialConfig: data
-    }))
-   } ,
+      const endpointTypesArr = getEndpointTypes() ?? []
+      let machineNameIndex = endpointTypesArr?.findIndex(obj => obj.defaultIP === selectedIp)
+      let currentMachineName = endpointTypesArr[machineNameIndex]?.name
+      let currentMachineDescription = endpointTypesArr[machineNameIndex]?.description
+
+      const portServiceMap = getPortServiceMap()
+      const mergedServices: Record<string, string> = {}
+      for (const port in data.serviceNames) {
+        const saved = data.serviceNames[port]
+        mergedServices[port] = saved || portServiceMap[Number(port)] || ""
+      }
+
+      set(() => ({
+        name: data.name === "" ? currentMachineName : data.name,
+        description: data.description === "" ? currentMachineDescription : data.description,
+        services: mergedServices,
+        initialConfig: data
+      }))
+    },
     updateDescription: (description) => set({description}),
     updateName: (name) => set({name}),
     updateServiceNameByPort: (port, serviceName) => set((state) => ({
