@@ -1,0 +1,128 @@
+[
+  {
+    "moduleName": "$edgeAgent",
+    "moduleId": "$edgeAgent",
+    "connectionState": "Disconnected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "runtime_online",
+    "version": null
+  },
+  {
+    "moduleName": "$edgeHub",
+    "moduleId": "$edgeHub",
+    "connectionState": "Connected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "runtime_online",
+    "version": null
+  },
+  {
+    "moduleName": "seal-app-manager",
+    "moduleId": "seal-app-manager",
+    "connectionState": "Disconnected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "running",
+    "version": "release-1.0.0"
+  },
+  {
+    "moduleName": "seal-app-mqtt",
+    "moduleId": "seal-app-mqtt",
+    "connectionState": "Disconnected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "running",
+    "version": "release-1.2.0"
+  },
+  {
+    "moduleName": "seal-app-system-metrics",
+    "moduleId": "seal-app-system-metrics",
+    "connectionState": "Disconnected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "running",
+    "version": "release-1.4.2"
+  },
+  {
+    "moduleName": "seal-app-remote-control",
+    "moduleId": "seal-app-remote-control",
+    "connectionState": "Connected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "running",
+    "version": "release-1.3.1"
+  },
+  {
+    "moduleName": "seal-app-opcua-client",
+    "moduleId": "seal-app-opcua-client",
+    "connectionState": "Connected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "running",
+    "version": "release-1.3.2"
+  },
+  {
+    "moduleName": "seal-app-webssh",
+    "moduleId": "seal-app-webssh",
+    "connectionState": "Disconnected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "running",
+    "version": "release-1.0.0"
+  },
+  {
+    "moduleName": "seal-app-net-discover",
+    "moduleId": "seal-app-net-discover",
+    "connectionState": "Connected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "running",
+    "version": "release-1.0.1"
+  },
+  {
+    "moduleName": "seal-app-cmd-proxy",
+    "moduleId": "seal-app-cmd-proxy",
+    "connectionState": "Connected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "running",
+    "version": "release-1.1.0"
+  },
+  {
+    "moduleName": "seal-app-webftp",
+    "moduleId": "seal-app-webftp",
+    "connectionState": "Connected",
+    "moduleType": "iotedge",
+    "deploymentType": "base",
+    "status": "running",
+    "version": "release-1.3.0"
+  },
+  {
+    "moduleName": "vpncontainerclient",
+    "moduleId": "vpncontainerclient",
+    "connectionState": "Disconnected",
+    "moduleType": "compose",
+    "deploymentType": "sems",
+    "status": "running",
+    "version": "1.1.0"
+  },
+  {
+    "moduleName": "seal-app-conn-check-api",
+    "moduleId": "seal-app-conn-check-api",
+    "connectionState": "Disconnected",
+    "moduleType": "compose",
+    "deploymentType": "sems",
+    "status": "running",
+    "version": "release-1.0.0"
+  },
+  {
+    "moduleName": "seal-app-conn-check-ui",
+    "moduleId": "seal-app-conn-check-ui",
+    "connectionState": "Disconnected",
+    "moduleType": "compose",
+    "deploymentType": "sems",
+    "status": "running",
+    "version": "release-1.0.0"
+  }
+]

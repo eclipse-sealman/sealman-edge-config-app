@@ -1,0 +1,63 @@
+trigger:
+  tags:
+    include:
+      - "*"
+
+resources:
+  - repo: self
+
+variables:
+  tag: "$(Build.SourceBranchName)"
+
+stages:
+  - stage: Test
+    displayName: "Testing stage"
+    jobs:
+      - job: Test
+        steps:
+          - task: UseNode@1
+            displayName: "Install Node.js"
+            inputs:
+              version: "22.22.1"
+          - script: |
+              npm install
+            displayName: "Install node dependencies"
+          - script: |
+              npm run test:ci
+            displayName: "Run vitest"
+          - script: |
+              npm run test:cypress:component:ci
+            displayName: "Run cypress component tests"
+          - script: |
+              npm run combine:reports
+            displayName: "Combine reports"
+          - task: PublishTestResults@2
+            displayName: "Publish test results"
+            condition: succeededOrFailed() # because otherwise we won't know what tests failed
+            inputs:
+              testResultsFiles: "/home/vsts/work/1/s/reports/combined-report.xml"
+
+  - stage: Publish
+    displayName: "Publishing stage"
+    dependsOn: Test
+    jobs:
+      - job:
+        displayName: Build Docker Image and Push to registry
+        steps:
+          - task: Docker@2
+            displayName: Build image
+            inputs:
+              containerRegistry: $(Docker.RegistryName) # placeholder for real registry name
+              repository: edge-configuration-frontend
+              command: build
+              Dockerfile: $(Build.SourcesDirectory)/Dockerfile
+              arguments: |
+                --build-arg VITE_VERSION=$(tag)
+              tags: "$(tag)"
+          - task: Docker@2
+            displayName: Push image
+            inputs:
+              containerRegistry: $(Docker.RegistryName) # placeholder for real registry name
+              repository: edge-configuration-frontend
+              command: push
+              tags: "$(tag)"

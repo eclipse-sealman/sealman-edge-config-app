@@ -1,0 +1,8 @@
+{
+  "deviceId": "23002404",
+  "deploymentId": "test-deployment-1",
+  "priority": 10,
+  "targeted": true,
+  "applied": true,
+  "success": true
+}

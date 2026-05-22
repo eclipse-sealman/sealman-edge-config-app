@@ -1,0 +1,23 @@
+{
+  "scheduledCron": "* * * * *",
+  "scanDefinition": {
+    "networkDefinition": "172.22.220.0",
+    "subnetMask": 23,
+    "ports": [
+      5900,
+      21,
+      80
+    ]
+  },
+  "endpointNames": {
+    "172.22.220.1": {
+      "name": "Shingle Loader",
+      "serviceNames": {
+        "21": "FTP Server",
+        "4840": "OPC-UA Server",
+        "5900": "VNC Server"
+      }
+    }
+  }
+}
+

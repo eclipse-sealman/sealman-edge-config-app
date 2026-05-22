@@ -1,0 +1,15 @@
+{
+  "nat_enabled": false,
+  "nat_rules": [
+    {
+      "name": "nat-config-1",
+      "extIp": "36.3.254.253",
+      "intIp": "255.4.74.231"
+    },
+    {
+      "name": "nat-config-2",
+      "extIp": "200.206.143.214",
+      "intIp": "8.54.09.230"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+trigger:
+  branches:
+    include:
+      - seal-main
+  paths:
+    include:
+      - VERSION
+
+parameters:
+  - name: publishToDockerHub
+    displayName: Publish to Docker Hub
+    type: boolean
+    default: false
+
+resources:
+  - repo: self
+
+variables:
+  acrRegistry: acrsealman.azurecr.io
+  acrRepository: sealman-app
+  dockerHubRepository: eclipsesealman/sealman-app
+  dockerHubServiceConnection: sealman-docker-hub
+
+stages:
+  - stage: Test
+    displayName: Testing stage
+    jobs:
+      - job: Test
+        displayName: Run tests
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: UseNode@1
+            displayName: Install Node.js
+            inputs:
+              version: "22.22.1"
+          - script: npm install
+            displayName: Install node dependencies
+          - script: npm run test:ci
+            displayName: Run vitest
+          - script: npm run test:cypress:component:ci
+            displayName: Run cypress component tests
+          - script: npm run combine:reports
+            displayName: Combine reports
+          - task: PublishTestResults@2
+            displayName: Publish test results
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFiles: "/home/vsts/work/1/s/reports/combined-report.xml"
+
+  - stage: Publish
+    displayName: Publishing stage
+    dependsOn: Test
+    jobs:
+      - job: Publish
+        displayName: Build and push Docker image
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - script: |
+              VERSION=$(cat VERSION)
+              echo "##vso[task.setvariable variable=tag]$VERSION"
+              echo "Building version: $VERSION"
+            displayName: Read version from VERSION file
+
+          - task: Docker@2
+            displayName: Login to ACR
+            inputs:
+              containerRegistry: $(acrRegistry)
+              command: login
+
+          - task: Docker@2
+            displayName: Login to Docker Hub
+            condition: eq('${{ lower(parameters.publishToDockerHub) }}', 'true')
+            inputs:
+              containerRegistry: $(dockerHubServiceConnection)
+              command: login
+
+          - script: |
+              docker buildx create --name multiplatform --use
+              docker buildx inspect --bootstrap
+            displayName: Set up Docker Buildx
+
+          - script: |
+              OCI_CREATED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+              BUILD_CMD="docker buildx build \
+                --platform linux/amd64,linux/arm64 \
+                --build-arg VITE_VERSION=$(tag) \
+                --label org.opencontainers.image.created=${OCI_CREATED} \
+                --label org.opencontainers.image.title=\"Sealman Edge Config App\" \
+                --label org.opencontainers.image.licenses=\"Apache-2.0\" \
+                --label org.opencontainers.image.version=$(tag) \
+                --label org.opencontainers.image.revision=$(Build.SourceVersion) \
+                -f $(Build.SourcesDirectory)/Dockerfile \
+                -t $(acrRegistry)/$(acrRepository):$(tag) \
+                -t $(acrRegistry)/$(acrRepository):latest"
+              
+              if [ "${{ lower(parameters.publishToDockerHub) }}" = "true" ]; then
+                BUILD_CMD="${BUILD_CMD} \
+                -t docker.io/$(dockerHubRepository):$(tag) \
+                -t docker.io/$(dockerHubRepository):latest"
+              fi
+              
+              BUILD_CMD="${BUILD_CMD} --push $(Build.SourcesDirectory)"
+              
+              eval "${BUILD_CMD}"
+            displayName: Build and push multi-platform image
+
+          - task: Docker@2
+            displayName: Logout from Docker Hub
+            condition: eq('${{ lower(parameters.publishToDockerHub) }}', 'true')
+            inputs:
+              containerRegistry: $(dockerHubServiceConnection)
+              command: logout
+
+          - task: Docker@2
+            displayName: Logout from ACR
+            inputs:
+              containerRegistry: $(acrRegistry)
+              command: logout

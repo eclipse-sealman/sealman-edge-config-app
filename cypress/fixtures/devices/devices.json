@@ -1,0 +1,84 @@
+[
+  {
+    "deviceName": "anim mollit Lorem et consectetur",
+    "deviceStatus": "Connected",
+    "lastSeenAt": "ipsum esse dolor amet Duis",
+    "lastSeenInRange": true,
+    "lastSeenRangeInDays": -86900975,
+    "city": "in velit",
+    "customer": "aliquip dolor",
+    "deployment": "laboris",
+    "description": "aute pariatur laboris sint Ut",
+    "geoLocation": "-302.28,-8.486560915"
+  },
+  {
+    "deviceName": "sint Ut",
+    "deviceStatus": "Connected",
+    "lastSeenAt": "occaecat mollit culpa",
+    "lastSeenInRange": true,
+    "lastSeenRangeInDays": -85366896,
+    "city": "adipisicing id proident esse anim",
+    "countryCode": "esse in",
+    "customer": "non tempor",
+    "deployment": "sit sed",
+    "description": "dolore voluptate velit",
+    "geoLocation": "-508.045837859,-3.43029181"
+  },
+  {
+    "deviceName": "nulla",
+    "deviceStatus": "Connected",
+    "lastSeenAt": "dolore irure",
+    "city": "ut cupidatat",
+    "countryCode": "consectetur Duis dolor in",
+    "description": "ea labore",
+    "geoLocation": "-5.64932029542,-1.82774817915"
+  },
+  {
+    "deviceName": "aliqua in",
+    "deviceStatus": "Connected",
+    "lastSeenInRange": false,
+    "city": "sit dolor laboris anim",
+    "customer": "veniam non voluptate",
+    "deployment": "in eiusmod cupidatat",
+    "geoLocation": "004.8728,-908.87572"
+  },
+  {
+    "deviceName": "irure ut nulla nostrud elit",
+    "deviceStatus": "Disconnected",
+    "lastSeenAt": "tempor laborum ut adipisicing",
+    "lastSeenInRange": true,
+    "lastSeenRangeInDays": -86237869,
+    "city": "irure",
+    "countryCode": "voluptate dolore",
+    "customer": "dolor Lorem fugiat laborum",
+    "deployment": "tempor anim ex ut Excepteur",
+    "description": "nisi",
+    "geoLocation": "-386.959,547.9"
+  },
+  {
+    "deviceName": "labore",
+    "deviceStatus": "Disconnected",
+    "lastSeenAt": "tempor nulla irure deserunt Lorem",
+    "lastSeenInRange": true,
+    "lastSeenRangeInDays": -23904542,
+    "city": "quis amet",
+    "countryCode": "enim Excepteur eu incididunt aute",
+    "customer": "cupidatat elit",
+    "deployment": "aliquip adipisicing tempor magna eiusmod",
+    "description": "nostrud aliqua",
+    "geoLocation": "-368.94967,-25.352751162"
+  },
+  {
+    "deviceName": "est commodo",
+    "deviceStatus": "Connected",
+    "lastSeenAt": "aute Excepteur dolore proident consequat",
+    "lastSeenInRange": false,
+    "lastSeenRangeInDays": -89339444,
+    "city": "Excepteur in sit aute",
+    "countryCode": "fugiat",
+    "customer": "est consequat pariatur",
+    "deployment": "nulla",
+    "description": "aliqua",
+    "geoLocation": "-16.963,-268.2504"
+  }
+]

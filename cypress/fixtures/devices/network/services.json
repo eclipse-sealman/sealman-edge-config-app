@@ -1,0 +1,14 @@
+{
+  "services": [
+    {
+      "defaultPort": 21,
+      "deviceEndpointServiceName": "FTP Server",
+      "description": "FTP Server"
+    },
+    {
+      "defaultPort": 80,
+      "deviceEndpointServiceName": "HTTP",
+      "description": "HTTP"
+    }
+  ]
+}
