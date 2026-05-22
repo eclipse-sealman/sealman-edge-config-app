@@ -167,7 +167,12 @@ const useDeviceTemplates = () => {
     queryKey: ["deviceTemplates"],
     queryFn: async () => {
       const res = await edgeConfigApi.getAvailableTemplates();
-      return res?.templates;
+      const templates = res?.templates;
+      const uniqueTemplates = templates.filter(
+        (template : any, index : any, self : any) =>
+          index === self.findIndex((t: any) => t.name === template.name)
+      );
+      return uniqueTemplates;
     }
   });
 
