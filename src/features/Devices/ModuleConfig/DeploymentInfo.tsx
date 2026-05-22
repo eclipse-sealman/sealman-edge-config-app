@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
 import { Heading, HeadingButton } from "../../../components/Typography/Heading";
 import {
@@ -45,6 +45,19 @@ export default function DeploymentInfo() {
     refetchInterval: 30000,
   });
 
+  const sortedDeployments = useMemo(() => {
+    if (!deployments) {
+      return [];
+    }
+
+    const collator = new Intl.Collator(undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+
+    return [...deployments].sort((a, b) => collator.compare(a.id, b.id));
+  }, [deployments]);
+
   const {
     data: deploymentInfo,
     isPending,
@@ -58,11 +71,22 @@ export default function DeploymentInfo() {
   });
 
   const putDeploymentMutation = useMutation({
-    mutationFn: (newDeploymentId: string) =>
-      edgeConfigApi.putDeploymentTag(deviceId, newDeploymentId),
-    onSuccess: () => {
+    mutationFn: (newDeployment: Deployment) =>
+      edgeConfigApi.putDeploymentTag(deviceId, newDeployment.targetCondition),
+    onSuccess: (_data, newDeployment) => {
       toast.success(`Successfully set new base deployment`);
       setIsEditing(false);
+      setSelectedDeploymentId(newDeployment.id);
+        queryClient.setQueryData<DeploymentInfoData | undefined>(
+          ["getDeploymentStatus", deviceId],
+          (previous) =>
+            previous
+              ? {
+                  ...previous,
+                  deploymentId: newDeployment.id,
+                }
+              : previous
+        );
       queryClient.invalidateQueries({ queryKey: ["getDeploymentStatus", deviceId] });
     },
   });
@@ -80,15 +104,11 @@ export default function DeploymentInfo() {
           value={selectedDeploymentId}
           onChange={(e) => setSelectedDeploymentId(e.target.value)}
         >
-          {deployments &&
-            deployments.map((deployment) => (
-              <option
-                key={deployment.targetCondition}
-                value={deployment.targetCondition}
-              >
-                {deployment.id}
-              </option>
-            ))}
+          {sortedDeployments.map((deployment) => (
+            <option key={deployment.id} value={deployment.id}>
+              {deployment.id}
+            </option>
+          ))}
         </select>
       ) : (
         <Badge color={BadgeColor.Blue}>{deploymentInfo.deploymentId}</Badge>
@@ -111,6 +131,9 @@ export default function DeploymentInfo() {
   }
 
   const errorMessage = isError ? `${error.message}` : undefined;
+  const selectedDeployment = sortedDeployments.find(
+    (deployment) => deployment.id === selectedDeploymentId
+  );
 
   return (
     <div className="space-y-4">
@@ -120,7 +143,14 @@ export default function DeploymentInfo() {
           Module Deployment
           {isEditing ? (
             <>
-              <HeadingButton onClick={() => putDeploymentMutation.mutate(selectedDeploymentId)}>
+              <HeadingButton
+                onClick={() => {
+                  if (!selectedDeployment) {
+                    return;
+                  }
+                  putDeploymentMutation.mutate(selectedDeployment);
+                }}
+              >
                 <PencilSquareIcon className="w-7 h-7 ml-2 cursor-pointer" />
                 Save
               </HeadingButton>
@@ -135,11 +165,11 @@ export default function DeploymentInfo() {
               resourceType="device"
               resourceId={deviceId}
               onClick={() => {
-                const currentDeployment = deployments?.find(
+                const currentDeployment = sortedDeployments.find(
                   (d) => d.id === deploymentInfo?.deploymentId
                 );
                 setSelectedDeploymentId(
-                  currentDeployment?.targetCondition || ""
+                  currentDeployment?.id || deploymentInfo?.deploymentId || ""
                 );
                 setIsEditing(true);
               }}
