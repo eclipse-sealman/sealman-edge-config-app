@@ -1,10 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../../components/Input/Button";
 import { useParams } from "react-router-dom";
 import JsonEditor from "../../../components/Input/JsonEditor";
 import { edgeConfigApiHooks } from "../../../api/edgeConfig/edgeConfigApiHooks";
 import { toast } from "react-toastify";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+
+const getTwinConfigErrorMessage = (error: any): string | undefined => {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData === "string") {
+    return responseData;
+  }
+
+  if (responseData?.message && typeof responseData.message === "string") {
+    return responseData.message;
+  }
+
+  if (error?.message && typeof error.message === "string") {
+    return error.message;
+  }
+
+  return undefined;
+};
 
 interface ModuleConfigProps {
   moduleName: string;
@@ -32,15 +50,28 @@ export default function ModuleConfig({
     staleTime: Infinity,
   });
 
+  useEffect(() => {
+    if (!isError) return;
+
+    const detailedMessage = getTwinConfigErrorMessage(error);
+    const message = detailedMessage
+      ? `Could not retrieve module configuration for ${moduleName}. ${detailedMessage}`
+      : `Could not retrieve module configuration for ${moduleName}.`;
+
+    toast.error(message);
+  }, [isError, error, moduleName]);
+
   if (isPending) return <>Loading</>;
 
   if (isError) {
+    const detailedMessage = getTwinConfigErrorMessage(error);
+
     return (
       <>
         <div className="flex my-2 gap-2">
           <div className="grow bg-red-100 border border-red-400 p-2">
-            Could not retrieve twin config. {error.code}{" "}
-            {JSON.stringify(error.response?.data)}
+            Could not retrieve twin config for <b>{moduleName}</b>.
+            {detailedMessage ? ` ${detailedMessage}` : ""}
           </div>
           <Button onClick={() => refetch()} processing={isPending}>
             Retry
