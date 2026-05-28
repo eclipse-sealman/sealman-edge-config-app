@@ -115,7 +115,8 @@ export function DeviceSemsConfigExport() {
   return (
     <div className="space-x-2">
       <PermissionGuardedButton
-        deviceId={deviceId}
+        resourceType="device"
+        resourceId={deviceId}
         permissionKey={PERMISSION_KEYS.DEVICE_READ}
         processing={isExporting}
         onClick={() => exportConfig()}
@@ -123,7 +124,8 @@ export function DeviceSemsConfigExport() {
         Show desired Config
       </PermissionGuardedButton>
       <PermissionAndModuleGuardedButton
-          deviceId={deviceId}
+          resourceType="device"
+          resourceId={deviceId}
           permissionKey={PERMISSION_KEYS.DEVICE_READ}
           requiredModuleName={CMD_PROXY_MODULE_NAME}
           processing={isLoadingConfig}

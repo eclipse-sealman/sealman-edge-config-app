@@ -55,7 +55,8 @@ export default function PerformManualNetworkScan() {
 
   return (
     <GuardedButtonWithLoading
-      deviceId={deviceId}
+      resourceType="device"
+      resourceId={deviceId}
       permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_DISCOVER}
       handleOnClick={handleOnClick}
       variant="outline"

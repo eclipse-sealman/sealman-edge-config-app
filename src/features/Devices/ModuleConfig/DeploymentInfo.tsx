@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
 import { Heading, HeadingButton } from "../../../components/Typography/Heading";
 import {
@@ -46,19 +46,6 @@ export default function DeploymentInfo() {
     refetchInterval: 30000,
   });
 
-  const sortedDeployments = useMemo(() => {
-    if (!deployments) {
-      return [];
-    }
-
-    const collator = new Intl.Collator(undefined, {
-      numeric: true,
-      sensitivity: "base",
-    });
-
-    return [...deployments].sort((a, b) => collator.compare(a.id, b.id));
-  }, [deployments]);
-
   const {
     data: deploymentInfo,
     isPending,
@@ -72,22 +59,11 @@ export default function DeploymentInfo() {
   });
 
   const putDeploymentMutation = useMutation({
-    mutationFn: (newDeployment: Deployment) =>
-      edgeConfigApi.putDeploymentTag(deviceId, newDeployment.targetCondition),
-    onSuccess: (_data, newDeployment) => {
+    mutationFn: (newDeploymentId: string) =>
+      edgeConfigApi.putDeploymentTag(deviceId, newDeploymentId),
+    onSuccess: () => {
       toast.success(`Successfully set new base deployment`);
       setIsEditing(false);
-      setSelectedDeploymentId(newDeployment.id);
-        queryClient.setQueryData<DeploymentInfoData | undefined>(
-          ["getDeploymentStatus", deviceId],
-          (previous) =>
-            previous
-              ? {
-                  ...previous,
-                  deploymentId: newDeployment.id,
-                }
-              : previous
-        );
       queryClient.invalidateQueries({ queryKey: ["getDeploymentStatus", deviceId] });
     },
   });
@@ -105,11 +81,15 @@ export default function DeploymentInfo() {
           value={selectedDeploymentId}
           onChange={(e) => setSelectedDeploymentId(e.target.value)}
         >
-          {sortedDeployments.map((deployment) => (
-            <option key={deployment.id} value={deployment.id}>
-              {deployment.id}
-            </option>
-          ))}
+          {deployments &&
+            deployments.map((deployment) => (
+              <option
+                key={deployment.targetCondition}
+                value={deployment.targetCondition}
+              >
+                {deployment.id}
+              </option>
+            ))}
         </select>
       ) : (
         <Badge color={BadgeColor.Blue}>{deploymentInfo.deploymentId}</Badge>
@@ -132,9 +112,6 @@ export default function DeploymentInfo() {
   }
 
   const errorMessage = isError ? `${error.message}` : undefined;
-  const selectedDeployment = sortedDeployments.find(
-    (deployment) => deployment.id === selectedDeploymentId
-  );
 
   return (
     <div className="space-y-4">
@@ -144,14 +121,7 @@ export default function DeploymentInfo() {
           Module Deployment
           {isEditing ? (
             <>
-              <HeadingButton
-                onClick={() => {
-                  if (!selectedDeployment) {
-                    return;
-                  }
-                  putDeploymentMutation.mutate(selectedDeployment);
-                }}
-              >
+              <HeadingButton onClick={() => putDeploymentMutation.mutate(selectedDeploymentId)}>
                 <PencilSquareIcon className="w-7 h-7 ml-2 cursor-pointer" />
                 Save
               </HeadingButton>
@@ -163,13 +133,14 @@ export default function DeploymentInfo() {
           ) : (
             <GuardedHeadingButton
               permissionKey={PERMISSION_KEYS.DEVICE_DEPLOYMENT_WRITE}
-              deviceId={deviceId}
+              resourceType="device"
+              resourceId={deviceId}
               onClick={() => {
-                const currentDeployment = sortedDeployments.find(
+                const currentDeployment = deployments?.find(
                   (d) => d.id === deploymentInfo?.deploymentId
                 );
                 setSelectedDeploymentId(
-                  currentDeployment?.id || deploymentInfo?.deploymentId || ""
+                  currentDeployment?.targetCondition || ""
                 );
                 setIsEditing(true);
               }}

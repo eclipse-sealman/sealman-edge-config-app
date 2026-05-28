@@ -40,7 +40,8 @@ export function DeviceSemsCheck () {
 
   return <div>
     <PermissionAndModuleGuardedButton
-      deviceId={deviceId}
+      resourceType="device"
+      resourceId={deviceId}
       permissionKey={PERMISSION_KEYS.DEVICE_READ}
       requiredModuleName={CMD_PROXY_MODULE_NAME}
       processing={isPending}

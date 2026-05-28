@@ -73,7 +73,8 @@ export default function SaveTwinConfig({ onSuccess = () => {}, saveText = "Save 
     <div id="save-btn" className="w-full sm:w-auto">
       <GuardedButtonWithLoading
         permissionKey={PERMISSION_KEYS.DEVICE_MODULE_TWIN_CONFIG_WRITE}
-        deviceId={deviceId}
+        resourceType="device"
+        resourceId={deviceId}
         handleOnClick={handleOnClick}
         isLoading={status === Status.IsSaving}
         text={saveText}

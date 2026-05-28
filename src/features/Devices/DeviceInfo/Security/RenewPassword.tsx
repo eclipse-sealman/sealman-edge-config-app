@@ -61,7 +61,8 @@ export default function RenewPassword({ deviceId }: RenewPasswordParams) {
               onClick={() => {
                 setIsConfirmModalOpen(true);
               }}
-              deviceId={deviceId}
+              resourceType="device"
+              resourceId={deviceId}
               permissionKey={PERMISSION_KEYS.DEVICE_PASSWORD_WRITE}
             >
               Force password renew
