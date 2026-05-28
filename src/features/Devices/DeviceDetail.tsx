@@ -17,6 +17,7 @@ import SecurityInformation from "./DeviceInfo/Security/SecurityInformation";
 import { usePermissions } from "../authorization/permissions/use-permissions";
 import { NoPermissionsPanel } from "../authorization/permissions/NoPermissionsPanel";
 import DeviceMetadata from "./DeviceInfo/Metadata/DeviceMetadata";
+import { PERMISSION_KEYS } from "../authorization/permissions/permission-keys";
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -59,7 +60,7 @@ export default function DeviceDetail() {
     }
   ];
 
-  const { hasPermission, noPermissionsMessage, isLoading } = usePermissions({ resourceType: "device", resourceId: deviceId, permissionKey: "read" });
+  const { hasPermission, noPermissionsMessage, isLoading } = usePermissions({ resourceType: "device", resourceId: deviceId, permissionKey: PERMISSION_KEYS.DEVICE_READ });
 
   if (isLoading) {
     return (

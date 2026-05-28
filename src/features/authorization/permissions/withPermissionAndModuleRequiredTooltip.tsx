@@ -2,11 +2,12 @@ import * as React from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { RestrictedTooltip } from "@/components/ui/restricted-tooltip";
 import { usePermissions } from "./use-permissions";
+import type { PermissionKey } from "./permission-keys";
 
 type GuardExtras = {
   resourceType: string;
   resourceId?: string;
-  permissionKey: string;
+  permissionKey: PermissionKey;
   customNoPermissionsMessage?: string;
   autoDisable?: boolean;
   wrapperClassName?: string;

@@ -1,12 +1,13 @@
 import * as React from "react";
 import { RestrictedTooltip } from "@/components/ui/restricted-tooltip";
 import { usePermissions } from "./use-permissions";
+import type { PermissionKey } from "./permission-keys";
 
 // Extra props the wrapper adds on top of the wrapped component props
 type GuardExtras = {
   resourceType: string;
   resourceId?: string;
-  permissionKey: string;
+  permissionKey: PermissionKey;
   customNoPermissionsMessage?: string;
   /** If true, force disabled when show=true (merged with incoming disabled) */
   autoDisable?: boolean;

@@ -5,6 +5,7 @@ import JsonEditor from "../../../components/Input/JsonEditor";
 import { edgeConfigApiHooks } from "../../../api/edgeConfig/edgeConfigApiHooks";
 import { toast } from "react-toastify";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const getTwinConfigErrorMessage = (error: any): string | undefined => {
   const responseData = error?.response?.data;
@@ -153,7 +154,7 @@ function JsonForm({
           <GuardedButton
               resourceType="device"
               resourceId={deviceId}
-              permissionKey="edit_module_twin_config"
+              permissionKey={PERMISSION_KEYS.DEVICE_MODULE_TWIN_CONFIG_WRITE}
               processing={usePostTwinConfig.isPending}
               className="mt-2"
               onClick={() => onSetTwinConfig()}

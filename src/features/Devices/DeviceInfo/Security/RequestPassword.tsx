@@ -4,6 +4,7 @@ import PasswordValue from "./PasswordValue";
 import useGetSmartEmsSecretInfo from "@/generated/edge-administration/hooks/useGetSmartEmsSecretInfo";
 import SimpleDialog from "@/components/Modal/SimpleDialog";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const GuardedButton = withPermissionRequiredTooltip(Button);
 
@@ -25,7 +26,7 @@ export default function RequestPassword({ deviceId }: RequestPasswordParams) {
 
   return (
     <div>
-      <GuardedButton permissionKey="read_password" resourceType="device" resourceId={deviceId} size={ButtonSize.Small} onClick={() => setIsRequestModalOpen(true)}>
+      <GuardedButton permissionKey={PERMISSION_KEYS.DEVICE_PASSWORD_READ} resourceType="device" resourceId={deviceId} size={ButtonSize.Small} onClick={() => setIsRequestModalOpen(true)}>
         Show password value
       </GuardedButton>
       <SimpleDialog isOpen={isRequestModalOpen} onClose={closeRequestModal} title={`Password for device ${deviceId}`}>

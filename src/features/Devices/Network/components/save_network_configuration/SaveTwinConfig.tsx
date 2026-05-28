@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { usePostModuleNetDiscover } from "@/generated/edge-administration/hooks/usePostModuleNetDiscover";
 import { Status, useNetworkPageStore, useScanDefinitionStore, useSelectedEndpointStore, useTwinConfigStore } from "@/features/Devices/Network/stores";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 interface props {
   saveText?: string
@@ -71,7 +72,7 @@ export default function SaveTwinConfig({ onSuccess = () => {}, saveText = "Save 
   return (
     <div id="save-btn" className="w-full sm:w-auto">
       <GuardedButtonWithLoading
-        permissionKey="edit_module_twin_config"
+        permissionKey={PERMISSION_KEYS.DEVICE_MODULE_TWIN_CONFIG_WRITE}
         resourceType="device"
         resourceId={deviceId}
         handleOnClick={handleOnClick}

@@ -15,6 +15,7 @@ import DictionaryList, {
 } from "../../../components/Table/DictionaryList";
 import { toast } from "react-toastify";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 interface DeploymentInfoData {
   deviceId: string;
@@ -161,7 +162,7 @@ export default function DeploymentInfo() {
             </>
           ) : (
             <GuardedHeadingButton
-              permissionKey="edit_deployment_tag"
+              permissionKey={PERMISSION_KEYS.DEVICE_DEPLOYMENT_WRITE}
               resourceType="device"
               resourceId={deviceId}
               onClick={() => {

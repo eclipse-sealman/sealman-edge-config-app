@@ -4,6 +4,7 @@ import { useNetworkPageStore, useScanDefinitionStore, useScanDiscoverStore } fro
 import usePostDeviceNetworkDiscover, { NetworkDiscover } from "@/generated/edge-administration/hooks/network/usePostDeviceNetworkDiscover";
 import { useEffect } from "react";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const GuardedButtonWithLoading = withPermissionRequiredTooltip(ButtonWithLoading);
 
@@ -56,7 +57,7 @@ export default function PerformManualNetworkScan() {
     <GuardedButtonWithLoading
       resourceType="device"
       resourceId={deviceId}
-      permissionKey="discover_network"
+      permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_DISCOVER}
       handleOnClick={handleOnClick}
       variant="outline"
       isLoading={isScanning}

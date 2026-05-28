@@ -5,6 +5,7 @@ import useGetSmartEmsSecretInfo from "@/generated/edge-administration/hooks/useG
 import { usePostSmartEmsSecret } from "@/generated/edge-administration/hooks/usePostSmartEmsSecret";
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 export interface RenewPasswordParams {
   deviceId: string;
@@ -62,7 +63,7 @@ export default function RenewPassword({ deviceId }: RenewPasswordParams) {
               }}
               resourceType="device"
               resourceId={deviceId}
-              permissionKey="edit_password"
+              permissionKey={PERMISSION_KEYS.DEVICE_PASSWORD_WRITE}
             >
               Force password renew
             </GuardedButton>

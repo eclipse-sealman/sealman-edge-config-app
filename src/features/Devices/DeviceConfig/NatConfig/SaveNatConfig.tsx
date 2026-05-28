@@ -3,6 +3,7 @@ import { useContext } from "react";
 import { toast } from "react-toastify";
 import Button from "@/components/Input/Button";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const GuardedButton = withPermissionRequiredTooltip(Button);
 
@@ -25,7 +26,7 @@ export default function SaveNat() {
     <GuardedButton
         resourceType="device"
         resourceId={deviceId}
-        permissionKey="edit_smartems_config_nat"
+        permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE}
         onClick={handleOnClick}
         processing={postIsPending}
       >

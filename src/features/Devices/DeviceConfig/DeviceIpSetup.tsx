@@ -15,6 +15,7 @@ import { edgeConfigApiHooks } from "../../../api/edgeConfig/edgeConfigApiHooks";
 import { CMD_PROXY_MODULE_NAME } from "@/api/edgeConfig/moduleNames";
 import { InterfaceData, IpConfig } from "../../../api/edgeConfig/interfaces";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 interface NetworkInfo {
   interface_state: string;
@@ -128,7 +129,7 @@ function InterfacesForm({ interfaceData }: { interfaceData: InterfaceData }) {
           interfaceForm={interfaceForm}
           handleChange={handleChange} />
       </div>
-      <GuardedButton resourceType="device" resourceId={deviceId} permissionKey="edit_smartems_config_lan" type="submit" processing={isPending}>Save</GuardedButton>
+      <GuardedButton resourceType="device" resourceId={deviceId} permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE} type="submit" processing={isPending}>Save</GuardedButton>
     </form>
   )
 }

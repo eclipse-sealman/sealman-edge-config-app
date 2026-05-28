@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { CMD_PROXY_MODULE_NAME } from "@/api/edgeConfig/moduleNames";
 import { withPermissionAndModuleRequiredTooltip } from "@/features/authorization/permissions/withPermissionAndModuleRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const PermissionAndModuleGuardedButton = withPermissionAndModuleRequiredTooltip(Button);
 
@@ -41,7 +42,7 @@ export function DeviceSemsCheck () {
     <PermissionAndModuleGuardedButton
       resourceType="device"
       resourceId={deviceId}
-      permissionKey="execute_smartems_check"
+      permissionKey={PERMISSION_KEYS.DEVICE_READ}
       requiredModuleName={CMD_PROXY_MODULE_NAME}
       processing={isPending}
       onClick={() => mutate()}

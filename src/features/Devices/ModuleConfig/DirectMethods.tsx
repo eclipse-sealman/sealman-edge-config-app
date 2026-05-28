@@ -15,6 +15,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const GuardedButton = withPermissionRequiredTooltip(Button);
 
@@ -84,7 +85,13 @@ function RestartModule({ moduleName }: { moduleName: string }) {
       }
     }
   })
-  return <GuardedButton resourceType="device" resourceId={deviceId} permissionKey="execute_module_method" onClick={() => mutate()}>Restart Module</GuardedButton>
+  return <GuardedButton 
+            resourceType="device" 
+            resourceId={deviceId} 
+            permissionKey={PERMISSION_KEYS.DEVICE_MODULE_EXECUTE_METHOD} 
+            onClick={() => mutate()}>
+              Restart Module
+          </GuardedButton>
 }
 
 

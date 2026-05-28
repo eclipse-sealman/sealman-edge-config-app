@@ -3,6 +3,7 @@ import { BtnWithLoading } from "../buttons";
 import { useNetworkPageStore, useScanDefinitionStore } from "@/features/Devices/Network/stores";
 import { withPermissionAndModuleRequiredTooltip } from "@/features/authorization/permissions/withPermissionAndModuleRequiredTooltip";
 import { CMD_PROXY_MODULE_NAME } from "@/api/edgeConfig/moduleNames";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const GuardedBtnWithLoading = withPermissionAndModuleRequiredTooltip(BtnWithLoading);
 
@@ -26,7 +27,7 @@ export default function ReadNetwork() {
     <GuardedBtnWithLoading
       resourceType="device"
       resourceId={deviceId}
-      permissionKey="execute_module_method"
+      permissionKey={PERMISSION_KEYS.DEVICE_MODULE_EXECUTE_METHOD}
       requiredModuleName={CMD_PROXY_MODULE_NAME}
       isLoading={ isReading }
       handleOnClick={handleOnClick}

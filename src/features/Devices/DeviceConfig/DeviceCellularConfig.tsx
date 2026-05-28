@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import Button from "../../../components/Input/Button";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 
 interface CellularConfig {
@@ -142,7 +143,7 @@ export function Cellular() {
               />
             </div>
             <GuardedButton
-            permissionKey="edit_smartems_config_cellular"
+            permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE}
             resourceType="device"
             resourceId={deviceId}
             onClick={handleSubmit}>Apply Cellular</GuardedButton></div>
