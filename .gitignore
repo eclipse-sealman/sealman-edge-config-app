@@ -16,10 +16,12 @@
 .DS_Store
 .env.*
 .env
+!.env.example
 *.vsidx
 .wsuo
 .vs
 .vscode
+.nvmrc
 
 TODO
 

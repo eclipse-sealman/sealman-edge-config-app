@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useSelectedEndpointStore } from "../../stores"
 import useLockZoom from "../../layouts/EndpointContent/useLockZoom"
+import { getServices } from "../../api/networkMeta"
 
 interface props {
   port: number
@@ -12,18 +13,12 @@ interface props {
   setOpen: (open: boolean) => void
 }
 
-const serviceOptions = [
-  "OPC-UA Server",
-  // "VNC Server"
-];
-
-
-// TODO @JC: this component is not atomic ⚛️😬
 export default function ServiceList({ setOpen, value, port }: props) {
   const { updateServiceNameByPort } = useSelectedEndpointStore()
   const [name, setName] = useState("")
 
-  // TODO THOMAS: decide what to do with zooming
+  const serviceOptions = (getServices() ?? []).map((s: any) => s.deviceEndpointServiceName)
+
   useLockZoom()
 
   const handleOnSelect = (selectedValue: string) => {

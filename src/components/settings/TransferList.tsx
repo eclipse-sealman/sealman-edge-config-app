@@ -59,9 +59,9 @@ const filteredAvailable = availableItems.filter((item) =>
 
               <div className="space-y-1">
 
-                {filteredSelected.map((item) => (
+                {filteredSelected.map((item, index) => (
                   <div
-                    key={item}
+                    key={`${item}-${index}`}
                     className="flex items-center justify-between rounded px-2 py-1 text-sm hover:bg-muted"
                   >
                     <span>{item}</span>
@@ -113,9 +113,9 @@ const filteredAvailable = availableItems.filter((item) =>
 
               <div className="space-y-1">
 
-                {filteredAvailable.map((item) => (
+                {filteredAvailable.map((item, index) => (
                   <div
-                    key={item}
+                    key={`${item}-${index}`}
                     className="flex items-center justify-between rounded px-2 py-1 text-sm hover:bg-muted"
                   >
                     <span>{item}</span>

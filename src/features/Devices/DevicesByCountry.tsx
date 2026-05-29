@@ -223,7 +223,7 @@ export default function DevicesByCountry({ onSelectChanged, refreshKey }: Device
   };
 
   return (
-    <Menu>
+    <Menu as="div" className="relative inline-block">
       <Badge color={BadgeColor.Yellow}>
         <Menu.Button>Countries {selectedCount !== 0 ? <>({selectedCount})</> : null}</Menu.Button>
       </Badge>
@@ -237,8 +237,8 @@ export default function DevicesByCountry({ onSelectChanged, refreshKey }: Device
         leaveTo="transform opacity-0 scale-95"
       >
         <Menu.Items
-          className="z-index-above-map absolute mt-1 text-sm origin-top-left rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-hidden w-84"
-          style={{ width: "750px" }}
+          className="z-index-above-map absolute left-0 mt-1 text-sm origin-top-left rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+          style={{ width: "min(750px, calc(100vw - 1rem))" }}
         >
           <div className="px-2 pb-2 flex flex-row gap-2">
             <div>
@@ -268,6 +268,7 @@ export default function DevicesByCountry({ onSelectChanged, refreshKey }: Device
               </>
             ) : null}
           </div>
+          <div className="max-h-96 overflow-y-auto">
           {continentDevices.map((c) => (
             <div key={c.continent}>
               <div
@@ -278,7 +279,7 @@ export default function DevicesByCountry({ onSelectChanged, refreshKey }: Device
               </div>
               <div className="flex flex-wrap p-2">
                 {c.countries.map((country) => (
-                  <div key={country.countryCode} className="cursor-pointer w-1/3 flex flex-row">
+                  <div key={country.countryCode} className="cursor-pointer w-full sm:w-1/2 md:w-1/3 flex flex-row">
                     <IndeterminateCheckbox
                       className="my-2"
                       checked={country.selected}
@@ -293,6 +294,7 @@ export default function DevicesByCountry({ onSelectChanged, refreshKey }: Device
               </div>
             </div>
           ))}
+          </div>
         </Menu.Items>
       </Transition>
     </Menu>
