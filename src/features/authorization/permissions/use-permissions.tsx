@@ -17,7 +17,7 @@ export interface UsePermissionsOutput {
 
 export interface UsePermissionsOptions {
   resourceType: string;
-  resourceId?: string;
+  deviceId?: string;
   permissionKey: PermissionKey;
 }
 
@@ -28,21 +28,21 @@ export function setMockPermission(){
 
 export function usePermissions({
   resourceType,
-  resourceId,
+  deviceId,
   permissionKey
 }: UsePermissionsOptions): UsePermissionsOutput {
   const { data, isLoading } = useQuery<PermissionsResponse>({
-    queryKey: ["permissions", resourceType, resourceId],
-    queryFn: async () => mockPermissions ? authPermissionsResponseBody : edgeConfigApi.getPermissions(resourceType, resourceId),
+    queryKey: ["permissions", resourceType, deviceId],
+    queryFn: async () => mockPermissions ? authPermissionsResponseBody : edgeConfigApi.getPermissions(resourceType, deviceId),
   });
 
   const hasPermission = data?.Permissions?.includes(permissionKey) ?? false;
-  const noPermissionsMessage = !hasPermission ? noPermissionForActionMessage({permissionKey, resourceType, resourceId: resourceId!}) : undefined;
+  const noPermissionsMessage = !hasPermission ? noPermissionForActionMessage({permissionKey, resourceType, deviceId: deviceId!}) : undefined;
   return { hasPermission: hasPermission, noPermissionsMessage, isLoading: isLoading };
 }
 
 const authPermissionsResponseBody = {
     "ResourceType": "device",
-    "ResourceId": "eg-23004254",
+    "DeviceId": "eg-23004254",
     "Permissions": Object.values(PERMISSION_KEYS)
 };

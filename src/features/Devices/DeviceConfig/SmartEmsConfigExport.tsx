@@ -116,7 +116,7 @@ export function DeviceSemsConfigExport() {
     <div className="space-x-2">
       <PermissionGuardedButton
         resourceType="device"
-        resourceId={deviceId}
+        deviceId={deviceId}
         permissionKey={PERMISSION_KEYS.DEVICE_READ}
         processing={isExporting}
         onClick={() => exportConfig()}

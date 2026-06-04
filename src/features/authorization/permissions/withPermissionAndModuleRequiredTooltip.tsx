@@ -42,7 +42,7 @@ export function withPermissionAndModuleRequiredTooltip<P extends object>(
   }: P & GuardExtras & RequiredModuleExtras) {
     const { hasPermission, noPermissionsMessage: generatedNoPermissionsMessage } = usePermissions({
       resourceType,
-      resourceId,
+      deviceId,
       permissionKey,
     });
 

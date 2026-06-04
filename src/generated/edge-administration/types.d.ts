@@ -2008,8 +2008,8 @@ export interface components {
         UserPermissions: {
             /** Resourcetype */
             ResourceType: string;
-            /** Resourceid */
-            ResourceId: string;
+            /** Deviceid */
+            DeviceId: string;
             /**
              * Permissions
              * @default []
@@ -2117,7 +2117,7 @@ export interface operations {
     get_permissions_auth_permissions__resource_type__get: {
         parameters: {
             query?: {
-                resource_id?: string;
+                device_id?: string;
             };
             header?: never;
             path: {

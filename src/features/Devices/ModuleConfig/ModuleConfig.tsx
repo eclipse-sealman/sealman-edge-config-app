@@ -153,7 +153,7 @@ function JsonForm({
         <div className="flex items-center">
           <GuardedButton
               resourceType="device"
-              resourceId={deviceId}
+              deviceId={deviceId}
               permissionKey={PERMISSION_KEYS.DEVICE_MODULE_TWIN_CONFIG_WRITE}
               processing={usePostTwinConfig.isPending}
               className="mt-2"

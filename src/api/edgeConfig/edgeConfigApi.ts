@@ -208,9 +208,9 @@ const postInfluxBucketCreate = async (deviceId: string | undefined) => {
   return data;
 }
 
-const getPermissions = async (resourceType: string, resourceId: string | undefined) => {
+const getPermissions = async (resourceType: string, deviceId: string | undefined) => {
   const url = `/auth/permissions/${resourceType}`;
-  const params = resourceId ? { resource_id: resourceId } : {};
+  const params = deviceId ? { device_id: deviceId } : {};
   const { data } = await edgeConfigApiInstance.get(url, { params });
   return data;
 }

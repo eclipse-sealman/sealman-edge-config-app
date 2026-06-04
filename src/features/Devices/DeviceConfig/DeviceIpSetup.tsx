@@ -129,7 +129,7 @@ function InterfacesForm({ interfaceData }: { interfaceData: InterfaceData }) {
           interfaceForm={interfaceForm}
           handleChange={handleChange} />
       </div>
-      <GuardedButton resourceType="device" resourceId={deviceId} permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE} type="submit" processing={isPending}>Save</GuardedButton>
+      <GuardedButton resourceType="device" deviceId={deviceId} permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE} type="submit" processing={isPending}>Save</GuardedButton>
     </form>
   )
 }
