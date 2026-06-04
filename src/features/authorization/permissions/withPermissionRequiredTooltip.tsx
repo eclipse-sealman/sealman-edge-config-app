@@ -6,7 +6,7 @@ import type { PermissionKey } from "./permission-keys";
 // Extra props the wrapper adds on top of the wrapped component props
 type GuardExtras = {
   resourceType: string;
-  resourceId?: string;
+  deviceId?: string;
   permissionKey: PermissionKey;
   customNoPermissionsMessage?: string;
   /** If true, force disabled when show=true (merged with incoming disabled) */
@@ -24,11 +24,11 @@ export function withPermissionRequiredTooltip<P extends object>(
   Wrapped: React.ComponentType<P>
 ) {
   // Create the wrapper component
-  function Comp({ resourceType, resourceId, permissionKey, customNoPermissionsMessage, autoDisable = true, wrapperClassName, ...rest }: P & GuardExtras) {
+  function Comp({ resourceType, deviceId, permissionKey, customNoPermissionsMessage, autoDisable = true, wrapperClassName, ...rest }: P & GuardExtras) {
 
       const { hasPermission, noPermissionsMessage: generatedNoPermissionsMessage } = usePermissions({
          resourceType,
-         resourceId,
+         deviceId,
          permissionKey
         });
     // Merge 'disabled' if the underlying component supports it

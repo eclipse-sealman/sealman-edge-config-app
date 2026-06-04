@@ -1,8 +1,10 @@
 export function noPermissionForActionMessage({
   permissionKey,
+  resourceType,
   deviceId,
 }: {
   permissionKey: string;
+  resourceType: string;
   deviceId?: string;
 }): string {
   // Normalize: trim, lowercase, replace underscores with spaces
@@ -17,7 +19,8 @@ export function noPermissionForActionMessage({
   // Build context part
   const context =
     deviceId != null && deviceId.trim() !== ""
-      ? ` on device ${deviceId}` : '';
+      ? ` on ${resourceType} ${deviceId}`
+      : ` on ${resourceType}`;
 
-  return `You don't have permission ${formattedAction}${context}.`;
+  return `You don't have permission to ${formattedAction}${context}.`;
 }

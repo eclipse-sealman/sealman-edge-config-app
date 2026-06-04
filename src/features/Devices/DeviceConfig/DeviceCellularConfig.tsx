@@ -145,7 +145,7 @@ export function Cellular() {
             <GuardedButton
             permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE}
             resourceType="device"
-            resourceId={deviceId}
+            deviceId={deviceId}
             onClick={handleSubmit}>Apply Cellular</GuardedButton></div>
         )}
       </div>

@@ -37,15 +37,6 @@ export interface DirectMethodRequest {
   methodPayload: any
 }
 
-export interface MetadataKeyOptions {
-  prepopulate: boolean;
-  allowAddition: boolean;
-}
-
-export type MetadataKeysResponse = {
-  keys: Record<string, MetadataKeyOptions>[];
-};
-
 /*
 * This function unwraps the direct method responses, into AxiosErrors
 * you can use it when handling direct methods
@@ -208,8 +199,7 @@ const postInfluxBucketCreate = async (deviceId: string | undefined) => {
   return data;
 }
 
-const getPermissions = async (deviceId: string | undefined) => {
-  const resourceType = deviceId ? "device" : "platform";
+const getPermissions = async (resourceType: string, deviceId: string | undefined) => {
   const url = `/auth/permissions/${resourceType}`;
   const params = deviceId ? { device_id: deviceId } : {};
   const { data } = await edgeConfigApiInstance.get(url, { params });
@@ -252,18 +242,14 @@ const getServicePorts = async () => {
   return data;
 }
 
-const getMetadataKeys = async (): Promise<Record<string, MetadataKeyOptions>> => {
-  const { data } = await edgeConfigApiInstance.get<MetadataKeysResponse>('/platform/metadata/keys');
-  return (data.keys ?? []).reduce<Record<string, MetadataKeyOptions>>((acc, entry) => {
-    return { ...acc, ...entry };
-  }, {});
-};
+const getMetadataKeys = async (): Promise<string[]> => {
+  const { data } = await edgeConfigApiInstance.get<{ keys: string[] }>('/platform/metadata/keys');
+  return data.keys;
+}
 
-const addMetadataKey = async (key: string, options: MetadataKeyOptions): Promise<void> => {
-  await edgeConfigApiInstance.post('/platform/metadata/keys', {
-    key: { [key]: options },
-  });
-};
+const addMetadataKey = async (key: string): Promise<void> => {
+  await edgeConfigApiInstance.post('/platform/metadata/keys', { key });
+}
 
 const deleteMetadataKey = async (key: string): Promise<void> => {
   await edgeConfigApiInstance.delete(`/platform/metadata/keys/${encodeURIComponent(key)}`);
@@ -296,11 +282,6 @@ const createDevice = async (deviceId: string, authType: string, meta?: Record<st
 const deleteDevice = async (deviceId: string) => {
   const { data } = await edgeConfigApiInstance.delete(`/devices/${deviceId}`);
   return data;
-};
-
-const getDeviceMetaValues = async (): Promise<Record<string, string[]>> => {
-  const response = await edgeConfigApiInstance.get("/devices/meta-values");
-  return response.data;
 };
 
 
@@ -349,5 +330,4 @@ export const edgeConfigApi = {
   createDevice,
   deleteDevice,
   getDevicesWithMetaKey,
-  getDeviceMetaValues
 }

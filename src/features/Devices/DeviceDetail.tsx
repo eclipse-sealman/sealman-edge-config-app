@@ -60,7 +60,7 @@ export default function DeviceDetail() {
     }
   ];
 
-  const { hasPermission, noPermissionsMessage, isLoading } = usePermissions({ resourceType: "device", resourceId: deviceId, permissionKey: PERMISSION_KEYS.DEVICE_READ });
+  const { hasPermission, noPermissionsMessage, isLoading } = usePermissions({ resourceType: "device", deviceId: deviceId, permissionKey: PERMISSION_KEYS.DEVICE_READ });
 
   if (isLoading) {
     return (
