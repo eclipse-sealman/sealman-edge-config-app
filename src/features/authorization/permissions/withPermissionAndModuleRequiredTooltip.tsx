@@ -6,7 +6,7 @@ import type { PermissionKey } from "./permission-keys";
 
 type GuardExtras = {
   resourceType: string;
-  resourceId?: string;
+  deviceId?: string;
   permissionKey: PermissionKey;
   customNoPermissionsMessage?: string;
   autoDisable?: boolean;
@@ -28,12 +28,11 @@ export function withPermissionAndModuleRequiredTooltip<P extends object>(
 ) {
   function Comp({
     resourceType,
-    resourceId,
+    deviceId,
     permissionKey,
     customNoPermissionsMessage,
     autoDisable = true,
     wrapperClassName,
-    deviceId,
     requiredModuleName,
     missingModuleMessage,
     disconnectedModuleMessage,
@@ -46,7 +45,7 @@ export function withPermissionAndModuleRequiredTooltip<P extends object>(
       permissionKey,
     });
 
-    const moduleDeviceId = deviceId ?? resourceId;
+    const moduleDeviceId = deviceId;
     const shouldCheckModule = hasPermission && Boolean(moduleDeviceId && requiredModuleName);
 
     const { data: modules, isLoading, isError } = edgeConfigApiHooks.useGetModules(moduleDeviceId, {
