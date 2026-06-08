@@ -125,7 +125,7 @@ export function DeviceSemsConfigExport() {
       </PermissionGuardedButton>
       <PermissionAndModuleGuardedButton
           resourceType="device"
-          resourceId={deviceId}
+          deviceId={deviceId}
           permissionKey={PERMISSION_KEYS.DEVICE_READ}
           requiredModuleName={CMD_PROXY_MODULE_NAME}
           processing={isLoadingConfig}
