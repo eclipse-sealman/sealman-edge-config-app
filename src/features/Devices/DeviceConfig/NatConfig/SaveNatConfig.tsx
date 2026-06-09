@@ -24,7 +24,6 @@ export default function SaveNat() {
 
   return (
     <GuardedButton
-        resourceType="device"
         deviceId={deviceId}
         permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE}
         onClick={handleOnClick}

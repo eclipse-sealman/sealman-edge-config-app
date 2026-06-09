@@ -61,7 +61,6 @@ export default function RenewPassword({ deviceId }: RenewPasswordParams) {
               onClick={() => {
                 setIsConfirmModalOpen(true);
               }}
-              resourceType="device"
               deviceId={deviceId}
               permissionKey={PERMISSION_KEYS.DEVICE_PASSWORD_WRITE}
             >

@@ -86,7 +86,6 @@ function RestartModule({ moduleName }: { moduleName: string }) {
     }
   })
   return <GuardedButton 
-            resourceType="device" 
             deviceId={deviceId} 
             permissionKey={PERMISSION_KEYS.DEVICE_MODULE_EXECUTE_METHOD} 
             onClick={() => mutate()}>

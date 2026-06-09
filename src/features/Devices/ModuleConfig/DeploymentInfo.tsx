@@ -133,7 +133,6 @@ export default function DeploymentInfo() {
           ) : (
             <GuardedHeadingButton
               permissionKey={PERMISSION_KEYS.DEVICE_DEPLOYMENT_WRITE}
-              resourceType="device"
               deviceId={deviceId}
               onClick={() => {
                 const currentDeployment = deployments?.find(
