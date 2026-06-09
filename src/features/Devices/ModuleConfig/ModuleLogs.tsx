@@ -56,7 +56,6 @@ export default function ModuleLogs({ moduleName }: { moduleName: string }) {
   };
 
   const { hasPermission, noPermissionsMessage } = usePermissions({
-    resourceType: "device",
     deviceId: deviceId,
     permissionKey: PERMISSION_KEYS.DEVICE_MODULE_EXECUTE_METHOD,
   });

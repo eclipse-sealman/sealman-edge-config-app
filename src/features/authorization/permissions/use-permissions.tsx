@@ -4,7 +4,6 @@ import { noPermissionForActionMessage } from "./no-permission-tooltip-utils";
 import { PERMISSION_KEYS, type PermissionKey } from "./permission-keys";
 
 interface PermissionsResponse {
-  ResourceType: string;
   ResourceId?: string;
   Permissions: string[];
 }
@@ -16,7 +15,6 @@ export interface UsePermissionsOutput {
 }
 
 export interface UsePermissionsOptions {
-  resourceType: string;
   deviceId?: string;
   permissionKey: PermissionKey;
 }
@@ -27,22 +25,20 @@ export function setMockPermission(){
 }
 
 export function usePermissions({
-  resourceType,
   deviceId,
   permissionKey
 }: UsePermissionsOptions): UsePermissionsOutput {
   const { data, isLoading } = useQuery<PermissionsResponse>({
-    queryKey: ["permissions", resourceType, deviceId],
-    queryFn: async () => mockPermissions ? authPermissionsResponseBody : edgeConfigApi.getPermissions(resourceType, deviceId),
+    queryKey: ["permissions", deviceId],
+    queryFn: async () => mockPermissions ? authPermissionsResponseBody : edgeConfigApi.getPermissions(deviceId),
   });
 
   const hasPermission = data?.Permissions?.includes(permissionKey) ?? false;
-  const noPermissionsMessage = !hasPermission ? noPermissionForActionMessage({permissionKey, resourceType, deviceId: deviceId!}) : undefined;
+  const noPermissionsMessage = !hasPermission ? noPermissionForActionMessage({permissionKey, deviceId: deviceId!}) : undefined;
   return { hasPermission: hasPermission, noPermissionsMessage, isLoading: isLoading };
 }
 
 const authPermissionsResponseBody = {
-    "ResourceType": "device",
     "DeviceId": "eg-23004254",
     "Permissions": Object.values(PERMISSION_KEYS)
 };

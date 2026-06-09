@@ -5,7 +5,6 @@ import { usePermissions } from "./use-permissions";
 import type { PermissionKey } from "./permission-keys";
 
 type GuardExtras = {
-  resourceType: string;
   deviceId?: string;
   permissionKey: PermissionKey;
   customNoPermissionsMessage?: string;
@@ -27,7 +26,6 @@ export function withPermissionAndModuleRequiredTooltip<P extends object>(
   Wrapped: React.ComponentType<P>
 ) {
   function Comp({
-    resourceType,
     deviceId,
     permissionKey,
     customNoPermissionsMessage,
@@ -40,7 +38,6 @@ export function withPermissionAndModuleRequiredTooltip<P extends object>(
     ...rest
   }: P & GuardExtras & RequiredModuleExtras) {
     const { hasPermission, noPermissionsMessage: generatedNoPermissionsMessage } = usePermissions({
-      resourceType,
       deviceId,
       permissionKey,
     });

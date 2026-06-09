@@ -25,7 +25,6 @@ export default function ReadNetwork() {
 
   return (
     <GuardedBtnWithLoading
-      resourceType="device"
       deviceId={deviceId}
       permissionKey={PERMISSION_KEYS.DEVICE_MODULE_EXECUTE_METHOD}
       requiredModuleName={CMD_PROXY_MODULE_NAME}
