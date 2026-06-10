@@ -16,6 +16,7 @@ export const getDevicesWithCountryData = (
       const countryCode = device.deviceMetadata.countryCode.value;
       const country = countryCode.length === 3 ? clm.getCountryByAlpha3(countryCode) : clm.getCountryByAlpha2(countryCode);
       if (!country) {
+        outputList.push(deviceWithCountryData);
         return;
       }
       deviceWithCountryData.countryCodeAlpha2 = country.alpha2?.toLowerCase();
