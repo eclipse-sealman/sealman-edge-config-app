@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import clm from "country-locale-map";
 import Badge, { BadgeColor } from "../../components/Typography/Badge";
 import { useNavigate, useParams } from "react-router-dom";
@@ -35,20 +35,29 @@ import { DeviceDataDisplay, DeviceListProps } from "./Devices.types";
 import { DeviceCards } from "./DeviceCards";
 import DeviceManageDialog, { DeleteDeviceDialog } from "./DeviceManageDialog";
 
-function formatDataForTable(
-  data: DeviceData[] | undefined,
-): DeviceDataDisplay[] {
-  if (!data) {
-    return [];
-  }
+function formatDataForTable(data: DeviceData[] | undefined): DeviceDataDisplay[] {
+  if (!data) return [];
 
-  return data.map((device) => ({
-    ...device,
-    onlineStatusEdge: device.iotEdgeRuntime === "Connected" ? "online" : "offline",
-    countryLabel: (device.deviceMetadata.countryCode?.value as string)
-      ? `${clm.getAlpha3ByAlpha2(device.deviceMetadata.countryCode?.value as string)}`
-      : "",
-  }));
+  return data.reduce<DeviceDataDisplay[]>((acc, device) => {
+    let countryLabel = "";
+    try {
+      const countryCodeValue = device.deviceMetadata?.countryCode?.value as string | undefined;
+      if (countryCodeValue) {
+        const alpha3 = clm.getAlpha3ByAlpha2(countryCodeValue);
+        countryLabel = alpha3 ?? "";
+      }
+    } catch {
+      countryLabel = "";
+    }
+
+    acc.push({
+      ...device,
+      onlineStatusEdge: device.iotEdgeRuntime === "Connected" ? "online" : "offline",
+      countryLabel,
+    });
+
+    return acc;
+  }, []);
 }
 
 const columnHelper = createColumnHelper<DeviceDataDisplay>();
@@ -118,6 +127,11 @@ export default function DeviceList() {
     );
   };
 
+  useEffect(() => {
+    setGlobalFilter("");
+    setColumnFiltersStore([]);
+  }, []);
+
   const { isLoading, isError, data, error } = useGetDevices();
 
   const tableData = useMemo<DeviceDataDisplay[]>(
@@ -157,6 +171,11 @@ export default function DeviceList() {
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getFacetedMinMaxValues: getFacetedMinMaxValues(),
   });
+
+   useEffect(() => {
+    table.resetColumnFilters();
+    table.resetGlobalFilter();
+0;  }, []);
 
   const clearTableFilter = useCallback(() => {
     table.resetColumnFilters();
