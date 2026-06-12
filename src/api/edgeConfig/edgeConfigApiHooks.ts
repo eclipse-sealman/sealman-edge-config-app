@@ -4,6 +4,9 @@ import { useMutation, useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { edgeConfigApi } from "./edgeConfigApi";
 import { queryClient } from "../../config/queryConfig";
 import { InterfaceData } from "./interfaces";
+import type { components } from "@/generated/edge-administration/types";
+
+type ScopeResponse = components["schemas"]["ScopeResponse"];
 
 export interface DeviceData {
   deviceId: string;
@@ -24,6 +27,14 @@ export interface DeviceData {
   sems: string;
   vpn: string;
 }
+
+type ScopeDetailsResponse = components["schemas"]["ScopeDetailsResponse"];
+type ScopeWritePayload = {
+  name: string;
+  description: string | null;
+  attr: Record<string, unknown>;
+  access_rule: "ALL" | "ANY";
+};
 
 // The following two hooks are almost the same, this is a hack to have two different hooks available with different caching behavior
 const useGetDevice = (deviceId?: string) =>
@@ -186,6 +197,44 @@ const useDeviceTemplates = () => {
   };
 };
 
+const useGetScopes = () =>
+  useQuery<ScopeResponse[], AxiosError>({
+    queryKey: ["authScopes"],
+    queryFn: () => edgeConfigApi.getScopes(),
+  });
+
+const useGetScopeDetails = (scopeId: string | undefined, enabled = true) =>
+  useQuery<ScopeDetailsResponse, AxiosError>({
+    queryKey: ["authScopeDetails", scopeId],
+    queryFn: () => edgeConfigApi.getScopeDetails(scopeId ?? ""),
+    enabled: Boolean(scopeId) && enabled,
+  });
+
+const useDeleteScope = () =>
+  useMutation<unknown, AxiosError, string>({
+    mutationFn: (scopeId: string) => edgeConfigApi.deleteScope(scopeId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authScopes"] });
+    },
+  });
+
+const useCreateScope = () =>
+  useMutation<unknown, AxiosError, ScopeWritePayload>({
+    mutationFn: (payload) => edgeConfigApi.createScope(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authScopes"] });
+    },
+  });
+
+const useUpdateScope = () =>
+  useMutation<unknown, AxiosError, { scopeId: string; payload: ScopeWritePayload }>({
+    mutationFn: ({ scopeId, payload }) => edgeConfigApi.updateScope(scopeId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authScopes"] });
+      await queryClient.invalidateQueries({ queryKey: ["authScopeDetails"] });
+    },
+  });
+
 export const edgeConfigApiHooks = {
   useGetDevice,
   useGetSmartEmsInfo,
@@ -195,4 +244,9 @@ export const edgeConfigApiHooks = {
   usePostTwinConfig,
   useGetSmartEmsConfigLan,
   useDeviceTemplates,
+  useGetScopes,
+  useGetScopeDetails,
+  useDeleteScope,
+  useCreateScope,
+  useUpdateScope,
 }

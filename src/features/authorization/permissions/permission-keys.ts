@@ -1,4 +1,6 @@
 export const PERMISSION_KEYS = {
+  PLATFORM_AUTHORIZATION_READ: "platform.authorization.read",
+  PLATFORM_AUTHORIZATION_WRITE: "platform.authorization.write",
   DEVICE_DEPLOYMENT_WRITE: "device.deployment.write",
   DEVICE_LINE_WRITE: "device.line.write",
   DEVICE_MODULE_EXECUTE_METHOD: "device.module.execute_method",

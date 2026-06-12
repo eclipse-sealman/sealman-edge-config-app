@@ -207,6 +207,35 @@ const getPermissions = async (deviceId: string | undefined) => {
   return data;
 }
 
+const getScopes = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/scopes');
+  return data;
+}
+
+const getScopeDetails = async (scopeId: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/auth/scopes/${scopeId}`);
+  return data;
+}
+
+const deleteScope = async (scopeId: string) => {
+  await edgeConfigApiInstance.delete(`/auth/scopes/${scopeId}`);
+}
+
+const createScope = async (
+  payload: { name: string; description: string | null; attr: Record<string, unknown>; access_rule: "ALL" | "ANY" },
+) => {
+  const { data } = await edgeConfigApiInstance.post('/auth/scopes', payload);
+  return data;
+}
+
+const updateScope = async (
+  scopeId: string,
+  payload: { name: string; description: string | null; attr: Record<string, unknown>; access_rule: "ALL" | "ANY" },
+) => {
+  const { data } = await edgeConfigApiInstance.put(`/auth/scopes/${scopeId}`, payload);
+  return data;
+}
+
 const getEventData = async (deviceId: string = "*") => {
   const { data } = await edgeConfigApiInstance.get(`/eventData?device_id=${deviceId}`);
   return data;
@@ -318,6 +347,11 @@ export const edgeConfigApi = {
   postInfluxBucketCreate,
   postWebFtpWriteFile,
   getPermissions,
+  getScopes,
+  getScopeDetails,
+  deleteScope,
+  createScope,
+  updateScope,
   getEventData,
   getAvailableTemplates,
   saveSelectedTemplates,

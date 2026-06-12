@@ -21,6 +21,7 @@ import { useAuth } from "./auth";
 import { useEffect } from "react";
 import DeploymentDetails from "./features/deployments/DeploymentDetails";
 import ServiceDetails from "./features/deployments/ServiceDetails";
+import Authorization from "./features/authorization/Authorization";
 
 export default function App() {
   const auth = useAuth();
@@ -59,6 +60,8 @@ export default function App() {
                 <Route path="services/:serviceId" element={<ServiceDetails />} />
               </Route>
             </Route>
+
+            <Route path="authorization" element={<Authorization />} />
 
             <Route path="settings" element={<SettingsLayout />}>
               <Route path="network" element={<NetworkSettings />} />
