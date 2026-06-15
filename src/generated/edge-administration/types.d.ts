@@ -129,40 +129,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/teams/{team_id}/roles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add Role To Team */
-        post: operations["add_role_to_team_auth_teams__team_id__roles_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/teams/{team_id}/roles/{role_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Remove Role From Team */
-        delete: operations["remove_role_from_team_auth_teams__team_id__roles__role_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/users": {
         parameters: {
             query?: never;
@@ -2432,14 +2398,6 @@ export interface components {
                 [key: string]: components["schemas"]["MonitoredItemConfiguration"];
             } | null;
         };
-        /** TeamAddRoleRequest */
-        TeamAddRoleRequest: {
-            /**
-             * Role Id
-             * Format: uuid
-             */
-            role_id: string;
-        };
         /** TeamAddUserRequest */
         TeamAddUserRequest: {
             /** User Id */
@@ -2451,11 +2409,6 @@ export interface components {
             name: string;
             /** Scope Id */
             scope_id?: string | null;
-            /**
-             * User Ids
-             * @default []
-             */
-            user_ids: string[];
             /**
              * Role Ids
              * @default []
@@ -2485,8 +2438,31 @@ export interface components {
              */
             users: components["schemas"]["UserSummaryResponse"][];
         };
+        /** TeamListItemResponse */
+        TeamListItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Scope Id */
+            scope_id?: string | null;
+            scope?: components["schemas"]["ScopeResponse"] | null;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: components["schemas"]["RoleResponse"][];
+            /**
+             * User Count
+             * @default 0
+             */
+            user_count: number;
+        };
         /** TeamListResponse */
-        TeamListResponse: components["schemas"]["TeamSummaryResponse"][];
+        TeamListResponse: components["schemas"]["TeamListItemResponse"][];
         /** TeamSummaryResponse */
         TeamSummaryResponse: {
             /**
@@ -2505,6 +2481,11 @@ export interface components {
             name: string;
             /** Scope Id */
             scope_id?: string | null;
+            /**
+             * Role Ids
+             * @default []
+             */
+            role_ids: string[];
         };
         /** TemplateInfo */
         TemplateInfo: {
@@ -2961,7 +2942,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TeamSummaryResponse"];
+                    "application/json": components["schemas"]["TeamDetailsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3046,71 +3027,6 @@ export interface operations {
             path: {
                 team_id: string;
                 user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    add_role_to_team_auth_teams__team_id__roles_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                team_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TeamAddRoleRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamDetailsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    remove_role_from_team_auth_teams__team_id__roles__role_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                team_id: string;
-                role_id: string;
             };
             cookie?: never;
         };

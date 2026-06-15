@@ -259,6 +259,42 @@ const deleteScope = async (scopeId: string) => {
   await edgeConfigApiInstance.delete(`/auth/scopes/${scopeId}`);
 }
 
+const getTeams = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/teams');
+  return data;
+}
+
+const getTeamDetails = async (teamId: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/auth/teams/${teamId}`);
+  return data;
+}
+
+const deleteTeam = async (teamId: string) => {
+  await edgeConfigApiInstance.delete(`/auth/teams/${teamId}`);
+}
+
+const createTeam = async (payload: { name: string; scope_id: string | null; role_ids: string[] }) => {
+  const { data } = await edgeConfigApiInstance.post('/auth/teams', payload);
+  return data;
+}
+
+const updateTeam = async (teamId: string, payload: { name: string; scope_id: string | null; role_ids: string[] }) => {
+  const { data } = await edgeConfigApiInstance.put(`/auth/teams/${teamId}`, payload);
+  return data;
+}
+const getUsers = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/users');
+  return data;
+}
+
+const addUserToTeam = async (teamId: string, userId: string) => {
+  const { data } = await edgeConfigApiInstance.post(`/auth/teams/${teamId}/users`, { user_id: userId });
+  return data;
+}
+
+const removeUserFromTeam = async (teamId: string, userId: string) => {
+  await edgeConfigApiInstance.delete(`/auth/teams/${teamId}/users/${userId}`);
+}
 const createScope = async (
   payload: { name: string; description: string | null; attr: Record<string, unknown>; access_rule: "ALL" | "ANY" },
 ) => {
@@ -405,6 +441,14 @@ export const edgeConfigApi = {
   deleteScope,
   createScope,
   updateScope,
+  getTeams,
+  getTeamDetails,
+  deleteTeam,
+  createTeam,
+  updateTeam,
+  getUsers,
+  addUserToTeam,
+  removeUserFromTeam,
   getEventData,
   getAvailableTemplates,
   saveSelectedTemplates,

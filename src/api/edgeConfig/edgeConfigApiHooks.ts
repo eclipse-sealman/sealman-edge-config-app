@@ -10,6 +10,8 @@ type ScopeResponse = components["schemas"]["ScopeResponse"];
 type RoleResponse = components["schemas"]["RoleResponse"];
 type RoleDetailsResponse = components["schemas"]["RoleDetailsResponse"];
 type ActionResponse = components["schemas"]["ActionResponse"];
+type TeamListItemResponse = components["schemas"]["TeamListItemResponse"];
+type TeamDetailsResponse = components["schemas"]["TeamDetailsResponse"];
 
 export interface DeviceData {
   deviceId: string;
@@ -249,7 +251,7 @@ const useGetActions = () =>
   });
 
 const useCreateRole = () =>
-  useMutation<unknown, AxiosError, { name: string; description: string | null; actions: string[] }>({
+  useMutation<RoleResponse, AxiosError, { name: string; description: string | null; actions: string[] }>({
     mutationFn: (payload) => edgeConfigApi.createRole(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["authRoles"] });
@@ -266,7 +268,7 @@ const useUpdateRole = () =>
   });
 
 const useCreateScope = () =>
-  useMutation<unknown, AxiosError, ScopeWritePayload>({
+  useMutation<ScopeResponse, AxiosError, ScopeWritePayload>({
     mutationFn: (payload) => edgeConfigApi.createScope(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["authScopes"] });
@@ -279,6 +281,72 @@ const useUpdateScope = () =>
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["authScopes"] });
       await queryClient.invalidateQueries({ queryKey: ["authScopeDetails"] });
+    },
+  });
+
+const useGetTeams = () =>
+  useQuery<TeamListItemResponse[], AxiosError>({
+    queryKey: ["authTeams"],
+    queryFn: () => edgeConfigApi.getTeams(),
+  });
+
+const useGetTeamDetails = (teamId: string | undefined, enabled = true) =>
+  useQuery<TeamDetailsResponse, AxiosError>({
+    queryKey: ["authTeamDetails", teamId],
+    queryFn: () => edgeConfigApi.getTeamDetails(teamId ?? ""),
+    enabled: Boolean(teamId) && enabled,
+  });
+
+const useDeleteTeam = () =>
+  useMutation<unknown, AxiosError, string>({
+    mutationFn: (teamId: string) => edgeConfigApi.deleteTeam(teamId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
+    },
+  });
+
+type TeamWritePayload = { name: string; scope_id: string | null; role_ids: string[] };
+
+const useCreateTeam = () =>
+  useMutation<unknown, AxiosError, TeamWritePayload>({
+    mutationFn: (payload) => edgeConfigApi.createTeam(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
+    },
+  });
+
+const useUpdateTeam = () =>
+  useMutation<unknown, AxiosError, { teamId: string; payload: TeamWritePayload }>({
+    mutationFn: ({ teamId, payload }) => edgeConfigApi.updateTeam(teamId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
+      await queryClient.invalidateQueries({ queryKey: ["authTeamDetails"] });
+    },
+  });
+
+type UserWithTeamsResponse = components["schemas"]["UserWithTeamsResponse"];
+
+const useGetUsers = () =>
+  useQuery<UserWithTeamsResponse[], AxiosError>({
+    queryKey: ["authUsers"],
+    queryFn: () => edgeConfigApi.getUsers(),
+  });
+
+const useAddUserToTeam = () =>
+  useMutation<unknown, AxiosError, { teamId: string; userId: string }>({
+    mutationFn: ({ teamId, userId }) => edgeConfigApi.addUserToTeam(teamId, userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeamDetails"] });
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
+    },
+  });
+
+const useRemoveUserFromTeam = () =>
+  useMutation<unknown, AxiosError, { teamId: string; userId: string }>({
+    mutationFn: ({ teamId, userId }) => edgeConfigApi.removeUserFromTeam(teamId, userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeamDetails"] });
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
     },
   });
 
@@ -302,4 +370,12 @@ export const edgeConfigApiHooks = {
   useGetActions,
   useCreateRole,
   useUpdateRole,
+  useGetTeams,
+  useGetTeamDetails,
+  useDeleteTeam,
+  useCreateTeam,
+  useUpdateTeam,
+  useGetUsers,
+  useAddUserToTeam,
+  useRemoveUserFromTeam,
 }

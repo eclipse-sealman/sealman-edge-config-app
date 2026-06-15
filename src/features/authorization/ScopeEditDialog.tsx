@@ -36,6 +36,7 @@ type ScopeEditDialogProps = {
   scope: ScopeResponse | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreated?: (scope: ScopeResponse) => void;
 };
 
 type AttributeRow = {
@@ -101,7 +102,7 @@ function createAttributeRow(name = "", value = ""): AttributeRow {
   };
 }
 
-export function ScopeEditDialog({ scope, open, onOpenChange }: ScopeEditDialogProps) {
+export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeEditDialogProps) {
   const createScopeMutation = edgeConfigApiHooks.useCreateScope();
   const updateScopeMutation = edgeConfigApiHooks.useUpdateScope();
   const [name, setName] = useState("");
@@ -178,7 +179,8 @@ export function ScopeEditDialog({ scope, open, onOpenChange }: ScopeEditDialogPr
           payload,
         });
       } else {
-        await createScopeMutation.mutateAsync(payload);
+        const created = await createScopeMutation.mutateAsync(payload);
+        onCreated?.(created);
       }
 
       onOpenChange(false);

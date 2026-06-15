@@ -21,9 +21,10 @@ type RoleEditDialogProps = {
   role: RoleResponse | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreated?: (role: RoleResponse) => void;
 };
 
-export function RoleEditDialog({ role, open, onOpenChange }: RoleEditDialogProps) {
+export function RoleEditDialog({ role, open, onOpenChange, onCreated }: RoleEditDialogProps) {
   const createRoleMutation = edgeConfigApiHooks.useCreateRole();
   const updateRoleMutation = edgeConfigApiHooks.useUpdateRole();
   const { data: allActions } = edgeConfigApiHooks.useGetActions();
@@ -123,11 +124,12 @@ export function RoleEditDialog({ role, open, onOpenChange }: RoleEditDialogProps
           payload: { name: trimmedName, description: descriptionValue, actions: assignedActions },
         });
       } else {
-        await createRoleMutation.mutateAsync({
+        const created = await createRoleMutation.mutateAsync({
           name: trimmedName,
           description: descriptionValue,
           actions: assignedActions,
         });
+        onCreated?.(created);
       }
 
       onOpenChange(false);
