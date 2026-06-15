@@ -41,6 +41,8 @@ export function RoleEditDialog({ role, open, onOpenChange, onCreated }: RoleEdit
     createRoleMutation.isPending ||
     updateRoleMutation.isPending;
 
+  const actionsMap = new Map((allActions ?? []).map((a) => [a.name, a]));
+
   const availableActionNames = (allActions ?? [])
     .map((a) => a.name)
     .filter((name) => !assignedActions.includes(name))
@@ -225,7 +227,7 @@ export function RoleEditDialog({ role, open, onOpenChange, onCreated }: RoleEdit
                               : "hover:bg-slate-50"
                           }`}
                         >
-                          {action}
+                          {action}{actionsMap.get(action)?.is_global && <span className="font-bold italic text-amber-600"> (global)</span>}
                         </li>
                       ))}
                     </ul>
@@ -305,7 +307,7 @@ export function RoleEditDialog({ role, open, onOpenChange, onCreated }: RoleEdit
                               : "hover:bg-slate-50"
                           }`}
                         >
-                          {action}
+                          {action}{actionsMap.get(action)?.is_global && <span className="font-bold italic text-amber-600"> (global)</span>}
                         </li>
                       ))}
                     </ul>

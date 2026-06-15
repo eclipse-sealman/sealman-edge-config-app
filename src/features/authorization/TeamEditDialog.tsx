@@ -39,6 +39,7 @@ export function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps
   const updateTeamMutation = edgeConfigApiHooks.useUpdateTeam();
   const { data: allRoles } = edgeConfigApiHooks.useGetRoles();
   const { data: allScopes } = edgeConfigApiHooks.useGetScopes();
+  const { data: allActions } = edgeConfigApiHooks.useGetActions();
 
   const [name, setName] = useState("");
   const [scopeId, setScopeId] = useState<string | null>(null);
@@ -53,6 +54,7 @@ export function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps
   const isSaving = createTeamMutation.isPending || updateTeamMutation.isPending;
 
   const rolesById = new Map((allRoles ?? []).map((r) => [r.id, r]));
+  const actionsMap = new Map((allActions ?? []).map((a) => [a.name, a]));
 
   const availableRoles = (allRoles ?? [])
     .filter((r) => !assignedRoleIds.includes(r.id))
@@ -256,7 +258,7 @@ export function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps
                                 <ul className="space-y-0.5">
                                   {role.actions.map((action) => (
                                     <li key={action} className="text-xs text-muted-foreground">
-                                      {action}
+                                      {action}{actionsMap.get(action)?.is_global && <span className="font-bold italic text-amber-600"> (global)</span>}
                                     </li>
                                   ))}
                                 </ul>
@@ -362,7 +364,7 @@ export function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps
                                 <ul className="space-y-0.5">
                                   {role!.actions.map((action) => (
                                     <li key={action} className="text-xs text-muted-foreground">
-                                      {action}
+                                      {action}{actionsMap.get(action)?.is_global && <span className="font-bold italic text-amber-600"> (global)</span>}
                                     </li>
                                   ))}
                                 </ul>
@@ -378,6 +380,7 @@ export function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps
             </div>
           </div>
 
+          <div className="space-y-1">
           <div className="flex items-center gap-1.5">
             <Label className="mb-0">Effective permissions</Label>
             <Popover>
@@ -400,13 +403,19 @@ export function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps
                   <ul className="space-y-0.5 max-h-48 overflow-y-auto">
                     {effectivePermissions.map((action) => (
                       <li key={action} className="text-xs text-muted-foreground">
-                        {action}
+                        {action}{actionsMap.get(action)?.is_global && <span className="font-bold italic text-amber-600"> (global)</span>}
                       </li>
                     ))}
                   </ul>
                 )}
               </PopoverContent>
             </Popover>
+          </div>
+          {effectivePermissions.some((action) => actionsMap.get(action)?.is_global) && (
+            <p className="text-xs text-amber-600">
+              Some permissions in the assigned roles are global and not limited by scope.
+            </p>
+          )}
           </div>
 
           <div className="space-y-2">

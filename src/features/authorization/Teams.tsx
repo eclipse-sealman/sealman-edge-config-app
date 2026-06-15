@@ -77,7 +77,7 @@ export default function Teams() {
           const scope = info.getValue();
           if (!scope) {
             return (
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 italic">
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
                 global
               </span>
             );
