@@ -46,7 +46,7 @@ export default function NavigationBar() {
     if (!isPermissionsLoading && hasAuthorizationReadPermission) {
       items.push({
         name: "Authorization",
-        href: "/authorization",
+        href: "/authorization/teams",
         current: true,
       });
     }

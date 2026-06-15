@@ -7,6 +7,9 @@ import { InterfaceData } from "./interfaces";
 import type { components } from "@/generated/edge-administration/types";
 
 type ScopeResponse = components["schemas"]["ScopeResponse"];
+type RoleResponse = components["schemas"]["RoleResponse"];
+type RoleDetailsResponse = components["schemas"]["RoleDetailsResponse"];
+type ActionResponse = components["schemas"]["ActionResponse"];
 
 export interface DeviceData {
   deviceId: string;
@@ -218,6 +221,50 @@ const useDeleteScope = () =>
     },
   });
 
+const useGetRoles = () =>
+  useQuery<RoleResponse[], AxiosError>({
+    queryKey: ["authRoles"],
+    queryFn: () => edgeConfigApi.getRoles(),
+  });
+
+const useGetRoleDetails = (roleId: string | undefined, enabled = true) =>
+  useQuery<RoleDetailsResponse, AxiosError>({
+    queryKey: ["authRoleDetails", roleId],
+    queryFn: () => edgeConfigApi.getRoleDetails(roleId ?? ""),
+    enabled: Boolean(roleId) && enabled,
+  });
+
+const useDeleteRole = () =>
+  useMutation<unknown, AxiosError, string>({
+    mutationFn: (roleId: string) => edgeConfigApi.deleteRole(roleId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authRoles"] });
+    },
+  });
+
+const useGetActions = () =>
+  useQuery<ActionResponse[], AxiosError>({
+    queryKey: ["authActions"],
+    queryFn: () => edgeConfigApi.getActions(),
+  });
+
+const useCreateRole = () =>
+  useMutation<unknown, AxiosError, { name: string; description: string | null; actions: string[] }>({
+    mutationFn: (payload) => edgeConfigApi.createRole(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authRoles"] });
+    },
+  });
+
+const useUpdateRole = () =>
+  useMutation<unknown, AxiosError, { roleId: string; payload: { name: string; description: string | null; actions: string[] } }>({
+    mutationFn: ({ roleId, payload }) => edgeConfigApi.updateRole(roleId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authRoles"] });
+      await queryClient.invalidateQueries({ queryKey: ["authRoleDetails"] });
+    },
+  });
+
 const useCreateScope = () =>
   useMutation<unknown, AxiosError, ScopeWritePayload>({
     mutationFn: (payload) => edgeConfigApi.createScope(payload),
@@ -249,4 +296,10 @@ export const edgeConfigApiHooks = {
   useDeleteScope,
   useCreateScope,
   useUpdateScope,
+  useGetRoles,
+  useGetRoleDetails,
+  useDeleteRole,
+  useGetActions,
+  useCreateRole,
+  useUpdateRole,
 }

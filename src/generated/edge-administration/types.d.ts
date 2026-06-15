@@ -22,6 +22,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/roles/{role_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Role By Id */
+        get: operations["get_role_by_id_auth_roles__role_id__get"];
+        /** Put Role By Id */
+        put: operations["put_role_by_id_auth_roles__role_id__put"];
+        post?: never;
+        /** Delete Role */
+        delete: operations["delete_role_auth_roles__role_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/actions": {
         parameters: {
             query?: never;
@@ -34,58 +53,6 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/roles/{role_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Put Role By Id */
-        put: operations["put_role_by_id_auth_roles__role_id__put"];
-        post?: never;
-        /** Delete Role */
-        delete: operations["delete_role_auth_roles__role_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/roles/{role_id}/actions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Role Actions */
-        post: operations["post_role_actions_auth_roles__role_id__actions_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/roles/{role_id}/actions/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Role Action By Name */
-        delete: operations["delete_role_action_by_name_auth_roles__role_id__actions__name__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1072,8 +1039,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Devices */
-        get: operations["get_devices_devices_get"];
+        /** Get Devices Route */
+        get: operations["get_devices_route_devices_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1090,25 +1057,25 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Create Device */
-        put: operations["create_device_devices__device_id__put"];
+        /** Create Device Route */
+        put: operations["create_device_route_devices__device_id__put"];
         post?: never;
-        /** Delete Device */
-        delete: operations["delete_device_devices__device_id__delete"];
+        /** Delete Device Route */
+        delete: operations["delete_device_route_devices__device_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/devices/metaValues": {
+    "/devices/meta-values": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Device Meta Values */
-        get: operations["get_device_meta_values_devices_metaValues_get"];
+        /** Get Device Meta Values Route */
+        get: operations["get_device_meta_values_route_devices_meta_values_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1138,7 +1105,9 @@ export interface components {
         /** AddMetadataKeyRequest */
         AddMetadataKeyRequest: {
             /** Key */
-            key: string;
+            key: {
+                [key: string]: components["schemas"]["MetadataKeyOptions"];
+            };
         };
         /** AnonymousCredentialsSchema */
         AnonymousCredentialsSchema: {
@@ -1518,40 +1487,6 @@ export interface components {
             /** Secretvalue */
             secretValue: string;
         };
-        /** DeviceStatusWithConnection */
-        DeviceStatusWithConnection: {
-            /** Deviceid */
-            deviceId: string;
-            /** Devicemetadata */
-            deviceMetadata: {
-                [key: string]: components["schemas"]["DeviceMetadataEntry"];
-            };
-            /** Createdat */
-            createdAt?: string | null;
-            /** Updatedat */
-            updatedAt?: string | null;
-            /**
-             * Devicestatus
-             * @enum {string}
-             */
-            deviceStatus: "Connected" | "Disconnected" | "Unknown";
-            /** Lastseenat */
-            lastSeenAt?: string | null;
-            /** Lastseeninrange */
-            lastSeenInRange?: boolean | null;
-            /** Lastseenrangeindays */
-            lastSeenRangeInDays?: number | null;
-            /** Iotedgeruntime */
-            iotEdgeRuntime: string;
-            /** Iothub */
-            iotHub: string;
-            /** Sems */
-            sems: string;
-            /** Vpn */
-            vpn: string;
-        };
-        /** DeviceStatusWithConnectionList */
-        DeviceStatusWithConnectionList: components["schemas"]["DeviceStatusWithConnection"][];
         /** DirectMethod[Any] */
         DirectMethod_Any_: {
             /** Status */
@@ -1854,10 +1789,19 @@ export interface components {
             /** Updatedat */
             updatedAt: string;
         };
+        /** MetadataKeyOptions */
+        MetadataKeyOptions: {
+            /** Prepopulate */
+            prepopulate: boolean;
+            /** Allowaddition */
+            allowAddition: boolean;
+        };
         /** MetadataKeysResponse */
         MetadataKeysResponse: {
             /** Keys */
-            keys: string[];
+            keys: {
+                [key: string]: components["schemas"]["MetadataKeyOptions"];
+            }[];
         };
         /** ModuleConfStatus */
         ModuleConfStatus: {
@@ -2142,11 +2086,6 @@ export interface components {
         };
         /** ResponseDeploymentList */
         ResponseDeploymentList: components["schemas"]["Deployment"][];
-        /** RoleActionsRequest */
-        RoleActionsRequest: {
-            /** Names */
-            names: string[];
-        };
         /** RoleCreateRequest */
         RoleCreateRequest: {
             /** Name */
@@ -2158,6 +2097,28 @@ export interface components {
              * @default []
              */
             actions: string[];
+        };
+        /** RoleDetailsResponse */
+        RoleDetailsResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Actions
+             * @default []
+             */
+            actions: string[];
+            /**
+             * Teams
+             * @default []
+             */
+            teams: components["schemas"]["TeamSummaryResponse"][];
         };
         /** RoleResponse */
         RoleResponse: {
@@ -2182,6 +2143,8 @@ export interface components {
             name: string;
             /** Description */
             description?: string | null;
+            /** Actions */
+            actions: string[];
         };
         /** SEMSCheck */
         SEMSCheck: {
@@ -2778,11 +2741,13 @@ export interface operations {
             };
         };
     };
-    get_actions_auth_actions_get: {
+    get_role_by_id_auth_roles__role_id__get: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                role_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -2793,7 +2758,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ActionResponse"][];
+                    "application/json": components["schemas"]["RoleDetailsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2862,49 +2836,11 @@ export interface operations {
             };
         };
     };
-    post_role_actions_auth_roles__role_id__actions_post: {
+    get_actions_auth_actions_get: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                role_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RoleActionsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_role_action_by_name_auth_roles__role_id__actions__name__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                role_id: string;
-                name: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -2915,16 +2851,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RoleResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ActionResponse"][];
                 };
             };
         };
@@ -5357,14 +5284,9 @@ export interface operations {
             };
         };
     };
-    get_devices_devices_get: {
+    get_devices_route_devices_get: {
         parameters: {
-            query?: {
-                /** @description Filter devices by metadata values. Enter a JSON object where each key is a metadata field name. Set a value to filter by exact match (e.g. {"site": "Berlin"}), or set the value to an empty string to match any device where the key has a non-empty value (e.g. {"site": ""}). Multiple keys are combined with AND. */
-                meta?: {
-                    [key: string]: string;
-                };
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -5377,12 +5299,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DeviceStatusWithConnectionList"];
+                    "application/json": unknown;
                 };
             };
         };
     };
-    create_device_devices__device_id__put: {
+    create_device_route_devices__device_id__put: {
         parameters: {
             query?: never;
             header?: never;
@@ -5391,13 +5313,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5419,7 +5335,7 @@ export interface operations {
             };
         };
     };
-    delete_device_devices__device_id__delete: {
+    delete_device_route_devices__device_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -5431,11 +5347,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {
@@ -5448,7 +5366,7 @@ export interface operations {
             };
         };
     };
-    get_device_meta_values_devices_metaValues_get: {
+    get_device_meta_values_route_devices_meta_values_get: {
         parameters: {
             query?: never;
             header?: never;

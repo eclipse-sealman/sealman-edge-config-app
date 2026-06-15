@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import DeviceList from "./features/Devices/DeviceList";
 import MainLayout from "./layouts/MainLayout";
 import { ToastContainer } from "react-toastify";
@@ -22,6 +22,10 @@ import { useEffect } from "react";
 import DeploymentDetails from "./features/deployments/DeploymentDetails";
 import ServiceDetails from "./features/deployments/ServiceDetails";
 import Authorization from "./features/authorization/Authorization";
+import Teams from "./features/authorization/Teams";
+import Roles from "./features/authorization/Roles";
+import Scopes from "./features/authorization/Scopes";
+import Users from "./features/authorization/Users";
 
 export default function App() {
   const auth = useAuth();
@@ -61,7 +65,13 @@ export default function App() {
               </Route>
             </Route>
 
-            <Route path="authorization" element={<Authorization />} />
+            <Route path="authorization" element={<Authorization />}>
+              <Route index element={<Navigate to="teams" replace />} />
+              <Route path="teams" element={<Teams />} />
+              <Route path="roles" element={<Roles />} />
+              <Route path="scopes" element={<Scopes />} />
+              <Route path="users" element={<Users />} />
+            </Route>
 
             <Route path="settings" element={<SettingsLayout />}>
               <Route path="network" element={<NetworkSettings />} />

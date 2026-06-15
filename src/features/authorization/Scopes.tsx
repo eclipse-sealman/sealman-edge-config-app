@@ -104,7 +104,7 @@ export default function Scopes() {
         header: "Access Rule",
       }),
       columnHelper.accessor("team_usage_count", {
-        header: "Used by",
+        header: "Used by (teams)",
         meta: { align: "right" },
       }),
       columnHelper.display({

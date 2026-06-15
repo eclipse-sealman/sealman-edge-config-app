@@ -216,6 +216,35 @@ const getPermissions = async (deviceId: string | undefined) => {
   return data;
 }
 
+const getRoles = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/roles');
+  return data;
+}
+
+const getRoleDetails = async (roleId: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/auth/roles/${roleId}`);
+  return data;
+}
+
+const deleteRole = async (roleId: string) => {
+  await edgeConfigApiInstance.delete(`/auth/roles/${roleId}`);
+}
+
+const createRole = async (payload: { name: string; description: string | null; actions: string[] }) => {
+  const { data } = await edgeConfigApiInstance.post('/auth/roles', payload);
+  return data;
+}
+
+const updateRole = async (roleId: string, payload: { name: string; description: string | null; actions: string[] }) => {
+  const { data } = await edgeConfigApiInstance.put(`/auth/roles/${roleId}`, payload);
+  return data;
+}
+
+const getActions = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/actions');
+  return data;
+}
+
 const getScopes = async () => {
   const { data } = await edgeConfigApiInstance.get('/auth/scopes');
   return data;
@@ -365,6 +394,12 @@ export const edgeConfigApi = {
   postInfluxBucketCreate,
   postWebFtpWriteFile,
   getPermissions,
+  getRoles,
+  getRoleDetails,
+  deleteRole,
+  createRole,
+  updateRole,
+  getActions,
   getScopes,
   getScopeDetails,
   deleteScope,
