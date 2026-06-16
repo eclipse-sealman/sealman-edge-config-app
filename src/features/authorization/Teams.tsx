@@ -14,6 +14,8 @@ import type { components } from "@/generated/edge-administration/types";
 import { TeamDeleteDialog } from "./TeamDeleteDialog";
 import { TeamEditDialog } from "./TeamEditDialog";
 import { TeamMembersDialog } from "./TeamMembersDialog";
+import { usePermissions } from "./permissions/use-permissions";
+import { PERMISSION_KEYS } from "./permissions/permission-keys";
 
 type TeamListItemResponse = components["schemas"]["TeamListItemResponse"];
 
@@ -21,6 +23,7 @@ const columnHelper = createColumnHelper<TeamListItemResponse>();
 
 export default function Teams() {
   const { data: teams, isLoading, isError, error } = edgeConfigApiHooks.useGetTeams();
+  const { hasPermission: canWrite } = usePermissions({ permissionKey: PERMISSION_KEYS.PLATFORM_AUTHORIZATION_WRITE });
   const [deleteTeamTarget, setDeleteTeamTarget] = useState<TeamListItemResponse | null>(null);
   const [editTeamTarget, setEditTeamTarget] = useState<TeamListItemResponse | null>(null);
   const [membersTeamTarget, setMembersTeamTarget] = useState<TeamListItemResponse | null>(null);
@@ -89,7 +92,7 @@ export default function Teams() {
         header: "Users",
         meta: { align: "right" },
       }),
-      columnHelper.display({
+      ...(canWrite ? [columnHelper.display({
         id: "actions",
         header: "",
         meta: { align: "center" },
@@ -168,9 +171,9 @@ export default function Teams() {
             </div>
           );
         },
-      }),
+      })] : []),
     ],
-    [],
+    [canWrite],
   );
 
   const table = useReactTable({
@@ -191,9 +194,11 @@ export default function Teams() {
     <div className="h-full min-h-0 flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Teams</h2>
-        <Button type="button" onClick={handleCreateTeam}>
-          New team
-        </Button>
+        {canWrite && (
+          <Button type="button" onClick={handleCreateTeam}>
+            New team
+          </Button>
+        )}
       </div>
 
       <div className="bg-card border rounded-lg p-4 flex-1 min-h-0 flex flex-col">

@@ -2565,6 +2565,8 @@ export interface components {
             is_admin: boolean;
             /** Is New */
             is_new: boolean;
+            /** Last Active */
+            last_active?: string | null;
             /**
              * Teams
              * @default []

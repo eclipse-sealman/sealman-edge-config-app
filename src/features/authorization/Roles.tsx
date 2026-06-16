@@ -13,6 +13,8 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/Table/TableCompone
 import type { components } from "@/generated/edge-administration/types";
 import { RoleDeleteDialog } from "./RoleDeleteDialog";
 import { RoleEditDialog } from "./RoleEditDialog";
+import { usePermissions } from "./permissions/use-permissions";
+import { PERMISSION_KEYS } from "./permissions/permission-keys";
 
 type RoleResponse = components["schemas"]["RoleResponse"];
 
@@ -20,6 +22,7 @@ const columnHelper = createColumnHelper<RoleResponse>();
 
 export default function Roles() {
   const { data: roles, isLoading, isError, error } = edgeConfigApiHooks.useGetRoles();
+  const { hasPermission: canWrite } = usePermissions({ permissionKey: PERMISSION_KEYS.PLATFORM_AUTHORIZATION_WRITE });
   const [deleteRoleTarget, setDeleteRoleTarget] = useState<RoleResponse | null>(null);
   const [editRoleTarget, setEditRoleTarget] = useState<RoleResponse | null>(null);
   const [isCreateRoleDialogOpen, setIsCreateRoleDialogOpen] = useState(false);
@@ -71,7 +74,7 @@ export default function Roles() {
           );
         },
       }),
-      columnHelper.display({
+      ...(canWrite ? [columnHelper.display({
         id: "row-actions",
         header: "",
         meta: { align: "center" },
@@ -128,9 +131,9 @@ export default function Roles() {
             </div>
           );
         },
-      }),
+      })] : []),
     ],
-    [],
+    [canWrite],
   );
 
   const table = useReactTable({
@@ -151,9 +154,11 @@ export default function Roles() {
     <div className="h-full min-h-0 flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Roles</h2>
-        <Button type="button" onClick={handleCreateRole}>
-          New role
-        </Button>
+        {canWrite && (
+          <Button type="button" onClick={handleCreateRole}>
+            New role
+          </Button>
+        )}
       </div>
 
       <div className="bg-card border rounded-lg p-4 flex-1 min-h-0 flex flex-col">

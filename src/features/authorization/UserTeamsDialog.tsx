@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,11 +14,11 @@ import { Input } from "@/components/ui/input";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import type { components } from "@/generated/edge-administration/types";
 
+type UserWithTeamsResponse = components["schemas"]["UserWithTeamsResponse"];
 type TeamListItemResponse = components["schemas"]["TeamListItemResponse"];
-type UserSummaryResponse = components["schemas"]["UserSummaryResponse"];
 
-type TeamMembersDialogProps = {
-  team: TeamListItemResponse | null;
+type UserTeamsDialogProps = {
+  user: UserWithTeamsResponse | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -35,14 +36,12 @@ function extractErrorMessage(e: unknown, fallback: string): string {
   return fallback;
 }
 
-export function TeamMembersDialog({ team, open, onOpenChange }: TeamMembersDialogProps) {
-  const { data: teamDetails, isLoading } = edgeConfigApiHooks.useGetTeamDetails(
-    team?.id,
-    open && Boolean(team),
-  );
+export function UserTeamsDialog({ user, open, onOpenChange }: UserTeamsDialogProps) {
   const { data: allUsers } = edgeConfigApiHooks.useGetUsers();
+  const { data: allTeams } = edgeConfigApiHooks.useGetTeams();
   const addUserMutation = edgeConfigApiHooks.useAddUserToTeam();
   const removeUserMutation = edgeConfigApiHooks.useRemoveUserFromTeam();
+  const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -50,55 +49,57 @@ export function TeamMembersDialog({ team, open, onOpenChange }: TeamMembersDialo
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const members: UserSummaryResponse[] = teamDetails?.users ?? [];
-  const memberIds = new Set(members.map((u) => u.id));
+  const freshUser = allUsers?.find((u) => u.id === user?.id) ?? user;
+  const userTeams = freshUser?.teams ?? [];
+  const userTeamIds = new Set(userTeams.map((t) => t.id));
 
-  const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim() || !allUsers) return [];
+  const filteredTeams = useMemo(() => {
+    if (!searchQuery.trim() || !allTeams) return [];
     const query = searchQuery.toLowerCase();
-    return allUsers
+    return allTeams
       .filter(
-        (u) =>
-          !memberIds.has(u.id) &&
-          u.preferred_username.toLowerCase().includes(query),
+        (t: TeamListItemResponse) =>
+          !userTeamIds.has(t.id) &&
+          t.name.toLowerCase().includes(query),
       )
       .slice(0, 10);
-  }, [searchQuery, allUsers, memberIds]);
+  }, [searchQuery, allTeams, userTeamIds]);
 
-  const handleAddUser = async (userId: string) => {
-    if (!team) return;
+  const handleAddToTeam = async (teamId: string) => {
+    if (!user) return;
     setSearchQuery("");
     setShowSuggestions(false);
     setHighlightedIndex(-1);
     setError(null);
     try {
-      await addUserMutation.mutateAsync({ teamId: team.id, userId });
+      await addUserMutation.mutateAsync({ teamId, userId: user.id });
+      await queryClient.invalidateQueries({ queryKey: ["authUsers"] });
     } catch (e: unknown) {
       setError(extractErrorMessage(e, "Failed to add user to team"));
     }
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showSuggestions || filteredUsers.length === 0) return;
+    if (!showSuggestions || filteredTeams.length === 0) return;
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setHighlightedIndex((prev) => {
-        const next = prev < filteredUsers.length - 1 ? prev + 1 : 0;
+        const next = prev < filteredTeams.length - 1 ? prev + 1 : 0;
         scrollToIndex(next);
         return next;
       });
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlightedIndex((prev) => {
-        const next = prev > 0 ? prev - 1 : filteredUsers.length - 1;
+        const next = prev > 0 ? prev - 1 : filteredTeams.length - 1;
         scrollToIndex(next);
         return next;
       });
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (highlightedIndex >= 0 && highlightedIndex < filteredUsers.length) {
-        handleAddUser(filteredUsers[highlightedIndex].id);
+      if (highlightedIndex >= 0 && highlightedIndex < filteredTeams.length) {
+        handleAddToTeam(filteredTeams[highlightedIndex].id);
       }
     } else if (e.key === "Escape") {
       setShowSuggestions(false);
@@ -113,11 +114,12 @@ export function TeamMembersDialog({ team, open, onOpenChange }: TeamMembersDialo
     item?.scrollIntoView({ block: "nearest" });
   };
 
-  const handleRemoveUser = async (userId: string) => {
-    if (!team) return;
+  const handleRemoveFromTeam = async (teamId: string) => {
+    if (!user) return;
     setError(null);
     try {
-      await removeUserMutation.mutateAsync({ teamId: team.id, userId });
+      await removeUserMutation.mutateAsync({ teamId, userId: user.id });
+      await queryClient.invalidateQueries({ queryKey: ["authUsers"] });
     } catch (e: unknown) {
       setError(extractErrorMessage(e, "Failed to remove user from team"));
     }
@@ -127,9 +129,9 @@ export function TeamMembersDialog({ team, open, onOpenChange }: TeamMembersDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Members — {team?.name}</DialogTitle>
+          <DialogTitle>Teams — {user?.preferred_username}</DialogTitle>
           <DialogDescription>
-            Manage users assigned to this team.
+            Manage teams assigned to this user.
           </DialogDescription>
         </DialogHeader>
 
@@ -140,10 +142,10 @@ export function TeamMembersDialog({ team, open, onOpenChange }: TeamMembersDialo
         )}
 
         <div className="space-y-4 py-2">
-          {/* Search / add user */}
+          {/* Search / add team */}
           <div className="relative">
             <Input
-              placeholder="Search users to add..."
+              placeholder="Search teams to add..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -153,47 +155,45 @@ export function TeamMembersDialog({ team, open, onOpenChange }: TeamMembersDialo
               onFocus={() => setShowSuggestions(true)}
               onKeyDown={handleSearchKeyDown}
             />
-            {showSuggestions && filteredUsers.length > 0 && (
+            {showSuggestions && filteredTeams.length > 0 && (
               <ul ref={listRef} className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-md border bg-white shadow-md">
-                {filteredUsers.map((user, index) => (
+                {filteredTeams.map((team: TeamListItemResponse, index: number) => (
                   <li
-                    key={user.id}
-                    onClick={() => handleAddUser(user.id)}
+                    key={team.id}
+                    onClick={() => handleAddToTeam(team.id)}
                     className={`px-3 py-2 text-sm cursor-pointer ${
                       index === highlightedIndex
                         ? "bg-blue-100 text-blue-800"
                         : "hover:bg-slate-100"
                     }`}
                   >
-                    {user.preferred_username}
+                    {team.name}
                   </li>
                 ))}
               </ul>
             )}
-            {showSuggestions && searchQuery.trim() && filteredUsers.length === 0 && (
+            {showSuggestions && searchQuery.trim() && filteredTeams.length === 0 && (
               <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-md px-3 py-2 text-sm text-muted-foreground">
-                No users found
+                No teams found
               </div>
             )}
           </div>
 
-          {/* Members list */}
+          {/* Teams list */}
           <div className="border rounded-md max-h-64 overflow-y-auto">
-            {isLoading ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">Loading members...</p>
-            ) : members.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground text-center">No members</p>
+            {userTeams.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-muted-foreground text-center">No teams</p>
             ) : (
               <ul className="divide-y">
-                {members.map((user) => (
-                  <li key={user.id} className="flex items-center justify-between px-4 py-2">
-                    <span className="text-sm">{user.preferred_username}</span>
+                {userTeams.map((team) => (
+                  <li key={team.id} className="flex items-center justify-between px-4 py-2">
+                    <span className="text-sm">{team.name}</span>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleRemoveUser(user.id)}
+                      onClick={() => handleRemoveFromTeam(team.id)}
                       disabled={removeUserMutation.isPending}
                     >
                       <TrashIcon className="w-4 h-4 mr-1" />

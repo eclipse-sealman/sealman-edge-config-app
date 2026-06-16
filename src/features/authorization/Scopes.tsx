@@ -13,6 +13,8 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/Table/TableCompone
 import type { components } from "@/generated/edge-administration/types";
 import { ScopeDeleteDialog } from "./ScopeDeleteDialog";
 import { ScopeEditDialog } from "./ScopeEditDialog";
+import { usePermissions } from "./permissions/use-permissions";
+import { PERMISSION_KEYS } from "./permissions/permission-keys";
 
 type ScopeResponse = components["schemas"]["ScopeResponse"];
 
@@ -52,6 +54,7 @@ function formatAttrValue(value: unknown): string {
 
 export default function Scopes() {
   const { data: scopes, isLoading, isError, error } = edgeConfigApiHooks.useGetScopes();
+  const { hasPermission: canWrite } = usePermissions({ permissionKey: PERMISSION_KEYS.PLATFORM_AUTHORIZATION_WRITE });
   const [deleteScopeTarget, setDeleteScopeTarget] = useState<ScopeResponse | null>(null);
   const [editScopeTarget, setEditScopeTarget] = useState<ScopeResponse | null>(null);
   const [isCreateScopeDialogOpen, setIsCreateScopeDialogOpen] = useState(false);
@@ -107,7 +110,7 @@ export default function Scopes() {
         header: "Used by (teams)",
         meta: { align: "right" },
       }),
-      columnHelper.display({
+      ...(canWrite ? [columnHelper.display({
         id: "actions",
         header: "Actions",
         meta: { align: "center" },
@@ -164,9 +167,9 @@ export default function Scopes() {
             </div>
           );
         },
-      }),
+      })] : []),
     ],
-    [],
+    [canWrite],
   );
 
   const table = useReactTable({
@@ -187,9 +190,11 @@ export default function Scopes() {
     <div className="h-full min-h-0 flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Scopes</h2>
-        <Button type="button" onClick={() => setIsCreateScopeDialogOpen(true)}>
-          New scope
-        </Button>
+        {canWrite && (
+          <Button type="button" onClick={() => setIsCreateScopeDialogOpen(true)}>
+            New scope
+          </Button>
+        )}
       </div>
 
       <div className="bg-card border rounded-lg p-4 flex-1 min-h-0 flex flex-col">
