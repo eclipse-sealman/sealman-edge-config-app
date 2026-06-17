@@ -382,16 +382,17 @@ export function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps
 
           <div className="space-y-1">
           <div className="flex items-center gap-1.5">
-            <Label className="mb-0">Effective permissions</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <button
+                <Button
                   type="button"
-                  className="p-0.5 rounded hover:bg-slate-200 text-muted-foreground hover:text-foreground"
-                  aria-label="View effective permissions"
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
                 >
-                  <Info className="h-4 w-4" />
-                </button>
+                  <Info className="mr-1 h-4 w-4" />
+                  Show effective permissions
+                </Button>
               </PopoverTrigger>
               <PopoverContent className="w-64 p-3" side="right" align="start">
                 <p className="text-xs font-semibold mb-1.5">

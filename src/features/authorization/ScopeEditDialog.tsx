@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { Button } from "@/components/ui/button";
+import { AttributeNameCombobox } from "./AttributeNameCombobox";
 import {
   Dialog,
   DialogContent,
@@ -109,6 +111,7 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
   const [description, setDescription] = useState("");
   const [accessRule, setAccessRule] = useState<"ALL" | "ANY">("ALL");
   const [attributeRows, setAttributeRows] = useState<AttributeRow[]>([]);
+  const [platformMetadataKeys, setPlatformMetadataKeys] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const isEditMode = Boolean(scope);
@@ -138,6 +141,35 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
     setError(null);
   }, [open, scope]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    let isActive = true;
+
+    const loadPlatformMetadataKeys = async () => {
+      try {
+        const metadata = await edgeConfigApi.getMetadataKeys();
+        if (!isActive) {
+          return;
+        }
+        setPlatformMetadataKeys(Object.keys(metadata).sort((a, b) => a.localeCompare(b)));
+      } catch {
+        if (!isActive) {
+          return;
+        }
+        setPlatformMetadataKeys([]);
+      }
+    };
+
+    void loadPlatformMetadataKeys();
+
+    return () => {
+      isActive = false;
+    };
+  }, [open]);
+
   const handleSave = async () => {
     setError(null);
 
@@ -145,6 +177,34 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
 
     if (!trimmedName) {
       setError("Name is required");
+      return;
+    }
+
+    const trimmedAttributeNames = attributeRows
+      .map((row) => row.name.trim())
+      .filter((attributeName) => attributeName.length > 0);
+
+    const attributeNameByNormalizedKey = new Map<string, string>();
+    const duplicateAttributeNames = new Set<string>();
+
+    trimmedAttributeNames.forEach((attributeName) => {
+      const normalizedName = attributeName.toLowerCase();
+      const firstSeenName = attributeNameByNormalizedKey.get(normalizedName);
+
+      if (firstSeenName) {
+        duplicateAttributeNames.add(firstSeenName);
+        return;
+      }
+
+      attributeNameByNormalizedKey.set(normalizedName, attributeName);
+    });
+
+    if (duplicateAttributeNames.size > 0) {
+      setError(
+        `Duplicate attribute keys are not allowed: ${Array.from(duplicateAttributeNames)
+          .sort((a, b) => a.localeCompare(b))
+          .join(", ")}`,
+      );
       return;
     }
 
@@ -305,34 +365,37 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
                     attributeRows.map((row, index) => (
                       <TableRow key={row.id}>
                         <TableCell>
-                          <Input
+                          <AttributeNameCombobox
                             value={row.name}
-                            onChange={(event) => {
-                              const value = event.target.value;
+                            options={platformMetadataKeys}
+                            onChange={(selectedName) => {
                               setAttributeRows((current) =>
                                 current.map((currentRow, currentIndex) =>
-                                  currentIndex === index ? { ...currentRow, name: value } : currentRow,
+                                  currentIndex === index
+                                    ? { ...currentRow, name: selectedName }
+                                    : currentRow,
                                 ),
                               );
                               setError(null);
                             }}
-                            placeholder="Attribute name"
                           />
                         </TableCell>
                         <TableCell>
-                          <Input
-                            value={row.value}
-                            onChange={(event) => {
-                              const value = event.target.value;
-                              setAttributeRows((current) =>
-                                current.map((currentRow, currentIndex) =>
-                                  currentIndex === index ? { ...currentRow, value } : currentRow,
-                                ),
-                              );
-                              setError(null);
-                            }}
-                            placeholder="Attribute value"
-                          />
+                          <div className="space-y-1">
+                            <Input
+                              value={row.value}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setAttributeRows((current) =>
+                                  current.map((currentRow, currentIndex) =>
+                                    currentIndex === index ? { ...currentRow, value } : currentRow,
+                                  ),
+                                );
+                                setError(null);
+                              }}
+                              placeholder="Enter value - separate multiple with a comma"
+                            />
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
