@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
-import { UserGroupIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, MagnifyingGlassIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   createColumnHelper,
   flexRender,
@@ -13,6 +16,7 @@ import type { components } from "@/generated/edge-administration/types";
 import { usePermissions } from "./permissions/use-permissions";
 import { PERMISSION_KEYS } from "./permissions/permission-keys";
 import { UserTeamsDialog } from "./UserTeamsDialog";
+import { UserDetailsDialog } from "./UserDetailsDialog";
 
 type UserWithTeamsResponse = components["schemas"]["UserWithTeamsResponse"];
 
@@ -22,10 +26,25 @@ export default function Users() {
   const { data: users, isLoading, isError, error } = edgeConfigApiHooks.useGetUsers();
   const { hasPermission: canWrite } = usePermissions({ permissionKey: PERMISSION_KEYS.PLATFORM_AUTHORIZATION_WRITE });
   const [manageTeamsTarget, setManageTeamsTarget] = useState<UserWithTeamsResponse | null>(null);
+  const [detailsTarget, setDetailsTarget] = useState<UserWithTeamsResponse | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterNewOnly, setFilterNewOnly] = useState(false);
 
   const handleManageTeams = (user: UserWithTeamsResponse) => {
     setManageTeamsTarget(user);
   };
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    
+    return users.filter((user) => {
+      const matchesSearch = 
+        user.preferred_username.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter = !filterNewOnly || user.is_new;
+      
+      return matchesSearch && matchesFilter;
+    });
+  }, [users, searchQuery, filterNewOnly]);
 
   const columns = useMemo(
     () => [
@@ -108,6 +127,27 @@ export default function Users() {
                   <TooltipTrigger asChild>
                     <button
                       type="button"
+                      onClick={() => setDetailsTarget(user)}
+                      className="
+                        inline-flex items-center gap-1
+                        px-3 py-1.5 rounded-md
+                        bg-slate-100 text-slate-700
+                        hover:bg-slate-200
+                        transition-all
+                        font-medium
+                        shadow-xs
+                      "
+                      aria-label={`View details for ${user.preferred_username}`}
+                    >
+                      <EyeIcon className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>View Details</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
                       onClick={() => handleManageTeams(user)}
                       className="
                         inline-flex items-center gap-1
@@ -135,7 +175,7 @@ export default function Users() {
   );
 
   const table = useReactTable({
-    data: users ?? [],
+    data: filteredUsers,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
@@ -152,6 +192,31 @@ export default function Users() {
     <div className="h-full min-h-0 flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Users</h2>
+      </div>
+
+      <div className="bg-card border rounded-lg p-4 space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-xs">
+            <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search by username..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="filter-new-users"
+              checked={filterNewOnly}
+              onCheckedChange={setFilterNewOnly}
+            />
+            <Label htmlFor="filter-new-users" className="cursor-pointer">
+              New users only
+            </Label>
+          </div>
+        </div>
       </div>
 
       <div className="bg-card border rounded-lg p-4 flex-1 min-h-0 flex flex-col">
@@ -224,6 +289,16 @@ export default function Users() {
         onOpenChange={(open) => {
           if (!open) {
             setManageTeamsTarget(null);
+          }
+        }}
+      />
+
+      <UserDetailsDialog
+        user={detailsTarget}
+        open={Boolean(detailsTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailsTarget(null);
           }
         }}
       />
