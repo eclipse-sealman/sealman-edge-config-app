@@ -287,6 +287,11 @@ const getUsers = async () => {
   return data;
 }
 
+const getCurrentUser = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/user');
+  return data;
+}
+
 const addUserToTeam = async (teamId: string, userId: string) => {
   const { data } = await edgeConfigApiInstance.post(`/auth/teams/${teamId}/users`, { user_id: userId });
   return data;
@@ -447,6 +452,7 @@ export const edgeConfigApi = {
   createTeam,
   updateTeam,
   getUsers,
+  getCurrentUser,
   addUserToTeam,
   removeUserFromTeam,
   getEventData,

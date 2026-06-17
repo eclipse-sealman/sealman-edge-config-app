@@ -183,6 +183,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current User */
+        get: operations["get_current_user_auth_user_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/permissions/platform": {
         parameters: {
             query?: never;
@@ -1256,6 +1273,15 @@ export interface components {
             targetHandle: string;
             /** Type */
             type?: string | null;
+        };
+        /** CurrentUserResponse */
+        CurrentUserResponse: {
+            /** Id */
+            id: string;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Is New */
+            is_new: boolean;
         };
         /** DefaultSmartEMSTemplate */
         DefaultSmartEMSTemplate: {
@@ -2542,7 +2568,7 @@ export interface components {
              * Permissions
              * @default []
              */
-            Permissions: string[];
+            permissions: string[];
         };
         /** UserSummaryResponse */
         UserSummaryResponse: {
@@ -3227,6 +3253,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_current_user_auth_user_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUserResponse"];
                 };
             };
         };

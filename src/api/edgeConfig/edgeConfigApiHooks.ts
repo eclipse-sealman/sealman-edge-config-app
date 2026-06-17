@@ -332,6 +332,15 @@ const useGetUsers = () =>
     queryFn: () => edgeConfigApi.getUsers(),
   });
 
+type CurrentUserResponse = components["schemas"]["CurrentUserResponse"];
+
+const useGetCurrentUser = (enabled = true) =>
+  useQuery<CurrentUserResponse, AxiosError>({
+    queryKey: ["authCurrentUser"],
+    queryFn: () => edgeConfigApi.getCurrentUser(),
+    enabled,
+  });
+
 const useAddUserToTeam = () =>
   useMutation<unknown, AxiosError, { teamId: string; userId: string }>({
     mutationFn: ({ teamId, userId }) => edgeConfigApi.addUserToTeam(teamId, userId),
@@ -376,6 +385,7 @@ export const edgeConfigApiHooks = {
   useCreateTeam,
   useUpdateTeam,
   useGetUsers,
+  useGetCurrentUser,
   useAddUserToTeam,
   useRemoveUserFromTeam,
 }

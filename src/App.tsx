@@ -19,6 +19,7 @@ import DeviceSettings from "./pages/settings/DeviceSettings";
 import DeviceMetadataSettings from "./pages/settings/DeviceMetadataSettings";
 import { useAuth } from "./auth";
 import { useEffect } from "react";
+import { NewUserCheck } from "./components/NewUserCheck";
 import DeploymentDetails from "./features/deployments/DeploymentDetails";
 import ServiceDetails from "./features/deployments/ServiceDetails";
 import Authorization from "./features/authorization/Authorization";
@@ -84,6 +85,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      <NewUserCheck />
       <ToastContainer position="bottom-right" />
     </QueryClientProvider>
   );
