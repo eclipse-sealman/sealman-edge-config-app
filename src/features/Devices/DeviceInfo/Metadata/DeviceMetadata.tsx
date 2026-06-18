@@ -6,6 +6,8 @@ import {
   HeadingColor,
 } from "@/components/Typography/Heading";
 import { ApiError } from "@/generated/edge-administration/api";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
+import { usePermissions } from "@/features/authorization/permissions/use-permissions";
 import {
   InformationCircleIcon,
   PencilSquareIcon,
@@ -20,6 +22,7 @@ export default function DeviceMetadata() {
   const { deviceId } = useParams();
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const deviceMetadata = useGetDeviceMetadata(deviceId ?? "");
+  const { hasPermission: canEditMetadata } = usePermissions({ deviceId, permissionKey: PERMISSION_KEYS.DEVICE_METADATA_WRITE });
   const apiError = deviceMetadata.isError
     ? (deviceMetadata.error as ApiError)
     : null;
@@ -68,10 +71,12 @@ export default function DeviceMetadata() {
       <Heading processing={deviceMetadata.isFetching} color={HeadingColor.Gray}>
         <InformationCircleIcon className="w-7 h-7 mr-1" />
         Device Metadata
-        <HeadingButton onClick={() => setIsEditing(!isEditing)}>
-          <PencilSquareIcon className="w-6 h-6 ml-5" />
-          Edit
-        </HeadingButton>
+        {canEditMetadata && (
+          <HeadingButton onClick={() => setIsEditing(!isEditing)}>
+            <PencilSquareIcon className="w-6 h-6 ml-5" />
+            Edit
+          </HeadingButton>
+        )}
       </Heading>
       {deviceMetadata.isError && apiError ? (
         <div className="pt-4 pl-2">
