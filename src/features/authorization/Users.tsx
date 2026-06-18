@@ -25,6 +25,7 @@ const columnHelper = createColumnHelper<UserWithTeamsResponse>();
 export default function Users() {
   const { data: users, isLoading, isError, error } = edgeConfigApiHooks.useGetUsers();
   const { hasPermission: canWrite } = usePermissions({ permissionKey: PERMISSION_KEYS.PLATFORM_AUTHORIZATION_WRITE });
+  const { hasPermission: canRead } = usePermissions({ permissionKey: PERMISSION_KEYS.PLATFORM_AUTHORIZATION_READ });
   const [manageTeamsTarget, setManageTeamsTarget] = useState<UserWithTeamsResponse | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<UserWithTeamsResponse | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,7 +114,7 @@ export default function Users() {
           return <span>{new Date(value).toLocaleString()}</span>;
         },
       }),
-      ...(canWrite ? [columnHelper.display({
+      ...(canRead || canWrite ? [columnHelper.display({
         id: "actions",
         header: "",
         meta: { align: "center" },
@@ -144,6 +145,7 @@ export default function Users() {
                   </TooltipTrigger>
                   <TooltipContent>View Details</TooltipContent>
                 </Tooltip>
+                {canWrite && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -165,13 +167,14 @@ export default function Users() {
                   </TooltipTrigger>
                   <TooltipContent>Manage Teams</TooltipContent>
                 </Tooltip>
+                )}
               </TooltipProvider>
             </div>
           );
         },
       })] : []),
     ],
-    [canWrite],
+    [canWrite, canRead],
   );
 
   const table = useReactTable({
