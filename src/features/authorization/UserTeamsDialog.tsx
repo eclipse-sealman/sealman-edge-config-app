@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { TrashIcon } from "@heroicons/react/24/outline";
+import { ChevronsUpDown } from "lucide-react";
 import type { components } from "@/generated/edge-administration/types";
 
 type UserWithTeamsResponse = components["schemas"]["UserWithTeamsResponse"];
@@ -43,33 +51,21 @@ export function UserTeamsDialog({ user, open, onOpenChange }: UserTeamsDialogPro
   const removeUserMutation = edgeConfigApiHooks.useRemoveUserFromTeam();
   const queryClient = useQueryClient();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [comboboxOpen, setComboboxOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const listRef = useRef<HTMLUListElement>(null);
 
   const freshUser = allUsers?.find((u) => u.id === user?.id) ?? user;
   const userTeams = freshUser?.teams ?? [];
   const userTeamIds = new Set(userTeams.map((t) => t.id));
 
-  const filteredTeams = useMemo(() => {
-    if (!searchQuery.trim() || !allTeams) return [];
-    const query = searchQuery.toLowerCase();
-    return allTeams
-      .filter(
-        (t: TeamListItemResponse) =>
-          !userTeamIds.has(t.id) &&
-          t.name.toLowerCase().includes(query),
-      )
-      .slice(0, 10);
-  }, [searchQuery, allTeams, userTeamIds]);
+  const availableTeams = useMemo(() => {
+    if (!allTeams) return [];
+    return allTeams.filter((t: TeamListItemResponse) => !userTeamIds.has(t.id));
+  }, [allTeams, userTeamIds]);
 
   const handleAddToTeam = async (teamId: string) => {
     if (!user) return;
-    setSearchQuery("");
-    setShowSuggestions(false);
-    setHighlightedIndex(-1);
+    setComboboxOpen(false);
     setError(null);
     try {
       await addUserMutation.mutateAsync({ teamId, userId: user.id });
@@ -77,41 +73,6 @@ export function UserTeamsDialog({ user, open, onOpenChange }: UserTeamsDialogPro
     } catch (e: unknown) {
       setError(extractErrorMessage(e, "Failed to add user to team"));
     }
-  };
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showSuggestions || filteredTeams.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlightedIndex((prev) => {
-        const next = prev < filteredTeams.length - 1 ? prev + 1 : 0;
-        scrollToIndex(next);
-        return next;
-      });
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlightedIndex((prev) => {
-        const next = prev > 0 ? prev - 1 : filteredTeams.length - 1;
-        scrollToIndex(next);
-        return next;
-      });
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (highlightedIndex >= 0 && highlightedIndex < filteredTeams.length) {
-        handleAddToTeam(filteredTeams[highlightedIndex].id);
-      }
-    } else if (e.key === "Escape") {
-      setShowSuggestions(false);
-      setHighlightedIndex(-1);
-    }
-  };
-
-  const scrollToIndex = (index: number) => {
-    const list = listRef.current;
-    if (!list) return;
-    const item = list.children[index] as HTMLElement | undefined;
-    item?.scrollIntoView({ block: "nearest" });
   };
 
   const handleRemoveFromTeam = async (teamId: string) => {
@@ -143,41 +104,36 @@ export function UserTeamsDialog({ user, open, onOpenChange }: UserTeamsDialogPro
 
         <div className="space-y-4 py-2">
           {/* Search / add team */}
-          <div className="relative">
-            <Input
-              placeholder="Search teams to add..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSuggestions(true);
-                setHighlightedIndex(-1);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onKeyDown={handleSearchKeyDown}
-            />
-            {showSuggestions && filteredTeams.length > 0 && (
-              <ul ref={listRef} className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-md border bg-white shadow-md">
-                {filteredTeams.map((team: TeamListItemResponse, index: number) => (
-                  <li
-                    key={team.id}
-                    onClick={() => handleAddToTeam(team.id)}
-                    className={`px-3 py-2 text-sm cursor-pointer ${
-                      index === highlightedIndex
-                        ? "bg-blue-100 text-blue-800"
-                        : "hover:bg-slate-100"
-                    }`}
-                  >
-                    {team.name}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {showSuggestions && searchQuery.trim() && filteredTeams.length === 0 && (
-              <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-md px-3 py-2 text-sm text-muted-foreground">
-                No teams found
-              </div>
-            )}
-          </div>
+          <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={comboboxOpen}
+                className="w-full justify-between"
+              >
+                Select a team to add...
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start" onWheel={(e) => e.stopPropagation()}>
+              <Command>
+                <CommandInput placeholder="Search teams..." />
+                <CommandList onWheel={(e) => e.stopPropagation()}>
+                  <CommandEmpty>No teams found</CommandEmpty>
+                  {availableTeams.map((team: TeamListItemResponse) => (
+                    <CommandItem
+                      key={team.id}
+                      value={team.name}
+                      onSelect={() => handleAddToTeam(team.id)}
+                    >
+                      {team.name}
+                    </CommandItem>
+                  ))}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
 
           {/* Teams list */}
           <div className="border rounded-md max-h-64 overflow-y-auto">
