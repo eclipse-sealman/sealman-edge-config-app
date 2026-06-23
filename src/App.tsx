@@ -27,6 +27,7 @@ import Teams from "./features/authorization/Teams";
 import Roles from "./features/authorization/Roles";
 import Scopes from "./features/authorization/Scopes";
 import Users from "./features/authorization/Users";
+import UserProfile from "./pages/UserProfile";
 
 export default function App() {
   const auth = useAuth();
@@ -80,6 +81,7 @@ export default function App() {
               <Route path="device-metadata" element={<DeviceMetadataSettings />} />
               {/* <Route path="smartems" element={<SmartEmsSettings />} /> */}
             </Route>
+            <Route path="user/profile" element={<UserProfile />} />
             <Route path="version" element={<Version />} />
             <Route path="*" element={<PageNotFound />} />
           </Route>

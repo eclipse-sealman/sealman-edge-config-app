@@ -200,6 +200,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/user/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current User Teams */
+        get: operations["get_current_user_teams_auth_user_teams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/users/{user_id}/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get User Teams */
+        get: operations["get_user_teams_auth_users__user_id__teams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/permissions/platform": {
         parameters: {
             query?: never;
@@ -1278,6 +1312,8 @@ export interface components {
         CurrentUserResponse: {
             /** Id */
             id: string;
+            /** Preferred Username */
+            preferred_username: string;
             /** Is Admin */
             is_admin: boolean;
             /** Is New */
@@ -2030,6 +2066,13 @@ export interface components {
                 [key: string]: components["schemas"]["ClientConfigurationSchema-Output"];
             };
         };
+        /** PermissionItem */
+        PermissionItem: {
+            /** Name */
+            name: string;
+            /** Is Global */
+            is_global: boolean;
+        };
         /** PortForwardingConfig */
         PortForwardingConfig: {
             /**
@@ -2111,6 +2154,16 @@ export interface components {
              * @default []
              */
             teams: components["schemas"]["TeamSummaryResponse"][];
+        };
+        /** RolePermissionsResponse */
+        RolePermissionsResponse: {
+            /** Name */
+            name: string;
+            /**
+             * Permissions
+             * @default []
+             */
+            permissions: components["schemas"]["PermissionItem"][];
         };
         /** RoleResponse */
         RoleResponse: {
@@ -2489,6 +2542,15 @@ export interface components {
         };
         /** TeamListResponse */
         TeamListResponse: components["schemas"]["TeamListItemResponse"][];
+        /** TeamScopeResponse */
+        TeamScopeResponse: {
+            /** Name */
+            name: string;
+            /** Attr */
+            attr: {
+                [key: string]: unknown;
+            };
+        };
         /** TeamSummaryResponse */
         TeamSummaryResponse: {
             /**
@@ -2580,6 +2642,27 @@ export interface components {
             is_admin: boolean;
             /** Is New */
             is_new: boolean;
+        };
+        /** UserTeamAssignmentResponse */
+        UserTeamAssignmentResponse: {
+            /** Name */
+            name: string;
+            scope?: components["schemas"]["TeamScopeResponse"] | null;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: components["schemas"]["RolePermissionsResponse"][];
+        };
+        /** UserTeamAssignmentsResponse */
+        UserTeamAssignmentsResponse: {
+            /** User Id */
+            user_id: string;
+            /**
+             * Teams
+             * @default []
+             */
+            teams: components["schemas"]["UserTeamAssignmentResponse"][];
         };
         /** UserWithTeamsResponse */
         UserWithTeamsResponse: {
@@ -3273,6 +3356,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurrentUserResponse"];
+                };
+            };
+        };
+    };
+    get_current_user_teams_auth_user_teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserTeamAssignmentsResponse"];
+                };
+            };
+        };
+    };
+    get_user_teams_auth_users__user_id__teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserTeamAssignmentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

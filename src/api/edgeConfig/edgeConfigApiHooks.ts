@@ -341,6 +341,13 @@ const useGetCurrentUser = (enabled = true) =>
     enabled,
   });
 
+const useGetCurrentUserTeams = (enabled = true) =>
+  useQuery<UserTeamAssignmentsResponse, AxiosError>({
+    queryKey: ["authCurrentUserTeams"],
+    queryFn: () => edgeConfigApi.getCurrentUserTeams(),
+    enabled,
+  });
+
 const useAddUserToTeam = () =>
   useMutation<unknown, AxiosError, { teamId: string; userId: string }>({
     mutationFn: ({ teamId, userId }) => edgeConfigApi.addUserToTeam(teamId, userId),
@@ -357,6 +364,15 @@ const useRemoveUserFromTeam = () =>
       await queryClient.invalidateQueries({ queryKey: ["authTeamDetails"] });
       await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
     },
+  });
+
+type UserTeamAssignmentsResponse = components["schemas"]["UserTeamAssignmentsResponse"];
+
+const useGetUserTeamAssignments = (userId: string | undefined, enabled = true) =>
+  useQuery<UserTeamAssignmentsResponse, AxiosError>({
+    queryKey: ["authUserTeamAssignments", userId],
+    queryFn: () => edgeConfigApi.getUserTeamAssignments(userId ?? ""),
+    enabled: Boolean(userId) && enabled,
   });
 
 export const edgeConfigApiHooks = {
@@ -386,6 +402,8 @@ export const edgeConfigApiHooks = {
   useUpdateTeam,
   useGetUsers,
   useGetCurrentUser,
+  useGetCurrentUserTeams,
   useAddUserToTeam,
   useRemoveUserFromTeam,
+  useGetUserTeamAssignments,
 }

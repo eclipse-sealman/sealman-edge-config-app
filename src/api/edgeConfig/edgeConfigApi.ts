@@ -292,6 +292,11 @@ const getCurrentUser = async () => {
   return data;
 }
 
+const getCurrentUserTeams = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/user/teams');
+  return data;
+}
+
 const addUserToTeam = async (teamId: string, userId: string) => {
   const { data } = await edgeConfigApiInstance.post(`/auth/teams/${teamId}/users`, { user_id: userId });
   return data;
@@ -299,6 +304,11 @@ const addUserToTeam = async (teamId: string, userId: string) => {
 
 const removeUserFromTeam = async (teamId: string, userId: string) => {
   await edgeConfigApiInstance.delete(`/auth/teams/${teamId}/users/${userId}`);
+}
+
+const getUserTeamAssignments = async (userId: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/auth/users/${userId}/teams`);
+  return data;
 }
 const createScope = async (
   payload: { name: string; description: string | null; attr: Record<string, unknown>; access_rule: "ALL" | "ANY" },
@@ -453,8 +463,10 @@ export const edgeConfigApi = {
   updateTeam,
   getUsers,
   getCurrentUser,
+  getCurrentUserTeams,
   addUserToTeam,
   removeUserFromTeam,
+  getUserTeamAssignments,
   getEventData,
   getAvailableTemplates,
   saveSelectedTemplates,
