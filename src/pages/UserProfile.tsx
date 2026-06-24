@@ -1,15 +1,18 @@
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
+import { useAuth } from "@/auth";
 import { UserTeamAssignmentsView } from "@/features/authorization/UserTeamAssignmentsView";
 
 export default function UserProfile() {
   const { data: currentUser } = edgeConfigApiHooks.useGetCurrentUser();
   const { data: userTeamAssignments } = edgeConfigApiHooks.useGetCurrentUserTeams();
 
+  const auth = useAuth();
+
   return (
     <div className="h-full overflow-y-auto bg-gray-200">
       <div className="p-6 flex justify-center">
         <div className="max-w-3xl w-full rounded-lg border bg-white p-6 shadow-sm space-y-6">
-      <h1 className="text-2xl font-bold">User Profile</h1>
+      <h1 className="text-2xl font-bold">{auth.user?.name ?? "User Profile"}</h1>
 
       {currentUser ? (
         <div className="space-y-4">
