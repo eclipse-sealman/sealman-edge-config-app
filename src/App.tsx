@@ -16,6 +16,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import SettingsLayout from "./pages/settings/SettingsLayout";
 import NetworkSettings from "./pages/settings/NetworkSettings";
 import DeviceSettings from "./pages/settings/DeviceSettings";
+import DeviceTemplateVariablesSettings from "./pages/settings/DeviceTemplateVariablesSettings";
 import DeviceMetadataSettings from "./pages/settings/DeviceMetadataSettings";
 import { useAuth } from "./auth";
 import { useEffect } from "react";
@@ -79,6 +80,7 @@ export default function App() {
               <Route path="network" element={<NetworkSettings />} />
               <Route path="device-templates" element={<DeviceSettings />} />
               <Route path="device-metadata" element={<DeviceMetadataSettings />} />
+              <Route path="device-template-variables" element={<DeviceTemplateVariablesSettings />} /> {/* add this */}
               {/* <Route path="smartems" element={<SmartEmsSettings />} /> */}
             </Route>
             <Route path="user/profile" element={<UserProfile />} />

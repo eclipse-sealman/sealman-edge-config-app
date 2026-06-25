@@ -412,6 +412,16 @@ const getDeviceMetaValues = async (): Promise<Record<string, string[]>> => {
   return response.data;
 };
 
+const getDeviceTemplateVariables = async (): Promise<Record<string, string>> => {
+  const { data } = await edgeConfigApiInstance.get('/platform/device-template-config');
+  return data.config ;
+};
+
+const updateDeviceTemplateVariables = async (config: Record<string, string>): Promise<Record<string, string>> => {
+  const { data } = await edgeConfigApiInstance.patch('/platform/device-template-config', config);
+  return data.config ;
+};
+
 
 export const edgeConfigApi = {
   getDevices,
@@ -481,4 +491,6 @@ export const edgeConfigApi = {
   deleteDevice,
   getDevicesWithMetaKey,
   getDeviceMetaValues,
+  getDeviceTemplateVariables,
+  updateDeviceTemplateVariables
 }
