@@ -4,6 +4,14 @@ import { useMutation, useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { edgeConfigApi } from "./edgeConfigApi";
 import { queryClient } from "../../config/queryConfig";
 import { InterfaceData } from "./interfaces";
+import type { components } from "@/generated/edge-administration/types";
+
+type ScopeResponse = components["schemas"]["ScopeResponse"];
+type RoleResponse = components["schemas"]["RoleResponse"];
+type RoleDetailsResponse = components["schemas"]["RoleDetailsResponse"];
+type ActionResponse = components["schemas"]["ActionResponse"];
+type TeamListItemResponse = components["schemas"]["TeamListItemResponse"];
+type TeamDetailsResponse = components["schemas"]["TeamDetailsResponse"];
 
 export interface DeviceData {
   deviceId: string;
@@ -24,6 +32,14 @@ export interface DeviceData {
   sems: string;
   vpn: string;
 }
+
+type ScopeDetailsResponse = components["schemas"]["ScopeDetailsResponse"];
+type ScopeWritePayload = {
+  name: string;
+  description: string | null;
+  attr: Record<string, unknown>;
+  access_rule: "ALL" | "ANY";
+};
 
 // The following two hooks are almost the same, this is a hack to have two different hooks available with different caching behavior
 const useGetDevice = (deviceId?: string) =>
@@ -186,6 +202,179 @@ const useDeviceTemplates = () => {
   };
 };
 
+const useGetScopes = () =>
+  useQuery<ScopeResponse[], AxiosError>({
+    queryKey: ["authScopes"],
+    queryFn: () => edgeConfigApi.getScopes(),
+  });
+
+const useGetScopeDetails = (scopeId: string | undefined, enabled = true) =>
+  useQuery<ScopeDetailsResponse, AxiosError>({
+    queryKey: ["authScopeDetails", scopeId],
+    queryFn: () => edgeConfigApi.getScopeDetails(scopeId ?? ""),
+    enabled: Boolean(scopeId) && enabled,
+  });
+
+const useDeleteScope = () =>
+  useMutation<unknown, AxiosError, string>({
+    mutationFn: (scopeId: string) => edgeConfigApi.deleteScope(scopeId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authScopes"] });
+    },
+  });
+
+const useGetRoles = () =>
+  useQuery<RoleResponse[], AxiosError>({
+    queryKey: ["authRoles"],
+    queryFn: () => edgeConfigApi.getRoles(),
+  });
+
+const useGetRoleDetails = (roleId: string | undefined, enabled = true) =>
+  useQuery<RoleDetailsResponse, AxiosError>({
+    queryKey: ["authRoleDetails", roleId],
+    queryFn: () => edgeConfigApi.getRoleDetails(roleId ?? ""),
+    enabled: Boolean(roleId) && enabled,
+  });
+
+const useDeleteRole = () =>
+  useMutation<unknown, AxiosError, string>({
+    mutationFn: (roleId: string) => edgeConfigApi.deleteRole(roleId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authRoles"] });
+    },
+  });
+
+const useGetActions = () =>
+  useQuery<ActionResponse[], AxiosError>({
+    queryKey: ["authActions"],
+    queryFn: () => edgeConfigApi.getActions(),
+  });
+
+const useCreateRole = () =>
+  useMutation<RoleResponse, AxiosError, { name: string; description: string | null; actions: string[] }>({
+    mutationFn: (payload) => edgeConfigApi.createRole(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authRoles"] });
+    },
+  });
+
+const useUpdateRole = () =>
+  useMutation<unknown, AxiosError, { roleId: string; payload: { name: string; description: string | null; actions: string[] } }>({
+    mutationFn: ({ roleId, payload }) => edgeConfigApi.updateRole(roleId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authRoles"] });
+      await queryClient.invalidateQueries({ queryKey: ["authRoleDetails"] });
+    },
+  });
+
+const useCreateScope = () =>
+  useMutation<ScopeResponse, AxiosError, ScopeWritePayload>({
+    mutationFn: (payload) => edgeConfigApi.createScope(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authScopes"] });
+    },
+  });
+
+const useUpdateScope = () =>
+  useMutation<unknown, AxiosError, { scopeId: string; payload: ScopeWritePayload }>({
+    mutationFn: ({ scopeId, payload }) => edgeConfigApi.updateScope(scopeId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authScopes"] });
+      await queryClient.invalidateQueries({ queryKey: ["authScopeDetails"] });
+    },
+  });
+
+const useGetTeams = () =>
+  useQuery<TeamListItemResponse[], AxiosError>({
+    queryKey: ["authTeams"],
+    queryFn: () => edgeConfigApi.getTeams(),
+  });
+
+const useGetTeamDetails = (teamId: string | undefined, enabled = true) =>
+  useQuery<TeamDetailsResponse, AxiosError>({
+    queryKey: ["authTeamDetails", teamId],
+    queryFn: () => edgeConfigApi.getTeamDetails(teamId ?? ""),
+    enabled: Boolean(teamId) && enabled,
+  });
+
+const useDeleteTeam = () =>
+  useMutation<unknown, AxiosError, string>({
+    mutationFn: (teamId: string) => edgeConfigApi.deleteTeam(teamId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
+    },
+  });
+
+type TeamWritePayload = { name: string; scope_id: string | null; role_ids: string[] };
+
+const useCreateTeam = () =>
+  useMutation<unknown, AxiosError, TeamWritePayload>({
+    mutationFn: (payload) => edgeConfigApi.createTeam(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
+    },
+  });
+
+const useUpdateTeam = () =>
+  useMutation<unknown, AxiosError, { teamId: string; payload: TeamWritePayload }>({
+    mutationFn: ({ teamId, payload }) => edgeConfigApi.updateTeam(teamId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
+      await queryClient.invalidateQueries({ queryKey: ["authTeamDetails"] });
+    },
+  });
+
+type UserWithTeamsResponse = components["schemas"]["UserWithTeamsResponse"];
+
+const useGetUsers = () =>
+  useQuery<UserWithTeamsResponse[], AxiosError>({
+    queryKey: ["authUsers"],
+    queryFn: () => edgeConfigApi.getUsers(),
+  });
+
+type CurrentUserResponse = components["schemas"]["CurrentUserResponse"];
+
+const useGetCurrentUser = (enabled = true) =>
+  useQuery<CurrentUserResponse, AxiosError>({
+    queryKey: ["authCurrentUser"],
+    queryFn: () => edgeConfigApi.getCurrentUser(),
+    enabled,
+  });
+
+const useGetCurrentUserTeams = (enabled = true) =>
+  useQuery<UserTeamAssignmentsResponse, AxiosError>({
+    queryKey: ["authCurrentUserTeams"],
+    queryFn: () => edgeConfigApi.getCurrentUserTeams(),
+    enabled,
+  });
+
+const useAddUserToTeam = () =>
+  useMutation<unknown, AxiosError, { teamId: string; userId: string }>({
+    mutationFn: ({ teamId, userId }) => edgeConfigApi.addUserToTeam(teamId, userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeamDetails"] });
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
+    },
+  });
+
+const useRemoveUserFromTeam = () =>
+  useMutation<unknown, AxiosError, { teamId: string; userId: string }>({
+    mutationFn: ({ teamId, userId }) => edgeConfigApi.removeUserFromTeam(teamId, userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authTeamDetails"] });
+      await queryClient.invalidateQueries({ queryKey: ["authTeams"] });
+    },
+  });
+
+type UserTeamAssignmentsResponse = components["schemas"]["UserTeamAssignmentsResponse"];
+
+const useGetUserTeamAssignments = (userId: string | undefined, enabled = true) =>
+  useQuery<UserTeamAssignmentsResponse, AxiosError>({
+    queryKey: ["authUserTeamAssignments", userId],
+    queryFn: () => edgeConfigApi.getUserTeamAssignments(userId ?? ""),
+    enabled: Boolean(userId) && enabled,
+  });
+
 export const edgeConfigApiHooks = {
   useGetDevice,
   useGetSmartEmsInfo,
@@ -195,4 +384,26 @@ export const edgeConfigApiHooks = {
   usePostTwinConfig,
   useGetSmartEmsConfigLan,
   useDeviceTemplates,
+  useGetScopes,
+  useGetScopeDetails,
+  useDeleteScope,
+  useCreateScope,
+  useUpdateScope,
+  useGetRoles,
+  useGetRoleDetails,
+  useDeleteRole,
+  useGetActions,
+  useCreateRole,
+  useUpdateRole,
+  useGetTeams,
+  useGetTeamDetails,
+  useDeleteTeam,
+  useCreateTeam,
+  useUpdateTeam,
+  useGetUsers,
+  useGetCurrentUser,
+  useGetCurrentUserTeams,
+  useAddUserToTeam,
+  useRemoveUserFromTeam,
+  useGetUserTeamAssignments,
 }

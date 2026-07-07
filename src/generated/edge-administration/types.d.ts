@@ -4,15 +4,262 @@
  */
 
 export interface paths {
-    "/auth/permissions/{resource_type}": {
+    "/auth/roles": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Permissions */
-        get: operations["get_permissions_auth_permissions__resource_type__get"];
+        /** Get Roles */
+        get: operations["get_roles_auth_roles_get"];
+        put?: never;
+        /** Post Role */
+        post: operations["post_role_auth_roles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/roles/{role_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Role By Id */
+        get: operations["get_role_by_id_auth_roles__role_id__get"];
+        /** Put Role By Id */
+        put: operations["put_role_by_id_auth_roles__role_id__put"];
+        post?: never;
+        /** Delete Role */
+        delete: operations["delete_role_auth_roles__role_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Actions */
+        get: operations["get_actions_auth_actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Teams */
+        get: operations["get_teams_auth_teams_get"];
+        put?: never;
+        /** Create Team */
+        post: operations["create_team_auth_teams_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/teams/{team_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Team By Id */
+        get: operations["get_team_by_id_auth_teams__team_id__get"];
+        /** Update Team */
+        put: operations["update_team_auth_teams__team_id__put"];
+        post?: never;
+        /** Delete Team */
+        delete: operations["delete_team_auth_teams__team_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/teams/{team_id}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add User To Team */
+        post: operations["add_user_to_team_auth_teams__team_id__users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/teams/{team_id}/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove User From Team */
+        delete: operations["remove_user_from_team_auth_teams__team_id__users__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Users */
+        get: operations["get_users_auth_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Scopes */
+        get: operations["get_scopes_auth_scopes_get"];
+        put?: never;
+        /** Create Scope */
+        post: operations["create_scope_auth_scopes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/scopes/{scope_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Scope Details */
+        get: operations["get_scope_details_auth_scopes__scope_id__get"];
+        /** Update Scope */
+        put: operations["update_scope_auth_scopes__scope_id__put"];
+        post?: never;
+        /** Delete Scope */
+        delete: operations["delete_scope_auth_scopes__scope_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current User */
+        get: operations["get_current_user_auth_user_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/user/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current User Teams */
+        get: operations["get_current_user_teams_auth_user_teams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/users/{user_id}/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get User Teams */
+        get: operations["get_user_teams_auth_users__user_id__teams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/permissions/platform": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Platform Permissions */
+        get: operations["get_platform_permissions_auth_permissions_platform_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/permissions/device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Device Permissions */
+        get: operations["get_device_permissions_auth_permissions_device_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -151,8 +398,7 @@ export interface paths {
         };
         /** List Deployments */
         get: operations["list_deployments_compose_deployments_get"];
-        /** Create Or Update Deployment */
-        put: operations["create_or_update_deployment_compose_deployments_put"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -169,7 +415,8 @@ export interface paths {
         };
         /** Get Deployment */
         get: operations["get_deployment_compose_deployments__name__get"];
-        put?: never;
+        /** Create Or Update Deployment */
+        put: operations["create_or_update_deployment_compose_deployments__name__put"];
         post?: never;
         /** Delete Deployment */
         delete: operations["delete_deployment_compose_deployments__name__delete"];
@@ -178,7 +425,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/active-deployments": {
+    "/active-deployment": {
         parameters: {
             query?: never;
             header?: never;
@@ -186,17 +433,17 @@ export interface paths {
             cookie?: never;
         };
         /** Get Active Deployment */
-        get: operations["get_active_deployment_active_deployments_get"];
+        get: operations["get_active_deployment_active_deployment_get"];
         put?: never;
         post?: never;
         /** Delete Active Deployment */
-        delete: operations["delete_active_deployment_active_deployments_delete"];
+        delete: operations["delete_active_deployment_active_deployment_delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/active-deployments/{name}": {
+    "/active-deployment/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -204,9 +451,9 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
-        /** Activate Deployment */
-        post: operations["activate_deployment_active_deployments__name__post"];
+        /** Set Active Deployment */
+        put: operations["set_active_deployment_active_deployment__name__put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -275,6 +522,40 @@ export interface paths {
         };
         /** Get Module Twin Config */
         get: operations["get_module_twin_config__device__twin_config__module__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/twin/config/{module}/binary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Module Twin Config Binary */
+        get: operations["get_module_twin_config_binary__device__twin_config__module__binary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/twin/identity/{module}/reported": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Module Twin Identity Reported */
+        get: operations["get_module_twin_identity_reported__device__twin_identity__module__reported_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -775,8 +1056,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Devices */
-        get: operations["get_devices_devices_get"];
+        /** Get Devices Route */
+        get: operations["get_devices_route_devices_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -793,11 +1074,28 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Create Device */
-        put: operations["create_device_devices__device_id__put"];
+        /** Create Device Route */
+        put: operations["create_device_route_devices__device_id__put"];
         post?: never;
-        /** Delete Device */
-        delete: operations["delete_device_devices__device_id__delete"];
+        /** Delete Device Route */
+        delete: operations["delete_device_route_devices__device_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/meta-values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Device Meta Values Route */
+        get: operations["get_device_meta_values_route_devices_meta_values_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -807,6 +1105,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActionResponse */
+        ActionResponse: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Is Global */
+            is_global?: boolean | null;
+        };
         /** ActiveDeploymentResponse */
         ActiveDeploymentResponse: {
             /** Active Deployment */
@@ -815,7 +1122,9 @@ export interface components {
         /** AddMetadataKeyRequest */
         AddMetadataKeyRequest: {
             /** Key */
-            key: string;
+            key: {
+                [key: string]: components["schemas"]["MetadataKeyOptions"];
+            };
         };
         /** AnonymousCredentialsSchema */
         AnonymousCredentialsSchema: {
@@ -841,6 +1150,10 @@ export interface components {
             deviceTemplateName: string;
             /** Inittime */
             initTime: string;
+            /** Vpncontainerconfigured */
+            vpnContainerConfigured?: boolean | null;
+            /** Vpncontainerconfigerror */
+            vpnContainerConfigError?: string | null;
         };
         /** CellularInterface */
         CellularInterface: {
@@ -884,7 +1197,7 @@ export interface components {
              * @default None
              * @enum {string}
              */
-            securityPolicy: "Invalid" | "None" | "Basic128" | "Basic192" | "Basic192Rsa15" | "Basic256Rsa15" | "Basic256Sha256" | "Aes128_Sha256_RsaOaep" | "Aes256_Sha256_RsaPss" | "PubSub_Aes128_CTR" | "PubSub_Aes256_CTR" | "Basic128Rsa15" | "Basic256";
+            securityPolicy: "Invalid" | "None" | "Basic128" | "Basic192" | "Basic192Rsa15" | "Basic256Rsa15" | "Basic256Sha256" | "Aes128_Sha256_RsaOaep" | "Aes256_Sha256_RsaPss" | "Aes128Sha256RsaOaep" | "Aes256Sha256RsaPss" | "PubSub_Aes128_CTR" | "PubSub_Aes256_CTR" | "Basic128Rsa15" | "Basic256";
             /**
              * Messagesecuritymode
              * @default None
@@ -893,6 +1206,8 @@ export interface components {
             messageSecurityMode: "Invalid" | "None" | "Sign" | "SignAndEncrypt";
             /** Clientcertificate */
             clientCertificate?: string | null;
+            /** Clientprivatekey */
+            clientPrivateKey?: string | null;
             /** Servercertificate */
             serverCertificate?: string | null;
             /** Rootcertificates */
@@ -913,7 +1228,7 @@ export interface components {
              * @default None
              * @enum {string}
              */
-            securityPolicy: "Invalid" | "None" | "Basic128" | "Basic192" | "Basic192Rsa15" | "Basic256Rsa15" | "Basic256Sha256" | "Aes128_Sha256_RsaOaep" | "Aes256_Sha256_RsaPss" | "PubSub_Aes128_CTR" | "PubSub_Aes256_CTR" | "Basic128Rsa15" | "Basic256";
+            securityPolicy: "Invalid" | "None" | "Basic128" | "Basic192" | "Basic192Rsa15" | "Basic256Rsa15" | "Basic256Sha256" | "Aes128_Sha256_RsaOaep" | "Aes256_Sha256_RsaPss" | "Aes128Sha256RsaOaep" | "Aes256Sha256RsaPss" | "PubSub_Aes128_CTR" | "PubSub_Aes256_CTR" | "Basic128Rsa15" | "Basic256";
             /**
              * Messagesecuritymode
              * @default None
@@ -922,6 +1237,8 @@ export interface components {
             messageSecurityMode: "Invalid" | "None" | "Sign" | "SignAndEncrypt";
             /** Clientcertificate */
             clientCertificate?: string | null;
+            /** Clientprivatekey */
+            clientPrivateKey?: string | null;
             /** Servercertificate */
             serverCertificate?: string | null;
             /** Rootcertificates */
@@ -935,8 +1252,6 @@ export interface components {
         };
         /** ComposeRequest */
         ComposeRequest: {
-            /** Name */
-            name: string;
             /** Description */
             description?: string | null;
             /** Services */
@@ -993,12 +1308,21 @@ export interface components {
             /** Type */
             type?: string | null;
         };
+        /** CurrentUserResponse */
+        CurrentUserResponse: {
+            /** Id */
+            id: string;
+            /** Preferred Username */
+            preferred_username: string;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Is New */
+            is_new: boolean;
+        };
         /** DefaultSmartEMSTemplate */
         DefaultSmartEMSTemplate: {
             /** Devicetype */
             deviceType: string;
-            /** Hardwareversion */
-            hardwareVersion: string;
             defaultConfig: components["schemas"]["DeviceConfig"];
             /** Templatename */
             templateName: string;
@@ -1083,6 +1407,11 @@ export interface components {
             enabled: boolean;
             /** Staging */
             staging: boolean;
+            /**
+             * Configurevpncontainer
+             * @default false
+             */
+            configureVpnContainer: boolean;
             /** Note */
             note: string | null;
             /**
@@ -1186,40 +1515,6 @@ export interface components {
             /** Secretvalue */
             secretValue: string;
         };
-        /** DeviceStatusWithConnection */
-        DeviceStatusWithConnection: {
-            /** Deviceid */
-            deviceId: string;
-            /** Devicemetadata */
-            deviceMetadata: {
-                [key: string]: components["schemas"]["DeviceMetadataEntry"];
-            };
-            /** Createdat */
-            createdAt?: string | null;
-            /** Updatedat */
-            updatedAt?: string | null;
-            /**
-             * Devicestatus
-             * @enum {string}
-             */
-            deviceStatus: "Connected" | "Disconnected" | "Unknown";
-            /** Lastseenat */
-            lastSeenAt?: string | null;
-            /** Lastseeninrange */
-            lastSeenInRange?: boolean | null;
-            /** Lastseenrangeindays */
-            lastSeenRangeInDays?: number | null;
-            /** Iotedgeruntime */
-            iotEdgeRuntime: string;
-            /** Iothub */
-            iotHub: string;
-            /** Sems */
-            sems: string;
-            /** Vpn */
-            vpn: string;
-        };
-        /** DeviceStatusWithConnectionList */
-        DeviceStatusWithConnectionList: components["schemas"]["DeviceStatusWithConnection"][];
         /** DirectMethod[Any] */
         DirectMethod_Any_: {
             /** Status */
@@ -1354,6 +1649,22 @@ export interface components {
         GeneratedDeviceConfig: {
             [key: string]: unknown;
         };
+        /** GetModuleTwinBinaryResponse */
+        GetModuleTwinBinaryResponse: {
+            /** Filename */
+            filename: string;
+            /** Contenttype */
+            contentType: string;
+            /**
+             * Encoding
+             * @constant
+             */
+            encoding: "base64";
+            /** Data */
+            data: string;
+        };
+        /** GetModuleTwinIdentityResponse */
+        GetModuleTwinIdentityResponse: components["schemas"]["ModuleTwin"] | null;
         /** GetModuleTwinResponse */
         GetModuleTwinResponse: components["schemas"]["ModuleTwin"] | null;
         /** GetNetDiscoverModuleConfigV1 */
@@ -1378,7 +1689,19 @@ export interface components {
             nat: components["schemas"]["NatSection"];
         };
         /** IsolatedEndpoint */
-        IsolatedEndpoint: {
+        "IsolatedEndpoint-Input": {
+            /** Id */
+            id: string;
+            /** Name */
+            name?: string | null;
+            /** Ip */
+            ip: string;
+            /** Builtin */
+            builtIn?: string | null;
+            topologyData: components["schemas"]["TopologyData"];
+        };
+        /** IsolatedEndpoint */
+        "IsolatedEndpoint-Output": {
             /** Id */
             id: string;
             /** Name */
@@ -1420,7 +1743,7 @@ export interface components {
             gateway?: string | null;
         };
         /** Line */
-        Line: {
+        "Line-Input": {
             /** Edgedeviceid */
             edgeDeviceId: string;
             /** Name */
@@ -1429,14 +1752,42 @@ export interface components {
             lineNumber?: string | null;
             metadata?: components["schemas"]["Metadata"] | null;
             /** Machines */
-            machines?: components["schemas"]["Machine"][] | null;
+            machines?: components["schemas"]["Machine-Input"][] | null;
             /** Isolatedendpoints */
-            isolatedEndpoints?: components["schemas"]["IsolatedEndpoint"][] | null;
+            isolatedEndpoints?: components["schemas"]["IsolatedEndpoint-Input"][] | null;
+            /** Connections */
+            connections?: components["schemas"]["Connection"][] | null;
+        };
+        /** Line */
+        "Line-Output": {
+            /** Edgedeviceid */
+            edgeDeviceId: string;
+            /** Name */
+            name?: string | null;
+            /** Linenumber */
+            lineNumber?: string | null;
+            metadata?: components["schemas"]["Metadata"] | null;
+            /** Machines */
+            machines?: components["schemas"]["Machine-Output"][] | null;
+            /** Isolatedendpoints */
+            isolatedEndpoints?: components["schemas"]["IsolatedEndpoint-Output"][] | null;
             /** Connections */
             connections?: components["schemas"]["Connection"][] | null;
         };
         /** Machine */
-        Machine: {
+        "Machine-Input": {
+            /** Id */
+            id: string;
+            /** Machinenumber */
+            machineNumber?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Endpoints */
+            endpoints?: components["schemas"]["MachineEndpoint"][] | null;
+            topologyData: components["schemas"]["TopologyData"];
+        };
+        /** Machine */
+        "Machine-Output": {
             /** Id */
             id: string;
             /** Machinenumber */
@@ -1466,10 +1817,19 @@ export interface components {
             /** Updatedat */
             updatedAt: string;
         };
+        /** MetadataKeyOptions */
+        MetadataKeyOptions: {
+            /** Prepopulate */
+            prepopulate: boolean;
+            /** Allowaddition */
+            allowAddition: boolean;
+        };
         /** MetadataKeysResponse */
         MetadataKeysResponse: {
             /** Keys */
-            keys: string[];
+            keys: {
+                [key: string]: components["schemas"]["MetadataKeyOptions"];
+            }[];
         };
         /** ModuleConfStatus */
         ModuleConfStatus: {
@@ -1706,6 +2066,13 @@ export interface components {
                 [key: string]: components["schemas"]["ClientConfigurationSchema-Output"];
             };
         };
+        /** PermissionItem */
+        PermissionItem: {
+            /** Name */
+            name: string;
+            /** Is Global */
+            is_global: boolean;
+        };
         /** PortForwardingConfig */
         PortForwardingConfig: {
             /**
@@ -1754,6 +2121,76 @@ export interface components {
         };
         /** ResponseDeploymentList */
         ResponseDeploymentList: components["schemas"]["Deployment"][];
+        /** RoleCreateRequest */
+        RoleCreateRequest: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Actions
+             * @default []
+             */
+            actions: string[];
+        };
+        /** RoleDetailsResponse */
+        RoleDetailsResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Actions
+             * @default []
+             */
+            actions: string[];
+            /**
+             * Teams
+             * @default []
+             */
+            teams: components["schemas"]["TeamSummaryResponse"][];
+        };
+        /** RolePermissionsResponse */
+        RolePermissionsResponse: {
+            /** Name */
+            name: string;
+            /**
+             * Permissions
+             * @default []
+             */
+            permissions: components["schemas"]["PermissionItem"][];
+        };
+        /** RoleResponse */
+        RoleResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Actions
+             * @default []
+             */
+            actions: string[];
+        };
+        /** RoleUpdateRequest */
+        RoleUpdateRequest: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Actions */
+            actions: string[];
+        };
         /** SEMSCheck */
         SEMSCheck: {
             /** Message */
@@ -1775,6 +2212,89 @@ export interface components {
             subnetMask: number;
             /** Ports */
             ports: number[];
+        };
+        /** ScopeCreateRequest */
+        ScopeCreateRequest: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Attr */
+            attr: {
+                [key: string]: unknown;
+            };
+            /**
+             * Access Rule
+             * @enum {string}
+             */
+            access_rule: "ALL" | "ANY";
+        };
+        /** ScopeDetailsResponse */
+        ScopeDetailsResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Attr */
+            attr: {
+                [key: string]: unknown;
+            };
+            /**
+             * Access Rule
+             * @enum {string}
+             */
+            access_rule: "ALL" | "ANY";
+            /**
+             * Teams
+             * @default []
+             */
+            teams: components["schemas"]["TeamSummaryResponse"][];
+        };
+        /** ScopeListResponse */
+        ScopeListResponse: components["schemas"]["ScopeResponse"][];
+        /** ScopeResponse */
+        ScopeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Attr */
+            attr: {
+                [key: string]: unknown;
+            };
+            /**
+             * Access Rule
+             * @enum {string}
+             */
+            access_rule: "ALL" | "ANY";
+            /** Team Usage Count */
+            team_usage_count: number;
+        };
+        /** ScopeUpdateRequest */
+        ScopeUpdateRequest: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Attr */
+            attr: {
+                [key: string]: unknown;
+            };
+            /**
+             * Access Rule
+             * @enum {string}
+             */
+            access_rule: "ALL" | "ANY";
         };
         /** SelectedTemplatesRequest */
         SelectedTemplatesRequest: {
@@ -1957,6 +2477,104 @@ export interface components {
                 [key: string]: components["schemas"]["MonitoredItemConfiguration"];
             } | null;
         };
+        /** TeamAddUserRequest */
+        TeamAddUserRequest: {
+            /** User Id */
+            user_id: string;
+        };
+        /** TeamCreateRequest */
+        TeamCreateRequest: {
+            /** Name */
+            name: string;
+            /** Scope Id */
+            scope_id?: string | null;
+            /**
+             * Role Ids
+             * @default []
+             */
+            role_ids: string[];
+        };
+        /** TeamDetailsResponse */
+        TeamDetailsResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Scope Id */
+            scope_id?: string | null;
+            scope?: components["schemas"]["ScopeResponse"] | null;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: components["schemas"]["RoleResponse"][];
+            /**
+             * Users
+             * @default []
+             */
+            users: components["schemas"]["UserSummaryResponse"][];
+        };
+        /** TeamListItemResponse */
+        TeamListItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Scope Id */
+            scope_id?: string | null;
+            scope?: components["schemas"]["ScopeResponse"] | null;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: components["schemas"]["RoleResponse"][];
+            /**
+             * User Count
+             * @default 0
+             */
+            user_count: number;
+        };
+        /** TeamListResponse */
+        TeamListResponse: components["schemas"]["TeamListItemResponse"][];
+        /** TeamScopeResponse */
+        TeamScopeResponse: {
+            /** Name */
+            name: string;
+            /** Attr */
+            attr: {
+                [key: string]: unknown;
+            };
+        };
+        /** TeamSummaryResponse */
+        TeamSummaryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Scope Id */
+            scope_id?: string | null;
+        };
+        /** TeamUpdateRequest */
+        TeamUpdateRequest: {
+            /** Name */
+            name: string;
+            /** Scope Id */
+            scope_id?: string | null;
+            /**
+             * Role Ids
+             * @default []
+             */
+            role_ids: string[];
+        };
         /** TemplateInfo */
         TemplateInfo: {
             /** Id */
@@ -1992,6 +2610,8 @@ export interface components {
             /** Y */
             y: number;
         };
+        /** UserListResponse */
+        UserListResponse: components["schemas"]["UserWithTeamsResponse"][];
         /** UserNameCredentialsSchema */
         UserNameCredentialsSchema: {
             /**
@@ -2006,15 +2626,61 @@ export interface components {
         };
         /** UserPermissions */
         UserPermissions: {
-            /** Resourcetype */
-            ResourceType: string;
-            /** Resourceid */
-            ResourceId: string;
             /**
              * Permissions
              * @default []
              */
-            Permissions: string[];
+            permissions: string[];
+        };
+        /** UserSummaryResponse */
+        UserSummaryResponse: {
+            /** Id */
+            id: string;
+            /** Preferred Username */
+            preferred_username: string;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Is New */
+            is_new: boolean;
+        };
+        /** UserTeamAssignmentResponse */
+        UserTeamAssignmentResponse: {
+            /** Name */
+            name: string;
+            scope?: components["schemas"]["TeamScopeResponse"] | null;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: components["schemas"]["RolePermissionsResponse"][];
+        };
+        /** UserTeamAssignmentsResponse */
+        UserTeamAssignmentsResponse: {
+            /** User Id */
+            user_id: string;
+            /**
+             * Teams
+             * @default []
+             */
+            teams: components["schemas"]["UserTeamAssignmentResponse"][];
+        };
+        /** UserWithTeamsResponse */
+        UserWithTeamsResponse: {
+            /** Id */
+            id: string;
+            /** Preferred Username */
+            preferred_username: string;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Is New */
+            is_new: boolean;
+            /** Last Active */
+            last_active?: string | null;
+            /**
+             * Teams
+             * @default []
+             */
+            teams: components["schemas"]["TeamSummaryResponse"][];
         };
         /** ValidationError */
         ValidationError: {
@@ -2114,15 +2780,664 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    get_permissions_auth_permissions__resource_type__get: {
+    get_roles_auth_roles_get: {
         parameters: {
-            query?: {
-                resource_id?: string;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleResponse"][];
+                };
             };
+        };
+    };
+    post_role_auth_roles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_role_by_id_auth_roles__role_id__get: {
+        parameters: {
+            query?: never;
             header?: never;
             path: {
-                resource_type: string;
+                role_id: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleDetailsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_role_by_id_auth_roles__role_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_role_auth_roles__role_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_actions_auth_actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResponse"][];
+                };
+            };
+        };
+    };
+    get_teams_auth_teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamListResponse"];
+                };
+            };
+        };
+    };
+    create_team_auth_teams_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamDetailsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_team_by_id_auth_teams__team_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamDetailsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_team_auth_teams__team_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamDetailsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_team_auth_teams__team_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_user_to_team_auth_teams__team_id__users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamAddUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamDetailsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_user_from_team_auth_teams__team_id__users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_users_auth_users_get: {
+        parameters: {
+            query?: {
+                is_new?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scopes_auth_scopes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopeListResponse"];
+                };
+            };
+        };
+    };
+    create_scope_auth_scopes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScopeCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scope_details_auth_scopes__scope_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scope_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopeDetailsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_scope_auth_scopes__scope_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scope_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScopeUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_scope_auth_scopes__scope_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scope_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_current_user_auth_user_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUserResponse"];
+                };
+            };
+        };
+    };
+    get_current_user_teams_auth_user_teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserTeamAssignmentsResponse"];
+                };
+            };
+        };
+    };
+    get_user_teams_auth_users__user_id__teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserTeamAssignmentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_platform_permissions_auth_permissions_platform_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPermissions"];
+                };
+            };
+        };
+    };
+    get_device_permissions_auth_permissions_device_get: {
+        parameters: {
+            query: {
+                device_id: string;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -2432,7 +3747,9 @@ export interface operations {
     };
     list_deployments_compose_deployments_get: {
         parameters: {
-            query?: never;
+            query?: {
+                _?: unknown;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2446,30 +3763,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeploymentListItem"][];
-                };
-            };
-        };
-    };
-    create_or_update_deployment_compose_deployments_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ComposeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ComposeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2488,6 +3781,7 @@ export interface operations {
             query?: {
                 /** @description sems | compose | request */
                 filter?: string | null;
+                _?: unknown;
             };
             header?: never;
             path: {
@@ -2519,9 +3813,48 @@ export interface operations {
             };
         };
     };
+    create_or_update_deployment_compose_deployments__name__put: {
+        parameters: {
+            query?: {
+                _?: unknown;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_deployment_compose_deployments__name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                _?: unknown;
+            };
             header?: never;
             path: {
                 name: string;
@@ -2550,9 +3883,11 @@ export interface operations {
             };
         };
     };
-    get_active_deployment_active_deployments_get: {
+    get_active_deployment_active_deployment_get: {
         parameters: {
-            query?: never;
+            query?: {
+                _?: unknown;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2568,11 +3903,22 @@ export interface operations {
                     "application/json": components["schemas"]["ActiveDeploymentResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
-    delete_active_deployment_active_deployments_delete: {
+    delete_active_deployment_active_deployment_delete: {
         parameters: {
-            query?: never;
+            query?: {
+                _?: unknown;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2588,11 +3934,22 @@ export interface operations {
                     "application/json": components["schemas"]["MessageResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
-    activate_deployment_active_deployments__name__post: {
+    set_active_deployment_active_deployment__name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                _?: unknown;
+            };
             header?: never;
             path: {
                 name: string;
@@ -2638,7 +3995,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OpcuaClientModuleConfigV1-Output"];
+                    "application/json": components["schemas"]["OpcuaClientModuleConfigV1-Output"] | null;
                 };
             };
             /** @description Validation Error */
@@ -2704,7 +4061,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GetNetDiscoverModuleConfigV1"];
+                    "application/json": components["schemas"]["GetNetDiscoverModuleConfigV1"] | null;
                 };
             };
             /** @description Validation Error */
@@ -2806,7 +4163,71 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GetModuleTwinResponse"];
+                    "application/json": components["schemas"]["GetModuleTwinResponse"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_module_twin_config_binary__device__twin_config__module__binary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+                module: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetModuleTwinBinaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_module_twin_identity_reported__device__twin_identity__module__reported_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+                module: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetModuleTwinIdentityResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3208,7 +4629,6 @@ export interface operations {
         parameters: {
             query: {
                 device_type: string;
-                hardware_version: string;
             };
             header?: never;
             path?: never;
@@ -3606,7 +5026,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Line"];
+                    "application/json": components["schemas"]["Line-Output"];
                 };
             };
             /** @description Validation Error */
@@ -3631,7 +5051,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Line"];
+                "application/json": components["schemas"]["Line-Input"];
             };
         };
         responses: {
@@ -3641,7 +5061,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Line"];
+                    "application/json": components["schemas"]["Line-Output"];
                 };
             };
             /** @description Validation Error */
@@ -3666,7 +5086,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Line"];
+                "application/json": components["schemas"]["Line-Input"];
             };
         };
         responses: {
@@ -3676,7 +5096,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Line"];
+                    "application/json": components["schemas"]["Line-Output"];
                 };
             };
             /** @description Validation Error */
@@ -3962,14 +5382,9 @@ export interface operations {
             };
         };
     };
-    get_devices_devices_get: {
+    get_devices_route_devices_get: {
         parameters: {
-            query?: {
-                /** @description Filter devices by metadata values. Enter a JSON object where each key is a metadata field name. Set a value to filter by exact match (e.g. {"site": "Berlin"}), or set the value to an empty string to match any device where the key has a non-empty value (e.g. {"site": ""}). Multiple keys are combined with AND. */
-                meta?: {
-                    [key: string]: string;
-                };
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -3982,12 +5397,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DeviceStatusWithConnectionList"];
+                    "application/json": unknown;
                 };
             };
         };
     };
-    create_device_devices__device_id__put: {
+    create_device_route_devices__device_id__put: {
         parameters: {
             query?: never;
             header?: never;
@@ -3996,13 +5411,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -4024,7 +5433,7 @@ export interface operations {
             };
         };
     };
-    delete_device_devices__device_id__delete: {
+    delete_device_route_devices__device_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -4036,11 +5445,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {
@@ -4049,6 +5460,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_device_meta_values_route_devices_meta_values_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

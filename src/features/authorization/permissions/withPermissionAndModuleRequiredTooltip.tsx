@@ -2,11 +2,11 @@ import * as React from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { RestrictedTooltip } from "@/components/ui/restricted-tooltip";
 import { usePermissions } from "./use-permissions";
+import type { PermissionKey } from "./permission-keys";
 
 type GuardExtras = {
-  resourceType: string;
-  resourceId?: string;
-  permissionKey: string;
+  deviceId?: string;
+  permissionKey: PermissionKey;
   customNoPermissionsMessage?: string;
   autoDisable?: boolean;
   wrapperClassName?: string;
@@ -26,13 +26,11 @@ export function withPermissionAndModuleRequiredTooltip<P extends object>(
   Wrapped: React.ComponentType<P>
 ) {
   function Comp({
-    resourceType,
-    resourceId,
+    deviceId,
     permissionKey,
     customNoPermissionsMessage,
     autoDisable = true,
     wrapperClassName,
-    deviceId,
     requiredModuleName,
     missingModuleMessage,
     disconnectedModuleMessage,
@@ -40,12 +38,11 @@ export function withPermissionAndModuleRequiredTooltip<P extends object>(
     ...rest
   }: P & GuardExtras & RequiredModuleExtras) {
     const { hasPermission, noPermissionsMessage: generatedNoPermissionsMessage } = usePermissions({
-      resourceType,
-      resourceId,
+      deviceId,
       permissionKey,
     });
 
-    const moduleDeviceId = deviceId ?? resourceId;
+    const moduleDeviceId = deviceId;
     const shouldCheckModule = hasPermission && Boolean(moduleDeviceId && requiredModuleName);
 
     const { data: modules, isLoading, isError } = edgeConfigApiHooks.useGetModules(moduleDeviceId, {

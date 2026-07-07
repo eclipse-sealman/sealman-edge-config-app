@@ -13,6 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
 import { withPermissionAndModuleRequiredTooltip } from "@/features/authorization/permissions/withPermissionAndModuleRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const theme = {
   scheme: "monokai",
@@ -114,18 +115,16 @@ export function DeviceSemsConfigExport() {
   return (
     <div className="space-x-2">
       <PermissionGuardedButton
-        resourceType="device"
-        resourceId={deviceId}
-        permissionKey="export_smartems_config"
+        deviceId={deviceId}
+        permissionKey={PERMISSION_KEYS.DEVICE_READ}
         processing={isExporting}
         onClick={() => exportConfig()}
       >
         Show desired Config
       </PermissionGuardedButton>
       <PermissionAndModuleGuardedButton
-          resourceType="device"
-          resourceId={deviceId}
-          permissionKey="read_cmd_config"
+          deviceId={deviceId}
+          permissionKey={PERMISSION_KEYS.DEVICE_READ}
           requiredModuleName={CMD_PROXY_MODULE_NAME}
           processing={isLoadingConfig}
           onClick={() => loadConfig()}

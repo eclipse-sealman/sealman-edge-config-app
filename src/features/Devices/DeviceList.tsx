@@ -43,8 +43,8 @@ function formatDataForTable(data: DeviceData[] | undefined): DeviceDataDisplay[]
     try {
       const countryCodeValue = device.deviceMetadata?.countryCode?.value as string | undefined;
       if (countryCodeValue) {
-        const alpha3 = clm.getAlpha3ByAlpha2(countryCodeValue);
-        countryLabel = alpha3 ?? "";
+        const countryName = clm.getCountryNameByAlpha2(countryCodeValue);
+        countryLabel = `${countryCodeValue} - ${countryName ?? ""}`;
       }
     } catch {
       countryLabel = "";

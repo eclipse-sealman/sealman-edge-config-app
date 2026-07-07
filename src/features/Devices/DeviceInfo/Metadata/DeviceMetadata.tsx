@@ -6,6 +6,7 @@ import {
   HeadingColor,
 } from "@/components/Typography/Heading";
 import { ApiError } from "@/generated/edge-administration/api";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 import {
   InformationCircleIcon,
   PencilSquareIcon,
@@ -15,11 +16,15 @@ import { useParams } from "react-router-dom";
 import useGetDeviceMetadata from "../../../../generated/edge-administration/hooks/device_metadata/useGetDeviceMetadata";
 import type { DeviceMetadata } from "../../../../generated/edge-administration/hooks/useGetDevices/useGetDevices.types";
 import DeviceMetadataEdit from "./DeviceMetadataEdit";
+import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+
+const GuardedHeadingButton = withPermissionRequiredTooltip(HeadingButton);
 
 export default function DeviceMetadata() {
   const { deviceId } = useParams();
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const deviceMetadata = useGetDeviceMetadata(deviceId ?? "");
+
   const apiError = deviceMetadata.isError
     ? (deviceMetadata.error as ApiError)
     : null;
@@ -68,10 +73,14 @@ export default function DeviceMetadata() {
       <Heading processing={deviceMetadata.isFetching} color={HeadingColor.Gray}>
         <InformationCircleIcon className="w-7 h-7 mr-1" />
         Device Metadata
-        <HeadingButton onClick={() => setIsEditing(!isEditing)}>
-          <PencilSquareIcon className="w-6 h-6 ml-5" />
+        <GuardedHeadingButton
+          permissionKey={PERMISSION_KEYS.DEVICE_METADATA_WRITE}
+          deviceId={deviceId}
+          onClick={() => setIsEditing(!isEditing)}
+        >
+          <PencilSquareIcon className="w-6 h-6 ml-5 cursor-pointer" />
           Edit
-        </HeadingButton>
+        </GuardedHeadingButton>
       </Heading>
       {deviceMetadata.isError && apiError ? (
         <div className="pt-4 pl-2">

@@ -208,10 +208,120 @@ const postInfluxBucketCreate = async (deviceId: string | undefined) => {
   return data;
 }
 
-const getPermissions = async (resourceType: string, resourceId: string | undefined) => {
+const getPermissions = async (deviceId: string | undefined) => {
+  const resourceType = deviceId ? "device" : "platform";
   const url = `/auth/permissions/${resourceType}`;
-  const params = resourceId ? { resource_id: resourceId } : {};
+  const params = deviceId ? { device_id: deviceId } : {};
   const { data } = await edgeConfigApiInstance.get(url, { params });
+  return data;
+}
+
+const getRoles = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/roles');
+  return data;
+}
+
+const getRoleDetails = async (roleId: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/auth/roles/${roleId}`);
+  return data;
+}
+
+const deleteRole = async (roleId: string) => {
+  await edgeConfigApiInstance.delete(`/auth/roles/${roleId}`);
+}
+
+const createRole = async (payload: { name: string; description: string | null; actions: string[] }) => {
+  const { data } = await edgeConfigApiInstance.post('/auth/roles', payload);
+  return data;
+}
+
+const updateRole = async (roleId: string, payload: { name: string; description: string | null; actions: string[] }) => {
+  const { data } = await edgeConfigApiInstance.put(`/auth/roles/${roleId}`, payload);
+  return data;
+}
+
+const getActions = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/actions');
+  return data;
+}
+
+const getScopes = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/scopes');
+  return data;
+}
+
+const getScopeDetails = async (scopeId: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/auth/scopes/${scopeId}`);
+  return data;
+}
+
+const deleteScope = async (scopeId: string) => {
+  await edgeConfigApiInstance.delete(`/auth/scopes/${scopeId}`);
+}
+
+const getTeams = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/teams');
+  return data;
+}
+
+const getTeamDetails = async (teamId: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/auth/teams/${teamId}`);
+  return data;
+}
+
+const deleteTeam = async (teamId: string) => {
+  await edgeConfigApiInstance.delete(`/auth/teams/${teamId}`);
+}
+
+const createTeam = async (payload: { name: string; scope_id: string | null; role_ids: string[] }) => {
+  const { data } = await edgeConfigApiInstance.post('/auth/teams', payload);
+  return data;
+}
+
+const updateTeam = async (teamId: string, payload: { name: string; scope_id: string | null; role_ids: string[] }) => {
+  const { data } = await edgeConfigApiInstance.put(`/auth/teams/${teamId}`, payload);
+  return data;
+}
+const getUsers = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/users');
+  return data;
+}
+
+const getCurrentUser = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/user');
+  return data;
+}
+
+const getCurrentUserTeams = async () => {
+  const { data } = await edgeConfigApiInstance.get('/auth/user/teams');
+  return data;
+}
+
+const addUserToTeam = async (teamId: string, userId: string) => {
+  const { data } = await edgeConfigApiInstance.post(`/auth/teams/${teamId}/users`, { user_id: userId });
+  return data;
+}
+
+const removeUserFromTeam = async (teamId: string, userId: string) => {
+  await edgeConfigApiInstance.delete(`/auth/teams/${teamId}/users/${userId}`);
+}
+
+const getUserTeamAssignments = async (userId: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/auth/users/${userId}/teams`);
+  return data;
+}
+const createScope = async (
+  payload: { name: string; description: string | null; attr: Record<string, unknown>; access_rule: "ALL" | "ANY" },
+) => {
+  const { data } = await edgeConfigApiInstance.post('/auth/scopes', payload);
+  return data;
+}
+
+const updateScope = async (
+  scopeId: string,
+  payload: { name: string; description: string | null; attr: Record<string, unknown>; access_rule: "ALL" | "ANY" },
+) => {
+  const { data } = await edgeConfigApiInstance.put(`/auth/scopes/${scopeId}`, payload);
   return data;
 }
 
@@ -335,6 +445,28 @@ export const edgeConfigApi = {
   postInfluxBucketCreate,
   postWebFtpWriteFile,
   getPermissions,
+  getRoles,
+  getRoleDetails,
+  deleteRole,
+  createRole,
+  updateRole,
+  getActions,
+  getScopes,
+  getScopeDetails,
+  deleteScope,
+  createScope,
+  updateScope,
+  getTeams,
+  getTeamDetails,
+  deleteTeam,
+  createTeam,
+  updateTeam,
+  getUsers,
+  getCurrentUser,
+  getCurrentUserTeams,
+  addUserToTeam,
+  removeUserFromTeam,
+  getUserTeamAssignments,
   getEventData,
   getAvailableTemplates,
   saveSelectedTemplates,
@@ -348,5 +480,5 @@ export const edgeConfigApi = {
   createDevice,
   deleteDevice,
   getDevicesWithMetaKey,
-  getDeviceMetaValues
+  getDeviceMetaValues,
 }

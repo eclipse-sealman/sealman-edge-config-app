@@ -102,6 +102,7 @@
 @layer utilities {
   .leaflet-container {
     height: 800px;
+    z-index: 0;
   }
 
   #wifi-loader {

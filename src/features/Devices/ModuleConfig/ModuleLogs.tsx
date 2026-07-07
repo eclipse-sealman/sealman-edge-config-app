@@ -9,6 +9,7 @@ import { AxiosError } from "axios";
 import JsonEditor from "../../../components/Input/JsonEditor";
 import { usePermissions } from "@/features/authorization/permissions/use-permissions";
 import { NoPermissionsPanel } from "@/features/authorization/permissions/NoPermissionsPanel";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 interface LogData {
   payload: [
@@ -55,9 +56,8 @@ export default function ModuleLogs({ moduleName }: { moduleName: string }) {
   };
 
   const { hasPermission, noPermissionsMessage } = usePermissions({
-    resourceType: "device",
-    resourceId: deviceId,
-    permissionKey: "execute_module_method",
+    deviceId: deviceId,
+    permissionKey: PERMISSION_KEYS.DEVICE_MODULE_EXECUTE_METHOD,
   });
 
   if (!hasPermission) {

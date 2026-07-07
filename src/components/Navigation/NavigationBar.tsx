@@ -9,6 +9,8 @@ import logo from "../../assets/sealman_logo.png";
 import { Fragment, useMemo } from "react";
 
 import { useAuth } from "@/auth";
+import { usePermissions } from "@/features/authorization/permissions/use-permissions";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 interface INavigation {
   name: string;
@@ -16,28 +18,42 @@ interface INavigation {
   current: boolean;
 }
 
-const navigation: INavigation[] = []
-
-navigation.push({
-  name: "Dashboard",
-  href: "/",
-  current: true,
-});
-
-navigation.push({
-  name: "Devices",
-  href: "/devices",
-  current: true,
-});
-
-navigation.push({
-  name: "Deployments",
-  href: "/deployments",
-  current: true,
-});
-
 export default function NavigationBar() {
   const auth = useAuth();
+  const { hasPermission: hasAuthorizationReadPermission, isLoading: isPermissionsLoading } = usePermissions({
+    permissionKey: PERMISSION_KEYS.PLATFORM_AUTHORIZATION_READ,
+  });
+
+  const navigation: INavigation[] = useMemo(() => {
+    const items: INavigation[] = [
+      {
+        name: "Dashboard",
+        href: "/",
+        current: true,
+      },
+      {
+        name: "Devices",
+        href: "/devices",
+        current: true,
+      },
+      {
+        name: "Deployments",
+        href: "/deployments",
+        current: true,
+      },
+    ];
+
+    if (!isPermissionsLoading && hasAuthorizationReadPermission) {
+      items.push({
+        name: "Authorization",
+        href: "/authorization/teams",
+        current: true,
+      });
+    }
+
+    return items;
+  }, [hasAuthorizationReadPermission, isPermissionsLoading]);
+
   const initials = useMemo(() => {
     return auth.user?.name?.split(" ").map(n => n[0]).join("") || "";
   }, [auth.user?.name]);
@@ -107,6 +123,17 @@ export default function NavigationBar() {
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           >
                             Settings
+                          </NavLink>
+                        )}
+                      </MenuItem>
+                      <MenuItem>
+                        {({ close }) => (
+                          <NavLink
+                            to="/user/profile"
+                            onClick={close}
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            User Profile
                           </NavLink>
                         )}
                       </MenuItem>

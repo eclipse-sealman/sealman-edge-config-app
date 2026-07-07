@@ -4,6 +4,7 @@ import {
   TooltipTrigger,
   TooltipContent,
   TooltipArrow,
+  TooltipPortal,
 } from "@radix-ui/react-tooltip";
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 
@@ -29,14 +30,16 @@ export function RestrictedTooltip({
                 <ExclamationTriangleIcon className="w-4 h-4" />
               </span>
             </TooltipTrigger>
-            <TooltipContent
-              className="z-50 max-w-xs rounded-md bg-gray-900 px-3 py-2 text-sm text-white shadow-lg"
-              side="top"
-              align="center"
-            >
-              {message}
-              <TooltipArrow className="fill-gray-900" />
-            </TooltipContent>
+            <TooltipPortal>
+              <TooltipContent
+                className="z-50 max-w-xs rounded-md bg-gray-900 px-3 py-2 text-sm text-white shadow-lg"
+                side="top"
+                align="center"
+              >
+                {message}
+                <TooltipArrow className="fill-gray-900" />
+              </TooltipContent>
+            </TooltipPortal>
           </Tooltip>
         </TooltipProvider>
       )}
