@@ -18,6 +18,10 @@ const SETTINGS_TABS: SettingsTab[] = [
     label: "Device Metadata",
     path: "device-metadata",
   },
+  {
+    label: "Device Template Vars",
+    path: "device-template-variables",
+  },
   // {
   //   label: "Smart EMS",
   //   path: "smartems",
