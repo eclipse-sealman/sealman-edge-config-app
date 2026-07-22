@@ -1,25 +1,22 @@
+import { useQuery } from "@tanstack/react-query";
 import { edgeApi } from "../../api";
-import { components } from "../../types";
+import { DeviceData } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { getDevicesWithCountryData } from "./getDevicesWithCountryData";
+import { DeviceWithCountryData } from "./useGetDevices.types";
 
 const queryOptions = edgeApi.queryOptions("get", "/devices");
 
-const devicesWithCountryDataQueryOptions = {
-  ...queryOptions,
-  // modify query key so that transformed data is cached under different key
-  queryKey: ["get", "/devices", "withCountryData"],
-};
-
-devicesWithCountryDataQueryOptions.queryFn = async (context): Promise<any> => {
-  // call the original fetcher function
-  const data: components["schemas"]["DeviceStatusWithConnection"][] = await queryOptions.queryFn(context);
-
-  // transform the data
-  const devicesWithCountryData = getDevicesWithCountryData(data);
-  return devicesWithCountryData;
-};
-
 export default function useGetDevices() {
-  const devicesQuery = edgeApi.useQuery("get", "/devices", {}, devicesWithCountryDataQueryOptions);
-  return devicesQuery;
+  return useQuery<DeviceWithCountryData[]>({
+    queryKey: ["get", "/devices", "withCountryData"],
+    queryFn: async (context) => {
+      // call the original fetcher function (queryKey differs only by a phantom type tag, safe to reuse the context)
+      const data = (await queryOptions.queryFn(
+        context as Parameters<typeof queryOptions.queryFn>[0],
+      )) as DeviceData[];
+
+      // transform the data
+      return getDevicesWithCountryData(data);
+    },
+  });
 }

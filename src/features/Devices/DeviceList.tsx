@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import clm from "country-locale-map";
 import Badge, { BadgeColor } from "../../components/Typography/Badge";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -31,6 +30,9 @@ import DebouncedInput from "../../components/Input/DebouncedInput";
 import FilterDetails from "./FilterDetails";
 import useDeviceStore from "./deviceStore";
 import useGetDevices from "@/generated/edge-administration/hooks/useGetDevices/useGetDevices";
+import useDeviceMetadataFields from "@/features/PlatformTypes/useDeviceMetadataFields";
+import { formatMetadataValue } from "@/features/PlatformTypes/FieldValueInput";
+import useDeviceTableColumnsStore, { defaultFieldVisible } from "@/features/PlatformTypes/deviceTableColumnsStore";
 import { DeviceDataDisplay, DeviceListProps } from "./Devices.types";
 import { DeviceCards } from "./DeviceCards";
 import DeviceManageDialog, { DeleteDeviceDialog } from "./DeviceManageDialog";
@@ -38,26 +40,10 @@ import DeviceManageDialog, { DeleteDeviceDialog } from "./DeviceManageDialog";
 function formatDataForTable(data: DeviceData[] | undefined): DeviceDataDisplay[] {
   if (!data) return [];
 
-  return data.reduce<DeviceDataDisplay[]>((acc, device) => {
-    let countryLabel = "";
-    try {
-      const countryCodeValue = device.deviceMetadata?.countryCode?.value as string | undefined;
-      if (countryCodeValue) {
-        const countryName = clm.getCountryNameByAlpha2(countryCodeValue);
-        countryLabel = `${countryCodeValue} - ${countryName ?? ""}`;
-      }
-    } catch {
-      countryLabel = "";
-    }
-
-    acc.push({
-      ...device,
-      onlineStatusEdge: device.iotEdgeRuntime === "Connected" ? "online" : "offline",
-      countryLabel,
-    });
-
-    return acc;
-  }, []);
+  return data.map((device) => ({
+    ...device,
+    onlineStatusEdge: device.iotEdgeRuntime === "Connected" ? "online" : "offline",
+  }));
 }
 
 const columnHelper = createColumnHelper<DeviceDataDisplay>();
@@ -70,7 +56,7 @@ const getConnectionStatusColor = (connection: string) => {
   }
 };
 
-let columns: ColumnDef<DeviceDataDisplay, any>[] = [
+const baseColumns: ColumnDef<DeviceDataDisplay, any>[] = [
   columnHelper.accessor("onlineStatusEdge", {
     cell: (info) => (
       <Badge color={getConnectionStatusColor(info.getValue())}>
@@ -89,29 +75,6 @@ let columns: ColumnDef<DeviceDataDisplay, any>[] = [
     header: () => "Device-ID",
   }),
 ];
-
-columns = columns.concat([
-  columnHelper.accessor((row) => row.deviceMetadata.customer?.value ?? "", {
-    id: "customer",
-    header: () => "Customer",
-    cell: (info) => <Badge>{info.getValue()}</Badge>,
-  }),
-  columnHelper.accessor((row) => row.deviceMetadata.city?.value ?? "", {
-    id: "city",
-    header: () => "City",
-  }),
-  columnHelper.accessor("countryLabel", {
-    header: () => "Country",
-  }),
-  columnHelper.accessor(
-    (row) => row.deviceMetadata.description?.value ?? "",
-    {
-      id: "description",
-      header: () => "Description",
-      size: 600,
-    },
-  ),
-]);
 
 export default function DeviceList() {
   const globalFilter = useDeviceStore.use.globalFilter();
@@ -133,11 +96,29 @@ export default function DeviceList() {
   }, []);
 
   const { isLoading, isError, data, error } = useGetDevices();
+  const { fields: metadataFields } = useDeviceMetadataFields();
+  const columnVisibilityOverrides = useDeviceTableColumnsStore((s) => s.overrides);
 
   const tableData = useMemo<DeviceDataDisplay[]>(
     () => formatDataForTable(data as DeviceData[]),
     [data],
   );
+
+  // Fields configured as visible in Settings → Platform Types → Devices Table Columns.
+  const visibleMetadataFields = useMemo(
+    () => metadataFields.filter(([key]) => columnVisibilityOverrides[key] ?? defaultFieldVisible(key)),
+    [metadataFields, columnVisibilityOverrides],
+  );
+
+  const columns = useMemo<ColumnDef<DeviceDataDisplay, any>[]>(() => {
+    const metadataColumns = visibleMetadataFields.map(([key, field]) =>
+      columnHelper.accessor((row) => formatMetadataValue(row.deviceMetadata[key]?.value, field), {
+        id: `meta:${key}`,
+        header: () => field.label,
+      }),
+    );
+    return [...baseColumns, ...metadataColumns];
+  }, [visibleMetadataFields]);
 
   const table = useReactTable({
     data: tableData,
@@ -148,10 +129,6 @@ export default function DeviceList() {
     },
     initialState: {
       columnVisibility: {
-        ...columns.reduce(
-          (acc, column) => ({ ...acc, [column.id ?? ""]: true }),
-          {},
-        ),
         iotEdgeRuntime: false,
       },
     },

@@ -3,7 +3,6 @@ import { Table as TanstackTable } from "@tanstack/react-table";
 
 export interface DeviceDataDisplay extends DeviceData {
   onlineStatusEdge: string;
-  countryLabel: string;
 }
 
 export interface DeviceListProps {

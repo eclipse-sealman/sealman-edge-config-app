@@ -425,6 +425,191 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/endpoint-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all endpoint types */
+        get: operations["list_endpoint_types_endpoint_types_get"];
+        put?: never;
+        /** Create an endpoint type */
+        post: operations["create_endpoint_type_endpoint_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/endpoint-types/{type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single endpoint type */
+        get: operations["get_endpoint_type_endpoint_types__type_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete an endpoint type */
+        delete: operations["delete_endpoint_type_endpoint_types__type_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update an endpoint type */
+        patch: operations["update_endpoint_type_endpoint_types__type_id__patch"];
+        trace?: never;
+    };
+    "/endpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all endpoints for a device */
+        get: operations["list_endpoints_endpoints_get"];
+        put?: never;
+        /** Create an endpoint for a device */
+        post: operations["create_endpoint_endpoints_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/endpoints/{endpoint_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single resolved endpoint */
+        get: operations["get_endpoint_endpoints__endpoint_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete an endpoint */
+        delete: operations["delete_endpoint_endpoints__endpoint_id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch-update endpoint data */
+        patch: operations["update_endpoint_endpoints__endpoint_id__patch"];
+        trace?: never;
+    };
+    "/service-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all service types */
+        get: operations["list_service_types_service_types_get"];
+        put?: never;
+        /** Create a service type */
+        post: operations["create_service_type_service_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service-types/{type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single service type */
+        get: operations["get_service_type_service_types__type_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a service type */
+        delete: operations["delete_service_type_service_types__type_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update a service type */
+        patch: operations["update_service_type_service_types__type_id__patch"];
+        trace?: never;
+    };
+    "/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all services for an endpoint */
+        get: operations["list_services_services_get"];
+        put?: never;
+        /** Create a service for an endpoint */
+        post: operations["create_service_services_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/services/{service_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single resolved service */
+        get: operations["get_service_services__service_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a service */
+        delete: operations["delete_service_services__service_id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch-update service data */
+        patch: operations["update_service_services__service_id__patch"];
+        trace?: never;
+    };
+    "/device-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all device types */
+        get: operations["list_device_types_device_types_get"];
+        put?: never;
+        /** Create a device type */
+        post: operations["create_device_type_device_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/device-types/{type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single device type */
+        get: operations["get_device_type_device_types__type_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a device type */
+        delete: operations["delete_device_type_device_types__type_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update a device type */
+        patch: operations["update_device_type_device_types__type_id__patch"];
+        trace?: never;
+    };
     "/active-deployment": {
         parameters: {
             query?: never;
@@ -1014,39 +1199,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/metadata/keys": {
+    "/platform/device-template-config": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Metadata Keys */
-        get: operations["get_metadata_keys_platform_metadata_keys_get"];
+        /** Get Device Template Config */
+        get: operations["get_device_template_config_platform_device_template_config_get"];
         put?: never;
-        /** Add Metadata Key */
-        post: operations["add_metadata_key_platform_metadata_keys_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/metadata/keys/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Metadata Key */
-        delete: operations["delete_metadata_key_platform_metadata_keys__key__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
+        /** Update Device Template Config */
+        patch: operations["update_device_template_config_platform_device_template_config_patch"];
         trace?: never;
     };
     "/devices": {
@@ -1118,13 +1286,6 @@ export interface components {
         ActiveDeploymentResponse: {
             /** Active Deployment */
             active_deployment: string | null;
-        };
-        /** AddMetadataKeyRequest */
-        AddMetadataKeyRequest: {
-            /** Key */
-            key: {
-                [key: string]: components["schemas"]["MetadataKeyOptions"];
-            };
         };
         /** AnonymousCredentialsSchema */
         AnonymousCredentialsSchema: {
@@ -1445,16 +1606,14 @@ export interface components {
         DeviceMetadataEntry: {
             /** Value */
             value: unknown;
-            /**
-             * Source
-             * @enum {string}
-             */
-            source: "platform" | "device";
+            field?: components["schemas"]["FieldDefinition"] | null;
         };
         /** DeviceMetadataResponse */
         DeviceMetadataResponse: {
             /** Deviceid */
             deviceId: string;
+            /** Typeid */
+            typeId: string;
             /** Devicemetadata */
             deviceMetadata: {
                 [key: string]: components["schemas"]["DeviceMetadataEntry"];
@@ -1515,6 +1674,63 @@ export interface components {
             /** Secretvalue */
             secretValue: string;
         };
+        /** DeviceTemplateConfigResponse */
+        DeviceTemplateConfigResponse: {
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
+        };
+        /** DeviceTypeCreate */
+        DeviceTypeCreate: {
+            /** Type Id */
+            type_id: string;
+            /** Label */
+            label: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Fields
+             * @default {}
+             */
+            fields: {
+                [key: string]: components["schemas"]["FieldDefinition"];
+            };
+        };
+        /** DeviceTypeResponse */
+        DeviceTypeResponse: {
+            /** Type Id */
+            type_id: string;
+            /** Label */
+            label: string;
+            /** Description */
+            description: string | null;
+            /** Fields */
+            fields: {
+                [key: string]: components["schemas"]["FieldDefinition"];
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** DeviceTypeUpdate */
+        DeviceTypeUpdate: {
+            /** Label */
+            label?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Fields */
+            fields?: {
+                [key: string]: components["schemas"]["FieldDefinitionUpdate"] | null;
+            } | null;
+        };
         /** DirectMethod[Any] */
         DirectMethod_Any_: {
             /** Status */
@@ -1571,6 +1787,40 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /** EndpointCreate */
+        EndpointCreate: {
+            /** Type Id */
+            type_id: string;
+            /** Endpoint Data */
+            endpoint_data: {
+                [key: string]: unknown;
+            };
+        };
+        /** EndpointResponse */
+        EndpointResponse: {
+            /** Endpoint Id */
+            endpoint_id: string;
+            /** Type Id */
+            type_id: string;
+            /** Type Label */
+            type_label: string;
+            /** Type Description */
+            type_description: string | null;
+            /** Endpoint Data */
+            endpoint_data: {
+                [key: string]: components["schemas"]["ResolvedField"];
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** EndpointStatus */
         EndpointStatus: {
             /**
@@ -1599,14 +1849,212 @@ export interface components {
             /** Defaultip */
             defaultIP?: string | null;
         };
+        /** EndpointTypeCreate */
+        EndpointTypeCreate: {
+            /** Type Id */
+            type_id: string;
+            /** Label */
+            label: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Fields
+             * @default {}
+             */
+            fields: {
+                [key: string]: components["schemas"]["FieldDefinition"];
+            };
+            /**
+             * Mapping
+             * @default {}
+             */
+            mapping: {
+                [key: string]: string;
+            };
+        };
+        /** EndpointTypeResponse */
+        EndpointTypeResponse: {
+            /** Type Id */
+            type_id: string;
+            /** Label */
+            label: string;
+            /** Description */
+            description: string | null;
+            /** Fields */
+            fields: {
+                [key: string]: components["schemas"]["FieldDefinition"];
+            };
+            /** Mapping */
+            mapping: {
+                [key: string]: string;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** EndpointTypeUpdate */
+        EndpointTypeUpdate: {
+            /** Label */
+            label?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Fields */
+            fields?: {
+                [key: string]: components["schemas"]["FieldDefinitionUpdate"] | null;
+            } | null;
+            /** Mapping */
+            mapping?: {
+                [key: string]: string | null;
+            } | null;
+        };
         /** EndpointTypeUpdateRequest */
         EndpointTypeUpdateRequest: {
             /** Types */
             types: components["schemas"]["EndpointType"][];
         };
+        /** EndpointUpdate */
+        EndpointUpdate: {
+            /** Endpoint Data */
+            endpoint_data: {
+                [key: string]: unknown | null;
+            };
+        };
         /** FWShow */
         FWShow: {
             firewall: components["schemas"]["Firewall"];
+        };
+        /** FieldDefinition */
+        FieldDefinition: {
+            /**
+             * Type
+             * @description Data type of the field value
+             * @enum {string}
+             */
+            type: "string" | "boolean" | "integer" | "number";
+            /**
+             * Label
+             * @description Human-readable label for UI display
+             */
+            label: string;
+            /**
+             * Description
+             * @description Help text
+             */
+            description?: string | null;
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /** @description Constraints on the value; allowed attributes depend on `type` */
+            validation?: components["schemas"]["FieldValidation"] | null;
+            /**
+             * Ui
+             * @description UI widget to render for this field; defaulted from `type` if omitted
+             */
+            ui?: ("input" | "textarea" | "password" | "number" | "slider" | "select" | "radio" | "toggle" | "checkbox") | null;
+            /**
+             * Options
+             * @description Allowed values; required when ui is 'select' or 'radio' (type=string only)
+             */
+            options?: string[] | null;
+            /**
+             * Default
+             * @description Default value used when none is provided
+             */
+            default?: unknown | null;
+        };
+        /** FieldDefinitionUpdate */
+        FieldDefinitionUpdate: {
+            /**
+             * Type
+             * @description Data type of the field value
+             */
+            type?: ("string" | "boolean" | "integer" | "number") | null;
+            /**
+             * Label
+             * @description Human-readable label for UI display
+             */
+            label?: string | null;
+            /**
+             * Description
+             * @description Help text
+             */
+            description?: string | null;
+            /** Required */
+            required?: boolean | null;
+            /** @description Constraints on the value; allowed attributes depend on `type` */
+            validation?: components["schemas"]["FieldValidation"] | null;
+            /**
+             * Ui
+             * @description UI widget to render for this field
+             */
+            ui?: ("input" | "textarea" | "password" | "number" | "slider" | "select" | "radio" | "toggle" | "checkbox") | null;
+            /**
+             * Options
+             * @description Allowed values; required when ui is 'select' or 'radio' (type=string only)
+             */
+            options?: string[] | null;
+            /**
+             * Default
+             * @description Default value used when none is provided
+             */
+            default?: unknown | null;
+        };
+        /**
+         * FieldValidation
+         * @description Constraints on a field's value. Which attributes apply depends on the field's `type`.
+         */
+        FieldValidation: {
+            /**
+             * Pattern
+             * @description Regex the value must fully match (type=string only)
+             */
+            pattern?: string | null;
+            /**
+             * Min Length
+             * @description Minimum string length (type=string only)
+             */
+            min_length?: number | null;
+            /**
+             * Max Length
+             * @description Maximum string length (type=string only)
+             */
+            max_length?: number | null;
+            /**
+             * Minimum
+             * @description Lower bound, inclusive unless exclusive_minimum is set (type=integer/number only)
+             */
+            minimum?: number | null;
+            /**
+             * Maximum
+             * @description Upper bound, inclusive unless exclusive_maximum is set (type=integer/number only)
+             */
+            maximum?: number | null;
+            /**
+             * Exclusive Minimum
+             * @description If true, value must be strictly greater than minimum
+             * @default false
+             */
+            exclusive_minimum: boolean;
+            /**
+             * Exclusive Maximum
+             * @description If true, value must be strictly less than maximum
+             * @default false
+             */
+            exclusive_maximum: boolean;
+            /**
+             * Multiple Of
+             * @description Value must be a multiple of this (type=integer/number only)
+             */
+            multiple_of?: number | null;
         };
         /** FilterSection */
         FilterSection: {
@@ -1816,20 +2264,6 @@ export interface components {
             createdAt: string;
             /** Updatedat */
             updatedAt: string;
-        };
-        /** MetadataKeyOptions */
-        MetadataKeyOptions: {
-            /** Prepopulate */
-            prepopulate: boolean;
-            /** Allowaddition */
-            allowAddition: boolean;
-        };
-        /** MetadataKeysResponse */
-        MetadataKeysResponse: {
-            /** Keys */
-            keys: {
-                [key: string]: components["schemas"]["MetadataKeyOptions"];
-            }[];
         };
         /** ModuleConfStatus */
         ModuleConfStatus: {
@@ -2119,6 +2553,12 @@ export interface components {
             /** Laststatuschange */
             lastStatusChange?: string | null;
         };
+        /** ResolvedField */
+        ResolvedField: {
+            /** Value */
+            value?: unknown | null;
+            field?: components["schemas"]["FieldDefinition"] | null;
+        };
         /** ResponseDeploymentList */
         ResponseDeploymentList: components["schemas"]["Deployment"][];
         /** RoleCreateRequest */
@@ -2371,6 +2811,114 @@ export interface components {
                 [key: string]: components["schemas"]["LanInterface"];
             };
         };
+        /** ServiceCreate */
+        ServiceCreate: {
+            /** Type Id */
+            type_id: string;
+            /** Service Data */
+            service_data: {
+                [key: string]: unknown;
+            };
+        };
+        /** ServiceResponse */
+        ServiceResponse: {
+            /** Service Id */
+            service_id: string;
+            /** Endpoint Id */
+            endpoint_id: string;
+            /** Type Id */
+            type_id: string;
+            /** Type Label */
+            type_label: string;
+            /** Type Description */
+            type_description: string | null;
+            /** Service Data */
+            service_data: {
+                [key: string]: components["schemas"]["ResolvedField"];
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ServiceTypeCreate */
+        ServiceTypeCreate: {
+            /** Type Id */
+            type_id: string;
+            /** Label */
+            label: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Fields
+             * @default {}
+             */
+            fields: {
+                [key: string]: components["schemas"]["FieldDefinition"];
+            };
+            /**
+             * Mapping
+             * @default {}
+             */
+            mapping: {
+                [key: string]: string;
+            };
+        };
+        /** ServiceTypeResponse */
+        ServiceTypeResponse: {
+            /** Type Id */
+            type_id: string;
+            /** Label */
+            label: string;
+            /** Description */
+            description: string | null;
+            /** Fields */
+            fields: {
+                [key: string]: components["schemas"]["FieldDefinition"];
+            };
+            /** Mapping */
+            mapping: {
+                [key: string]: string;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ServiceTypeUpdate */
+        ServiceTypeUpdate: {
+            /** Label */
+            label?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Fields */
+            fields?: {
+                [key: string]: components["schemas"]["FieldDefinitionUpdate"] | null;
+            } | null;
+            /** Mapping */
+            mapping?: {
+                [key: string]: string | null;
+            } | null;
+        };
+        /** ServiceUpdate */
+        ServiceUpdate: {
+            /** Service Data */
+            service_data: {
+                [key: string]: unknown | null;
+            };
+        };
         /** ServiceUpdateRequest */
         ServiceUpdateRequest: {
             /** Services */
@@ -2609,6 +3157,13 @@ export interface components {
             x: number;
             /** Y */
             y: number;
+        };
+        /** UpdateDeviceTemplateConfigRequest */
+        UpdateDeviceTemplateConfigRequest: {
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
         };
         /** UserListResponse */
         UserListResponse: components["schemas"]["UserWithTeamsResponse"][];
@@ -3870,6 +4425,780 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_endpoint_types_endpoint_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointTypeResponse"][];
+                };
+            };
+        };
+    };
+    create_endpoint_type_endpoint_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndpointTypeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_endpoint_type_endpoint_types__type_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_endpoint_type_endpoint_types__type_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_endpoint_type_endpoint_types__type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndpointTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_endpoints_endpoints_get: {
+        parameters: {
+            query: {
+                /** @description Device to list endpoints for */
+                device_id: string;
+                /** @description Filter by endpoint type */
+                type_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_endpoint_endpoints_post: {
+        parameters: {
+            query: {
+                /** @description Device to create the endpoint on */
+                device_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndpointCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_endpoint_endpoints__endpoint_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_endpoint_endpoints__endpoint_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_endpoint_endpoints__endpoint_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndpointUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_service_types_service_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceTypeResponse"][];
+                };
+            };
+        };
+    };
+    create_service_type_service_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceTypeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_service_type_service_types__type_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_service_type_service_types__type_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_service_type_service_types__type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_services_services_get: {
+        parameters: {
+            query: {
+                /** @description Endpoint to list services for */
+                endpoint_id: string;
+                /** @description Filter by service type */
+                type_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_service_services_post: {
+        parameters: {
+            query: {
+                /** @description Endpoint to create the service on */
+                endpoint_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_service_services__service_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_service_services__service_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_service_services__service_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_device_types_device_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceTypeResponse"][];
+                };
+            };
+        };
+    };
+    create_device_type_device_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceTypeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_device_type_device_types__type_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_device_type_device_types__type_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_device_type_device_types__type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceTypeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5298,7 +6627,7 @@ export interface operations {
             };
         };
     };
-    get_metadata_keys_platform_metadata_keys_get: {
+    get_device_template_config_platform_device_template_config_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5313,12 +6642,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MetadataKeysResponse"];
+                    "application/json": components["schemas"]["DeviceTemplateConfigResponse"];
                 };
             };
         };
     };
-    add_metadata_key_platform_metadata_keys_post: {
+    update_device_template_config_platform_device_template_config_patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -5327,40 +6656,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AddMetadataKeyRequest"];
+                "application/json": components["schemas"]["UpdateDeviceTemplateConfigRequest"];
             };
         };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MetadataKeysResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_metadata_key_platform_metadata_keys__key__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5368,7 +6666,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MetadataKeysResponse"];
+                    "application/json": components["schemas"]["DeviceTemplateConfigResponse"];
                 };
             };
             /** @description Validation Error */

@@ -7,16 +7,12 @@ type SettingsTab = {
 
 const SETTINGS_TABS: SettingsTab[] = [
   {
-    label: "Network",
-    path: "network",
+    label: "Platform Types",
+    path: "platform-types",
   },
   {
     label: "Device Templates",
     path: "device-templates",
-  },
-  {
-    label: "Device Metadata",
-    path: "device-metadata",
   },
   {
     label: "Device Template Vars",

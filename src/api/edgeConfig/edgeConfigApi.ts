@@ -1,8 +1,13 @@
 import axios, { AxiosError } from "axios";
 import { NetworkScanData } from "./networkDiscover/networkDiscoverInterfaces";
 import { getAccessToken } from "@/auth";
-import { EndpointType } from "src/pages/settings/NetworkSettings";
 import { CMD_PROXY_MODULE_NAME, NETWORK_DISCOVER_MODULE_NAME } from "./moduleNames";
+
+export type EndpointType = {
+  name: string;
+  description: string | null;
+  defaultIP: string | null;
+};
 
 export const edgeConfigApiInstance = axios.create({
   baseURL: `${import.meta.env.VITE_API_URI}`,
@@ -390,8 +395,14 @@ const saveServicePorts = async (services: ServicePortPayload[]) => {
   return data;
 }
 
-const createDevice = async (deviceId: string, authType: string, meta?: Record<string, string>, registrationId?: string ) => {
-  const body: Record<string, unknown> = { authType };
+const createDevice = async (
+  deviceId: string,
+  authType: string,
+  typeId: string,
+  meta?: Record<string, unknown>,
+  registrationId?: string,
+) => {
+  const body: Record<string, unknown> = { authType, typeId };
   if (meta && Object.keys(meta).length > 0) {
     body.meta = meta;
   }
@@ -407,18 +418,13 @@ const deleteDevice = async (deviceId: string) => {
   return data;
 };
 
-const getDeviceMetaValues = async (): Promise<Record<string, string[]>> => {
-  const response = await edgeConfigApiInstance.get("/devices/meta-values");
-  return response.data;
-};
-
 const getDeviceTemplateVariables = async (): Promise<Record<string, string>> => {
   const { data } = await edgeConfigApiInstance.get('/platform/device-template-config');
   return data.config ;
 };
 
 const updateDeviceTemplateVariables = async (config: Record<string, string>): Promise<Record<string, string>> => {
-  const { data } = await edgeConfigApiInstance.patch('/platform/device-template-config', config);
+  const { data } = await edgeConfigApiInstance.patch('/platform/device-template-config', { config });
   return data.config ;
 };
 
@@ -490,7 +496,6 @@ export const edgeConfigApi = {
   createDevice,
   deleteDevice,
   getDevicesWithMetaKey,
-  getDeviceMetaValues,
   getDeviceTemplateVariables,
   updateDeviceTemplateVariables
 }

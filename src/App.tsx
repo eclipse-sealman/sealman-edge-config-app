@@ -14,10 +14,9 @@ import Version from "./pages/Version";
 import { QueryClientProvider } from "@tanstack/react-query";
 // import { SmartEmsSettings } from "@/features/Devices/Network/smart_ems/pages/settings.tsx";
 import SettingsLayout from "./pages/settings/SettingsLayout";
-import NetworkSettings from "./pages/settings/NetworkSettings";
+import PlatformTypesSettings from "./pages/settings/PlatformTypesSettings";
 import DeviceSettings from "./pages/settings/DeviceSettings";
 import DeviceTemplateVariablesSettings from "./pages/settings/DeviceTemplateVariablesSettings";
-import DeviceMetadataSettings from "./pages/settings/DeviceMetadataSettings";
 import { useAuth } from "./auth";
 import { useEffect } from "react";
 import { NewUserCheck } from "./components/NewUserCheck";
@@ -77,9 +76,8 @@ export default function App() {
             </Route>
 
             <Route path="settings" element={<SettingsLayout />}>
-              <Route path="network" element={<NetworkSettings />} />
+              <Route path="platform-types" element={<PlatformTypesSettings />} />
               <Route path="device-templates" element={<DeviceSettings />} />
-              <Route path="device-metadata" element={<DeviceMetadataSettings />} />
               <Route path="device-template-variables" element={<DeviceTemplateVariablesSettings />} /> {/* add this */}
               {/* <Route path="smartems" element={<SmartEmsSettings />} /> */}
             </Route>

@@ -15,6 +15,8 @@ type TeamDetailsResponse = components["schemas"]["TeamDetailsResponse"];
 
 export interface DeviceData {
   deviceId: string;
+  typeId: string;
+  countryCode?: string;
   deviceMetadata: {
     [key: string]: {
       value: unknown;

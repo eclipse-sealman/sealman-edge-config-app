@@ -1,238 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { edgeConfigApi, MetadataKeyOptions } from "@/api/edgeConfig/edgeConfigApi";
+import { useEffect, useState } from "react";
+import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
 import { useQueryClient } from "@tanstack/react-query";
-import { PlusIcon, TrashIcon, ChevronDownIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import LatitudeLongitudeInput, { LocationErrors } from "@/components/Input/LatitudeLongitudeInput";
-
-const GEO_KEY = "geoLocation";
-
-function latLongToGeoLocation(lat: string, lng: string) {
-  if (!lat.trim() && !lng.trim()) return "";
-  return `${lat},${lng}`;
-}
-function geoLocationToLatLong(geo: string) {
-  if (!geo) return { latitude: "", longitude: "" };
-  const [lat, lng] = geo.split(",");
-  return { latitude: lat?.trim() ?? "", longitude: lng?.trim() ?? "" };
-}
-
-function MetaTextInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder=""
-      className="w-full h-8 px-3 rounded-md border border-gray-200 bg-white text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all"
-    />
-  );
-}
-
-function MetaValueInput({
-  value,
-  options: initialOptions,
-  allowAddition,
-  onChange,
-}: {
-  value: string;
-  options: string[];
-  allowAddition: boolean;
-  onChange: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [options, setOptions] = useState<string[]>(initialOptions);
-  // track user-added options (not from API) — only one allowed at a time
-  const [addedOptions, setAddedOptions] = useState<Set<string>>(new Set());
-  const [customMode, setCustomMode] = useState(false);
-  const [customInput, setCustomInput] = useState("");
-  const [customError, setCustomError] = useState("");
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setOptions((prev) => {
-      const stillAdded = [...addedOptions].filter((o) => !initialOptions.includes(o));
-      return [...initialOptions, ...stillAdded];
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialOptions]);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const select = (v: string) => { onChange(v); setOpen(false); };
-
-  const handleCustomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    setCustomInput(raw);
-    const isDup = options.some((o) => o.toLowerCase() === raw.trim().toLowerCase());
-    if (isDup && raw.trim()) {
-      setCustomError(`"${raw.trim()}" already exists`);
-      onChange("");
-    } else {
-      setCustomError("");
-      onChange(raw);
-    }
-  };
-
-  const commitCustom = () => {
-    const trimmed = customInput.trim();
-    if (!trimmed || customError) return;
-    if (!options.includes(trimmed)) {
-      setOptions((prev) => [...prev, trimmed]);
-      setAddedOptions((prev) => new Set([...prev, trimmed]));
-    }
-    onChange(trimmed);
-    setCustomMode(false);
-    setCustomInput("");
-    setCustomError("");
-  };
-
-  const removeOption = (opt: string) => {
-    setOptions((prev) => prev.filter((o) => o !== opt));
-    setAddedOptions((prev) => { const s = new Set(prev); s.delete(opt); return s; });
-    if (value === opt) onChange("");
-  };
-
-  const cancelCustom = () => {
-    setCustomMode(false);
-    setCustomInput("");
-    setCustomError("");
-    onChange("");
-  };
-
-  if (customMode) {
-    return (
-      <div className="flex flex-col gap-1 w-full">
-        <div className="flex items-center gap-1.5">
-          <input
-            autoFocus
-            type="text"
-            value={customInput}
-            onChange={handleCustomChange}
-            onKeyDown={(e) => { if (e.key === "Enter") commitCustom(); if (e.key === "Escape") cancelCustom(); }}
-            placeholder="Type a custom value…"
-            className={[
-              "flex-1 h-8 px-3 rounded-md border text-sm bg-white focus:outline-none focus:ring-2 transition-all",
-              customError
-                ? "border-red-400 focus:border-red-400 focus:ring-red-300/30"
-                : "border-gray-200 focus:border-blue-400 focus:ring-blue-400/20",
-            ].join(" ")}
-          />
-          <button
-            type="button"
-            onMouseDown={(e) => { e.preventDefault(); commitCustom(); }}
-            disabled={!!customError || !customInput.trim()}
-            className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
-            title="Confirm"
-          >
-            <CheckIcon className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => { e.preventDefault(); cancelCustom(); }}
-            className="flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
-            title="Cancel"
-          >
-            <XMarkIcon className="w-4 h-4" />
-          </button>
-        </div>
-        {customError && (
-          <span className="text-xs text-red-500 flex items-center gap-1">
-            <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
-            {customError}
-          </span>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div ref={wrapRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={[
-          "w-full flex items-center h-8 rounded-md border bg-white text-sm transition-all focus:outline-none",
-          open
-            ? "border-blue-400 ring-2 ring-blue-400/20"
-            : "border-gray-200 hover:border-gray-300",
-        ].join(" ")}
-      >
-        <span className={["flex-1 text-left px-3 truncate", value ? "text-gray-800" : "text-gray-400"].join(" ")}>
-          {value || "—"}
-        </span>
-        <ChevronDownIcon
-          className={`w-3.5 h-3.5 shrink-0 mr-2.5 text-gray-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
-          <div
-            onMouseDown={(e) => { e.preventDefault(); select(""); }}
-            className={[
-              "flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors select-none",
-              !value ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-400 hover:bg-gray-50",
-            ].join(" ")}
-          >
-            {!value ? <CheckIcon className="w-3.5 h-3.5 shrink-0" /> : <span className="w-3.5 shrink-0" />}
-            —
-          </div>
-
-          {options.length > 0 && <div className="border-t border-gray-100" />}
-
-          <ul className="max-h-40 overflow-y-auto">
-            {options.map((opt) => (
-              <li
-                key={opt}
-                onMouseDown={(e) => { e.preventDefault(); select(opt); }}
-                className={[
-                  "flex items-center gap-2 px-3 py-2 text-sm cursor-pointer select-none transition-colors group",
-                  opt === value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700 hover:bg-slate-50",
-                ].join(" ")}
-              >
-                {opt === value ? <CheckIcon className="w-3.5 h-3.5 shrink-0" /> : <span className="w-3.5 shrink-0" />}
-                <span className="flex-1 truncate">{opt}</span>
-                {addedOptions.has(opt) && (
-                  <button
-                    type="button"
-                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); removeOption(opt); }}
-                    className="ml-auto flex items-center justify-center w-4 h-4 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shrink-0"
-                    title={`Remove "${opt}"`}
-                  >
-                    <XMarkIcon className="w-3 h-3" />
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          {allowAddition && addedOptions.size === 0 && (
-            <div className="border-t border-gray-100">
-              <button
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); setOpen(false); setCustomMode(true); }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors font-medium"
-              >
-                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-100 shrink-0">
-                  <PlusIcon className="w-2.5 h-2.5" />
-                </span>
-                Add custom value
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
+import FieldValueInput from "@/features/PlatformTypes/FieldValueInput";
 
 const fieldCls =
   "w-full h-9 px-3 rounded-md border border-gray-200 bg-white text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all";
@@ -244,54 +14,60 @@ export default function DeviceManageDialog() {
   const [deviceId, setDeviceId] = useState("");
   const [authType, setAuthType] = useState("sas");
   const [registrationId, setRegistrationId] = useState("");
-  const [predefinedValues, setPredefinedValues] = useState<Record<string, string>>({});
-  const [metaKeyOptions, setMetaKeyOptions] = useState<Record<string, MetadataKeyOptions>>({});
-  const [metaValueOptions, setMetaValueOptions] = useState<Record<string, string[]>>({});
-  const [predefinedKeys, setPredefinedKeys] = useState<string[]>([]);
-  const [extraRows, setExtraRows] = useState<{ key: string; value: string }[]>([]);
-  const [locationErrors, setLocationErrors] = useState<LocationErrors>({ latitude: "", longitude: "" });
+  const [typeId, setTypeId] = useState("");
+  const [fieldValues, setFieldValues] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const deviceTypesQuery = useGetDeviceTypes();
 
   useEffect(() => {
-    if (!open) return;
-    edgeConfigApi
-      .getMetadataKeys()
-      .then((keysMap: Record<string, MetadataKeyOptions>) => {
-        const all = Array.from(new Set([GEO_KEY, ...Object.keys(keysMap)])).sort((a, b) => a.localeCompare(b));
-        setPredefinedKeys(all);
-        setPredefinedValues(Object.fromEntries(all.map((k) => [k, ""])));
-        setMetaKeyOptions(keysMap);
-      })
-      .catch(() => {
-        setPredefinedKeys([GEO_KEY]);
-        setPredefinedValues({ [GEO_KEY]: "" });
-        setMetaKeyOptions({});
-      });
-    edgeConfigApi.getDeviceMetaValues().then(setMetaValueOptions).catch(() => setMetaValueOptions({}));
+    if (open) deviceTypesQuery.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  const deviceTypes = deviceTypesQuery.data ?? [];
+  const selectedType = deviceTypes.find((t) => t.type_id === typeId);
 
   const openDialog = () => {
     setOpen(true); setDeviceId(""); setAuthType("sas"); setRegistrationId("");
-    setExtraRows([]); setLocationErrors({ latitude: "", longitude: "" });
+    setTypeId(""); setFieldValues({});
     setError(null); setSuccess(null);
   };
   const closeDialog = () => { setOpen(false); setError(null); setSuccess(null); };
 
+  const handleTypeChange = (newTypeId: string) => {
+    setTypeId(newTypeId);
+    const type = deviceTypes.find((t) => t.type_id === newTypeId);
+    const defaults: Record<string, unknown> = {};
+    if (type) {
+      for (const [key, field] of Object.entries(type.fields)) {
+        defaults[key] = field.default ?? null;
+      }
+    }
+    setFieldValues(defaults);
+  };
+
   const handleCreate = async () => {
     if (!deviceId.trim()) { setError("Device ID is required"); return; }
-    if (locationErrors.latitude || locationErrors.longitude) {
-      setError("Please fix the geo-location errors before submitting."); return;
+    if (!typeId) { setError("Device type is required"); return; }
+    for (const [key, field] of Object.entries(selectedType?.fields ?? {})) {
+      const value = fieldValues[key];
+      const isEmpty = value === null || value === undefined || value === "";
+      if (field.required && isEmpty) {
+        setError(`"${field.label}" is required`);
+        return;
+      }
     }
     setLoading(true); setError(null);
     try {
-      const meta: Record<string, string> = {};
-      for (const [k, v] of Object.entries(predefinedValues)) if (v.trim()) meta[k] = v.trim();
-      for (const { key, value } of extraRows) if (key.trim() && value.trim()) meta[key.trim()] = value.trim();
+      const meta: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(fieldValues)) {
+        if (value !== null && value !== undefined && value !== "") meta[key] = value;
+      }
       await edgeConfigApi.createDevice(
-        deviceId.trim(), authType,
+        deviceId.trim(), authType, typeId,
         Object.keys(meta).length > 0 ? meta : undefined,
         registrationId.trim() || undefined,
       );
@@ -304,9 +80,6 @@ export default function DeviceManageDialog() {
       );
     } finally { setLoading(false); }
   };
-
-  const displayLabel = (key: string) =>
-    key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()).trim();
 
   return (
     <>
@@ -345,84 +118,53 @@ export default function DeviceManageDialog() {
             </div>
 
             <div>
-              <label className={labelCls}>
-                Meta <span className="text-gray-400 font-normal text-xs">(optional)</span>
-              </label>
-              <div className="rounded-lg border border-gray-200 overflow-visible">
-                {/* Header */}
-                <div className="grid grid-cols-[2fr_3fr] gap-3 px-3 py-2 bg-gray-50 border-b border-gray-200 rounded-t-lg">
-                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Key</span>
-                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Value</span>
-                </div>
-
-                {predefinedKeys.map((key) => {
-                  if (key === GEO_KEY) {
-                    return (
-                      <div key={key} className="border-b border-gray-100 px-3 py-2.5">
-                        <span className="text-sm text-gray-700 font-medium block mb-1.5">Geo Location</span>
-                        <LatitudeLongitudeInput
-                          key={`geo-${open}`}
-                          latitude={geoLocationToLatLong(predefinedValues[GEO_KEY] ?? "").latitude}
-                          longitude={geoLocationToLatLong(predefinedValues[GEO_KEY] ?? "").longitude}
-                          onChange={(lat, lng, errors) => {
-                            setPredefinedValues((p) => ({ ...p, [GEO_KEY]: latLongToGeoLocation(lat, lng) }));
-                            setLocationErrors(errors);
-                          }}
-                        />
-                      </div>
-                    );
-                  }
-                  const opts = metaKeyOptions[key];
-                  const existing = metaValueOptions[key] ?? [];
-                  return (
-                    <div key={key} className="grid grid-cols-[2fr_3fr] gap-3 px-3 py-2 border-b border-gray-100 items-center last:border-b-0">
-                      <span className="text-sm text-gray-700 font-medium truncate">{displayLabel(key)}</span>
-                      {opts?.prepopulate ? (
-                        <MetaValueInput
-                          value={predefinedValues[key] ?? ""}
-                          options={existing}
-                          allowAddition={opts.allowAddition}
-                          onChange={(v) => setPredefinedValues((p) => ({ ...p, [key]: v }))}
-                        />
-                      ) : (
-                        <MetaTextInput
-                          value={predefinedValues[key] ?? ""}
-                          onChange={(v) => setPredefinedValues((p) => ({ ...p, [key]: v }))}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* Extra custom rows */}
-                {extraRows.map((row, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_1fr_32px] gap-2 px-3 py-2 border-b border-gray-100 items-center bg-blue-50/40">
-                    <input type="text" value={row.key} placeholder="key"
-                      onChange={(e) => setExtraRows((p) => p.map((r, j) => j === i ? { ...r, key: e.target.value } : r))}
-                      className="h-8 px-2.5 rounded-md border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30 transition-all"
-                    />
-                    <input type="text" value={row.value} placeholder="value"
-                      onChange={(e) => setExtraRows((p) => p.map((r, j) => j === i ? { ...r, value: e.target.value } : r))}
-                      className="h-8 px-2.5 rounded-md border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30 transition-all"
-                    />
-                    <button onClick={() => setExtraRows((p) => p.filter((_, j) => j !== i))}
-                      className="flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
-                  </div>
+              <label className={labelCls}>Device Type <span className="text-red-500">*</span></label>
+              <select
+                value={typeId}
+                onChange={(e) => handleTypeChange(e.target.value)}
+                disabled={deviceTypesQuery.isLoading}
+                className={fieldCls}
+              >
+                <option value="">
+                  {deviceTypesQuery.isLoading ? "Loading device types…" : "Select a device type…"}
+                </option>
+                {deviceTypes.map((type) => (
+                  <option key={type.type_id} value={type.type_id}>
+                    {type.label}
+                  </option>
                 ))}
-
-                <button
-                  onClick={() => setExtraRows((p) => [...p, { key: "", value: "" }])}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-blue-600 hover:bg-blue-50/60 transition-colors border-t border-dashed border-gray-200 rounded-b-lg"
-                >
-                  <span className="flex items-center justify-center w-4 h-4 rounded-full border border-blue-300 shrink-0">
-                    <PlusIcon className="w-2.5 h-2.5" />
-                  </span>
-                  Add custom field
-                </button>
-              </div>
+              </select>
+              {deviceTypesQuery.isSuccess && deviceTypes.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">
+                  No device types defined yet. Create one under Settings → Platform Types.
+                </p>
+              )}
             </div>
+
+            {selectedType && Object.keys(selectedType.fields).length > 0 && (
+              <div>
+                <label className={labelCls}>Fields</label>
+                <div className="rounded-lg border border-gray-200 overflow-visible divide-y divide-gray-100">
+                  {Object.entries(selectedType.fields).map(([key, field]) => (
+                    <div key={key} className="px-3 py-2.5">
+                      <span className="text-sm text-gray-700 font-medium block mb-1">
+                        {field.label}
+                        {field.required && <span className="text-red-500"> *</span>}
+                      </span>
+                      {field.description && (
+                        <p className="text-xs text-gray-400 mb-1.5">{field.description}</p>
+                      )}
+                      <FieldValueInput
+                        definition={field}
+                        value={fieldValues[key] ?? null}
+                        onChange={(value) => setFieldValues((p) => ({ ...p, [key]: value }))}
+                        placeholder={field.label}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">{error}</p>}
             {success && <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">{success}</p>}
