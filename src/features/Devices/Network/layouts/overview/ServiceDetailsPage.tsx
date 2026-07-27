@@ -1,0 +1,207 @@
+import { useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify";
+import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Centered } from "@/features/Devices/Network/components";
+import useGetService from "@/generated/edge-administration/hooks/services/useGetService";
+import { useUpdateService } from "@/generated/edge-administration/hooks/services/useUpdateService";
+import { useDeleteService } from "@/generated/edge-administration/hooks/services/useDeleteService";
+import useGetServiceTypes from "@/generated/edge-administration/hooks/service_types/useGetServiceTypes";
+import TypeFieldsForm from "./TypeFieldsForm";
+import CustomFieldsEditor from "./CustomFieldsEditor";
+import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
+
+interface props {
+  serviceId: string;
+  onBack: () => void;
+  onUpdated: () => void;
+}
+
+export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: props) {
+  const { data: service, isLoading, isError, refetch } = useGetService(serviceId);
+  const { data: serviceTypes } = useGetServiceTypes();
+  const { updateService, isPending: isSaving } = useUpdateService();
+  const { deleteService, isPending: isDeleting } = useDeleteService();
+
+  const type = (serviceTypes ?? []).find((t) => t.type_id === service?.type_id);
+
+  const [values, setValues] = useState<Record<string, unknown>>({});
+  const [deletedKeys, setDeletedKeys] = useState<Set<string>>(new Set());
+  const [isDirty, setIsDirty] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  // Only reset the form when we actually switch to a *different* service - not on every
+  // background refetch of the same one, which would otherwise wipe in-progress edits.
+  const initializedForRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!service || initializedForRef.current === service.service_id) return;
+    initializedForRef.current = service.service_id;
+    const initial: Record<string, unknown> = {};
+    for (const [key, resolved] of Object.entries(service.service_data)) {
+      initial[key] = resolved.value ?? null;
+    }
+    setValues(initial);
+    setDeletedKeys(new Set());
+    setIsDirty(false);
+  }, [service]);
+
+  const schemaFields = type?.fields ?? {};
+  const customValues = Object.fromEntries(Object.entries(values).filter(([key]) => !(key in schemaFields)));
+
+  const setFieldValue = (key: string, value: unknown) => {
+    setValues((v) => ({ ...v, [key]: value }));
+    setDeletedKeys((d) => {
+      if (!d.has(key)) return d;
+      const next = new Set(d);
+      next.delete(key);
+      return next;
+    });
+    setIsDirty(true);
+  };
+
+  const deleteFieldValue = (key: string) => {
+    setValues((v) => {
+      const next = { ...v };
+      delete next[key];
+      return next;
+    });
+    setDeletedKeys((d) => new Set(d).add(key));
+    setIsDirty(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      const payload: Record<string, unknown> = { ...values };
+      for (const key of deletedKeys) {
+        payload[key] = null;
+      }
+      await updateService({ serviceId, body: { service_data: payload } });
+      toast.success("Service updated");
+      setDeletedKeys(new Set());
+      setIsDirty(false);
+      await refetch();
+      onUpdated();
+    } catch {
+      toast.error("Failed to update service");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteService(serviceId);
+      toast.success("Service removed");
+      setDeleteOpen(false);
+      onUpdated();
+      onBack();
+    } catch {
+      toast.error("Failed to remove service");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
+        <ArrowLeft /> Back to Endpoint
+      </Button>
+
+      {isLoading && (
+        <Centered>
+          <p className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="animate-spin" /> Loading service...
+          </p>
+        </Centered>
+      )}
+
+      {isError && (
+        <Centered>
+          <p className="text-sm text-destructive">Failed to load this service.</p>
+        </Centered>
+      )}
+
+      {service && (
+        <>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold leading-none tracking-tight">{service.type_label}</h2>
+              {service.type_description && (
+                <p className="text-sm text-muted-foreground mt-1.5">{service.type_description}</p>
+              )}
+            </div>
+            <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} className="shrink-0">
+              <Trash2 /> Remove Service
+            </Button>
+          </div>
+
+          {type && (
+            <div className="border rounded-lg bg-background">
+              <div className="px-4 py-3 border-b">
+                <h3 className="text-sm font-semibold">Service Type Definition</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  The field schema defined on the "{type.label}" service type.
+                </p>
+              </div>
+              <div className="divide-y">
+                {Object.entries(type.fields).map(([key, definition]) => (
+                  <div key={key} className="flex items-center justify-between px-4 py-2 text-sm">
+                    <span>
+                      {definition.label} <span className="text-muted-foreground font-mono text-xs">({key})</span>
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {definition.type}
+                      {definition.required ? " · required" : ""}
+                      {definition.default !== null && definition.default !== undefined
+                        ? ` · default: ${definition.default}`
+                        : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="border rounded-lg bg-background">
+            <div className="px-4 py-3 border-b flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold">Instance Data</h3>
+                <p className="text-xs text-muted-foreground mt-1">The actual field values for this service.</p>
+              </div>
+              <Button size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+            <div className="p-4 space-y-6">
+              {type && (
+                <TypeFieldsForm
+                  fields={type.fields}
+                  values={values}
+                  onChange={setFieldValue}
+                  onDelete={deleteFieldValue}
+                />
+              )}
+
+              <div className="space-y-2 pt-2 border-t">
+                <h4 className="text-xs font-semibold text-muted-foreground">Custom Fields</h4>
+                <CustomFieldsEditor
+                  customValues={customValues}
+                  onChange={setFieldValue}
+                  onDelete={deleteFieldValue}
+                  onAdd={setFieldValue}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <ConfirmDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Remove service"
+        description={`This removes "${service?.type_label}". This cannot be undone.`}
+        onConfirm={handleDelete}
+        isPending={isDeleting}
+      />
+    </div>
+  );
+}

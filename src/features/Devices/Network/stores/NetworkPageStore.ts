@@ -11,6 +11,8 @@ export interface NetworkPageStore {
   setDisplayEdgeDevice: (b: boolean) => void
   displayNetworkScanSetup: boolean
   setDisplayNetworkScanSetup: (b: boolean) => void
+  displayOverview: boolean
+  setDisplayOverview: (b: boolean) => void
 }
 
 export default create<NetworkPageStore>(set => ({
@@ -24,4 +26,6 @@ export default create<NetworkPageStore>(set => ({
   setDisplayEdgeDevice: (b) => set({displayEdgeDevice: b}),
   displayNetworkScanSetup: false,
   setDisplayNetworkScanSetup: (b) => set({displayNetworkScanSetup: b}),
+  displayOverview: false,
+  setDisplayOverview: (b) => set({displayOverview: b}),
 }))

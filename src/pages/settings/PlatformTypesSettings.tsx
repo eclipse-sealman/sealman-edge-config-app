@@ -12,6 +12,7 @@ import useGetServiceTypes from "@/generated/edge-administration/hooks/service_ty
 import { usePostServiceType } from "@/generated/edge-administration/hooks/service_types/usePostServiceType";
 import { useUpdateServiceType } from "@/generated/edge-administration/hooks/service_types/useUpdateServiceType";
 import { useDeleteServiceType } from "@/generated/edge-administration/hooks/service_types/useDeleteServiceType";
+import { listRegisteredBrowsers } from "@/lib/browserRegistry";
 
 export default function PlatformTypesSettings() {
   const deviceTypesQuery = useGetDeviceTypes();
@@ -68,8 +69,9 @@ export default function PlatformTypesSettings() {
           description="Types available when creating endpoints on a device."
           types={endpointTypesQuery.data ?? []}
           isLoading={endpointTypesQuery.isLoading}
+          mappingRole={{ value: "ip", label: "IP Address", compatibleTypes: ["string"] }}
           onCreate={async (body) => {
-            await postEndpointType({ ...body, mapping: {} });
+            await postEndpointType({ ...body, mapping: body.mapping ?? {} });
             await endpointTypesQuery.refetch();
           }}
           onUpdate={async (typeId, body) => {
@@ -88,8 +90,10 @@ export default function PlatformTypesSettings() {
           description="Types available when creating services on an endpoint."
           types={serviceTypesQuery.data ?? []}
           isLoading={serviceTypesQuery.isLoading}
+          mappingRole={{ value: "port", label: "Port", compatibleTypes: ["integer", "number"] }}
+          browserKindOptions={listRegisteredBrowsers()}
           onCreate={async (body) => {
-            await postServiceType({ ...body, mapping: {} });
+            await postServiceType({ ...body, mapping: body.mapping ?? {} });
             await serviceTypesQuery.refetch();
           }}
           onUpdate={async (typeId, body) => {

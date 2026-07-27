@@ -5,7 +5,9 @@ import FieldsEditor, {
   Field,
   FieldDefinition,
   FieldRow,
+  MappingRoleConfig,
   buildFieldsPayload,
+  buildMappingPayload,
   emptyFieldRow,
   findDuplicateKeys,
   rowsFromFields,
@@ -13,11 +15,18 @@ import FieldsEditor, {
 
 const TYPE_ID_PATTERN = /^[a-z0-9_-]+$/;
 
+export interface BrowserKindOption {
+  value: string;
+  label: string;
+}
+
 export interface TypeRecord {
   type_id: string;
   label: string;
   description: string | null;
   fields: Record<string, FieldDefinition>;
+  mapping?: Record<string, string>;
+  browser_kind?: string | null;
 }
 
 export interface TypeFormResult {
@@ -25,6 +34,8 @@ export interface TypeFormResult {
   label: string;
   description: string | null;
   fields: Record<string, FieldDefinition | null>;
+  mapping: Record<string, string | null>;
+  browser_kind: string | null;
 }
 
 interface TypeFormDialogProps {
@@ -34,6 +45,10 @@ interface TypeFormDialogProps {
   initial?: TypeRecord | null;
   singularLabel: string;
   isPending?: boolean;
+  mappingRole?: MappingRoleConfig;
+  /** When set, shows a "Browse Action" dropdown letting this type be assigned one of these
+   * built-in browsers (e.g. VNC, OPC-UA, plain HTTP) for its "Browse" button on the Overview page. */
+  browserKindOptions?: BrowserKindOption[];
 }
 
 export default function TypeFormDialog({
@@ -43,12 +58,15 @@ export default function TypeFormDialog({
   initial,
   singularLabel,
   isPending,
+  mappingRole,
+  browserKindOptions,
 }: TypeFormDialogProps) {
   const isEdit = Boolean(initial);
 
   const [typeId, setTypeId] = useState("");
   const [label, setLabel] = useState("");
   const [description, setDescription] = useState("");
+  const [browserKind, setBrowserKind] = useState("");
   const [rows, setRows] = useState<FieldRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +75,8 @@ export default function TypeFormDialog({
     setTypeId(initial?.type_id ?? "");
     setLabel(initial?.label ?? "");
     setDescription(initial?.description ?? "");
-    setRows(initial ? rowsFromFields(initial.fields) : [emptyFieldRow()]);
+    setBrowserKind(initial?.browser_kind ?? "");
+    setRows(initial ? rowsFromFields(initial.fields, initial.mapping ?? {}) : [emptyFieldRow()]);
     setError(null);
   }, [isOpen, initial]);
 
@@ -114,6 +133,8 @@ export default function TypeFormDialog({
         label: trimmedLabel,
         description: description.trim() || null,
         fields: buildFieldsPayload(rows, originalKeys),
+        mapping: buildMappingPayload(rows, initial?.mapping ?? {}),
+        browser_kind: browserKind || null,
       });
       setError(null);
     } catch {
@@ -172,9 +193,26 @@ export default function TypeFormDialog({
             />
           </Field>
 
+          {browserKindOptions && (
+            <Field label="Browse Action">
+              <select
+                value={browserKind}
+                onChange={(e) => setBrowserKind(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">None</option>
+                {browserKindOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+
           <div>
             <h3 className="text-sm font-semibold mb-2">Fields</h3>
-            <FieldsEditor rows={rows} onChange={setRows} duplicateKeys={duplicateKeys} />
+            <FieldsEditor rows={rows} onChange={setRows} duplicateKeys={duplicateKeys} mappingRole={mappingRole} />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

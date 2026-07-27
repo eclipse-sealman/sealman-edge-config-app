@@ -3,8 +3,8 @@ import { toast } from "react-toastify";
 import { PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import SimpleDialog from "@/components/Modal/SimpleDialog";
 import Button, { ButtonColor, ButtonSize } from "@/components/Input/Button";
-import TypeFormDialog, { TypeFormResult, TypeRecord } from "./TypeFormDialog";
-import { FieldDefinition } from "./FieldsEditor";
+import TypeFormDialog, { BrowserKindOption, TypeFormResult, TypeRecord } from "./TypeFormDialog";
+import { FieldDefinition, MappingRoleConfig } from "./FieldsEditor";
 
 export interface TypesManagerProps {
   title: string;
@@ -12,15 +12,27 @@ export interface TypesManagerProps {
   description?: string;
   types: TypeRecord[];
   isLoading: boolean;
+  /** When set, the form lets a single field be assigned this mapping role (e.g. IP, Port). */
+  mappingRole?: MappingRoleConfig;
+  /** When set, the form lets this type be assigned one of these built-in browsers. */
+  browserKindOptions?: BrowserKindOption[];
   onCreate: (body: {
     type_id: string;
     label: string;
     description: string | null;
     fields: Record<string, FieldDefinition>;
+    mapping?: Record<string, string>;
+    browser_kind?: string | null;
   }) => Promise<unknown>;
   onUpdate: (
     typeId: string,
-    body: { label: string; description: string | null; fields: Record<string, FieldDefinition | null> }
+    body: {
+      label: string;
+      description: string | null;
+      fields: Record<string, FieldDefinition | null>;
+      mapping?: Record<string, string | null>;
+      browser_kind?: string | null;
+    }
   ) => Promise<unknown>;
   onDelete: (typeId: string) => Promise<unknown>;
 }
@@ -31,12 +43,20 @@ function nonNullFields(fields: Record<string, FieldDefinition | null>): Record<s
   );
 }
 
+function nonNullMapping(mapping: Record<string, string | null>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(mapping).filter((entry): entry is [string, string] => entry[1] !== null)
+  );
+}
+
 export default function TypesManager({
   title,
   singularLabel,
   description,
   types,
   isLoading,
+  mappingRole,
+  browserKindOptions,
   onCreate,
   onUpdate,
   onDelete,
@@ -63,6 +83,8 @@ export default function TypesManager({
           label: result.label,
           description: result.description,
           fields: result.fields,
+          ...(mappingRole ? { mapping: result.mapping } : {}),
+          ...(browserKindOptions ? { browser_kind: result.browser_kind } : {}),
         });
         toast.success(`${singularLabel} "${result.label}" updated`);
       } else {
@@ -71,6 +93,8 @@ export default function TypesManager({
           label: result.label,
           description: result.description,
           fields: nonNullFields(result.fields),
+          ...(mappingRole ? { mapping: nonNullMapping(result.mapping) } : {}),
+          ...(browserKindOptions ? { browser_kind: result.browser_kind } : {}),
         });
         toast.success(`${singularLabel} "${result.label}" created`);
       }
@@ -180,6 +204,8 @@ export default function TypesManager({
         initial={dialogState.editing}
         singularLabel={singularLabel}
         isPending={isSubmitting}
+        mappingRole={mappingRole}
+        browserKindOptions={browserKindOptions}
       />
 
       <SimpleDialog

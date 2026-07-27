@@ -1,9 +1,7 @@
 import useGetModuleTwinConfig from "@/generated/edge-administration/hooks/useGetModuleTwinConfig";
 import { NetworkDiscoverTwinConfig } from "@/api/edgeConfig/networkDiscover/networkDiscoverInterfaces";
 import { NETWORK_DISCOVER_MODULE_NAME } from "@/api/edgeConfig/moduleNames";
-import { Centered } from "@/features/Devices/Network/components";
 import { ApiError } from "@/generated/edge-administration/api";
-import { Loader2 } from "lucide-react";
 import { useEffect , useState } from "react";
 import { useNetworkPageStore, useScanDefinitionStore, useTwinConfigStore } from "./stores";
 import { NetworkMainLayout } from "@/features/Devices/Network/layouts";
@@ -31,7 +29,7 @@ export default function Page({ deviceId }: props) {
 
   setDeviceId(deviceId)
 
-  const { data, isLoading, isError, error } = useGetModuleTwinConfig(deviceId, NETWORK_DISCOVER_MODULE_NAME)
+  const { data, isError, error } = useGetModuleTwinConfig(deviceId, NETWORK_DISCOVER_MODULE_NAME)
   const isMissingRequiredModule = isError && isModuleNotDeployedError(error)
 
   useEffect(() => {
@@ -73,15 +71,8 @@ useEffect(() => {
     )
   }
 
-  if(isLoading || !metaReady) {
-    return (
-      <Centered>
-        <p className="text-muted-foreground flex items-center gap-4">
-          <Loader2 className="animate-spin" /> Loading ...
-        </p>
-      </Centered>
-    )
-  }
-
+  // Render immediately rather than blocking on the twin config / network meta fetches -
+  // Overview (the default view) doesn't need either, and legacy views that do (the sidebar's
+  // status switch, Configure Network Scan, etc.) update reactively once their data arrives.
   return <NetworkMainLayout />
 }

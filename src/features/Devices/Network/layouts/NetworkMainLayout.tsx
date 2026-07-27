@@ -11,20 +11,31 @@ export default function NetworkMainLayout() {
   const setDisplayEdgeDevice = useNetworkPageStore(s => s.setDisplayEdgeDevice)
   const displayNetworkScanSetup = useNetworkPageStore(s => s.displayNetworkScanSetup)
   const setDisplayNetworkScanSetup = useNetworkPageStore(s => s.setDisplayNetworkScanSetup)
+  const displayOverview = useNetworkPageStore(s => s.displayOverview)
+  const setDisplayOverview = useNetworkPageStore(s => s.setDisplayOverview)
 
   const status = useTwinConfigStore(s => s.status)
-  
+
+  function handleOverviewClick(): void {
+    setDisplayOverview(!displayOverview)
+    setDisplayEdgeDevice(false)
+    setDisplayTopology(false)
+    setDisplayNetworkScanSetup(false)
+  }
+
   // @ts-ignore TS6133: kept for future re-enable of Topology Viewer
   function handleTopologyClick(): void {
     setDisplayTopology(!displayTopology)
     setDisplayEdgeDevice(false)
     setDisplayNetworkScanSetup(false)
+    setDisplayOverview(false)
   }
 
   function handleEdgeDeviceClick(): void {
     setDisplayEdgeDevice(!displayEdgeDevice)
     setDisplayTopology(false)
     setDisplayNetworkScanSetup(false)
+    setDisplayOverview(false)
   }
 
 
@@ -32,6 +43,7 @@ export default function NetworkMainLayout() {
     setDisplayNetworkScanSetup(!displayNetworkScanSetup)
     setDisplayEdgeDevice(false)
     setDisplayTopology(false)
+    setDisplayOverview(false)
   }
 
   return (
@@ -39,8 +51,13 @@ export default function NetworkMainLayout() {
       <div className="sm:hidden">
         <MobileTopBar/>
       </div>
-      
+
         <div id="network-list-container" className="hidden sm:block sm:w-1/4 h-full">
+          <SidebarNavButton
+            label="Overview"
+            active={displayOverview}
+            onClick={() => handleOverviewClick()}
+          />
           <SidebarNavButton
             label="Edge Device"
             active={displayEdgeDevice}
@@ -55,7 +72,7 @@ export default function NetworkMainLayout() {
           {status == Status.Default ? <SidebarNavButton label="Configure Network Scan" active={displayNetworkScanSetup} onClick={handleNetworkScanConfigClick} /> : <EndpointSidebar />}
 
         </div>
-      
+
       <div className="w-full sm:w-3/4 h-[calc(100%-56px)]" id="network-machine-content">
         <MainContentContainer />
       </div>

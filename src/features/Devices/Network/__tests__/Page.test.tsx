@@ -68,12 +68,13 @@ describe("Network Page", () => {
     useGetModuleTwinConfigMocked.mockRestore()
   })
 
-  it("should show loading message if query is being fetched", () => {
+  it("should render the network layout immediately while the twin config query is still fetching", () => {
     useGetModuleTwinConfigMocked.mockReturnValue({isLoading: true})
 
-    const { getByText } = render(<Page deviceId="deviceId" />)
+    const { getByTestId, queryByText } = render(<Page deviceId="deviceId" />)
 
-    getByText("Loading ...")
+    getByTestId("NetworkMainLayout")
+    expect(queryByText("Loading ...")).not.toBeInTheDocument()
 
     cleanup()
     useGetModuleTwinConfigMocked.mockRestore()

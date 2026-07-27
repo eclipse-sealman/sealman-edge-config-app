@@ -1,7 +1,7 @@
 import { edgeApi } from "../api"
 import { components } from "../types";
 
-export type NetworkScan = components["schemas"]["NetworkScan"];
+export type NetworkScan = components["schemas"]["NetworkScan-Output"];
 export type NetworkDiscover = components["schemas"]["NetworkDiscover"]
 
 //TODO: Add a barrel file for the custom hooks

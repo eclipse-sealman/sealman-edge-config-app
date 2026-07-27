@@ -1109,6 +1109,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/{device}/network/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Network Overview */
+        post: operations["post_network_overview__device__network_overview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/network/scan-ports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Network Scan Ports */
+        get: operations["get_network_scan_ports__device__network_scan_ports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/network/scan-range": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Network Scan Range */
+        get: operations["get_network_scan_range__device__network_scan_range_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/{device}/line/": {
         parameters: {
             query?: never;
@@ -1742,7 +1793,7 @@ export interface components {
         DirectMethod_NetworkScan_: {
             /** Status */
             status: number;
-            payload: components["schemas"]["NetworkScan"];
+            payload: components["schemas"]["NetworkScan-Output"];
         };
         /** EdgeCommandUpdateStatus */
         EdgeCommandUpdateStatus: {
@@ -2253,6 +2304,68 @@ export interface components {
             /** Ip */
             ip: string;
         };
+        /** MappedEndpoint */
+        MappedEndpoint: {
+            /** Ip */
+            ip: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "offline" | "unknown";
+            /** Laststatuschange */
+            lastStatusChange?: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "configured" | "default" | "unidentified";
+            /** Endpoint Id */
+            endpoint_id?: string | null;
+            /** Type Id */
+            type_id?: string | null;
+            /** Type Label */
+            type_label?: string | null;
+            /** Type Description */
+            type_description?: string | null;
+            /** Endpoint Data */
+            endpoint_data?: {
+                [key: string]: components["schemas"]["ResolvedField"];
+            } | null;
+            /** Ports */
+            ports: components["schemas"]["MappedPort"][];
+        };
+        /** MappedPort */
+        MappedPort: {
+            /** Port */
+            port: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "offline" | "unknown";
+            /** Laststatuschange */
+            lastStatusChange?: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "configured" | "default" | "unidentified";
+            /** Service Id */
+            service_id?: string | null;
+            /** Type Id */
+            type_id?: string | null;
+            /** Type Label */
+            type_label?: string | null;
+            /** Type Description */
+            type_description?: string | null;
+            /** Service Data */
+            service_data?: {
+                [key: string]: components["schemas"]["ResolvedField"];
+            } | null;
+            /** Browser Kind */
+            browser_kind?: string | null;
+        };
         /** MessageResponse */
         MessageResponse: {
             /** Message */
@@ -2466,8 +2579,27 @@ export interface components {
                 [key: string]: components["schemas"]["Endpoint"];
             };
         };
+        /** NetworkOverview */
+        NetworkOverview: {
+            scanDefinition: components["schemas"]["NetworkDiscover"];
+            /** Endpoints */
+            endpoints: components["schemas"]["MappedEndpoint"][];
+        };
+        /** NetworkRange */
+        NetworkRange: {
+            /** Networkdefinition */
+            networkDefinition: string;
+            /** Subnetmask */
+            subnetMask: number;
+        };
         /** NetworkScan */
-        NetworkScan: {
+        "NetworkScan-Input": {
+            /** Scanresults */
+            scanResults: components["schemas"]["EndpointStatus"][];
+            scanDefinition: components["schemas"]["NetworkDiscover"];
+        };
+        /** NetworkScan */
+        "NetworkScan-Output": {
             /** Scanresults */
             scanResults: components["schemas"]["EndpointStatus"][];
             scanDefinition: components["schemas"]["NetworkDiscover"];
@@ -2869,6 +3001,8 @@ export interface components {
             mapping: {
                 [key: string]: string;
             };
+            /** Browser Kind */
+            browser_kind?: string | null;
         };
         /** ServiceTypeResponse */
         ServiceTypeResponse: {
@@ -2886,6 +3020,8 @@ export interface components {
             mapping: {
                 [key: string]: string;
             };
+            /** Browser Kind */
+            browser_kind: string | null;
             /**
              * Created At
              * Format: date-time
@@ -2911,6 +3047,8 @@ export interface components {
             mapping?: {
                 [key: string]: string | null;
             } | null;
+            /** Browser Kind */
+            browser_kind?: string | null;
         };
         /** ServiceUpdate */
         ServiceUpdate: {
@@ -6324,7 +6462,104 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NetworkScan"] | null;
+                    "application/json": components["schemas"]["NetworkScan-Output"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_network_overview__device__network_overview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NetworkScan-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetworkOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_network_scan_ports__device__network_scan_ports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_network_scan_range__device__network_scan_range_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetworkRange"];
                 };
             };
             /** @description Validation Error */

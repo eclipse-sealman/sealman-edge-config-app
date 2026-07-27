@@ -16,6 +16,16 @@ export interface FieldRow {
   definition: FieldDefinition;
   /** Raw text for the options input, kept separate from definition.options so typing a trailing comma isn't eaten. */
   optionsText: string;
+  /** The mapping role (e.g. "ip", "port") this field is assigned to, or null if none. */
+  role: string | null;
+}
+
+/** Describes the single mapping role (e.g. IP for endpoint types, Port for service types) that can be assigned to one field. */
+export interface MappingRoleConfig {
+  /** The role string sent to the backend's `mapping` dict, e.g. "ip" or "port". */
+  value: string;
+  label: string;
+  compatibleTypes: FieldType[];
 }
 
 const UI_OPTIONS_BY_TYPE: Record<FieldType, { value: FieldUi; label: string }[]> = {
@@ -47,6 +57,7 @@ export function emptyFieldRow(): FieldRow {
     key: "",
     definition: { type: "string", label: "", required: false, ui: "input", default: null },
     optionsText: "",
+    role: null,
   };
 }
 
@@ -57,13 +68,17 @@ function parseOptions(text: string): string[] {
     .filter(Boolean);
 }
 
-export function rowsFromFields(fields: Record<string, FieldDefinition>): FieldRow[] {
+export function rowsFromFields(
+  fields: Record<string, FieldDefinition>,
+  mapping: Record<string, string> = {}
+): FieldRow[] {
   return Object.entries(fields).map(([key, definition]) => ({
     id: crypto.randomUUID(),
     originalKey: key,
     key,
     definition,
     optionsText: (definition.options ?? []).join(", "),
+    role: mapping[key] ?? null,
   }));
 }
 
@@ -106,6 +121,37 @@ export function buildFieldsPayload(
   return payload;
 }
 
+/**
+ * Diffs the rows' currently-assigned mapping role against the type's original mapping and
+ * produces a PATCH-ready payload: changed/new role assignments map to the role string, entries
+ * that no longer apply (role cleared, or the field was renamed/removed) map to `null` so the
+ * backend deletes them. When `originalMapping` is empty (creating a new type) this naturally
+ * reduces to a plain `{ [key]: role }` object with no `null` entries.
+ */
+export function buildMappingPayload(
+  rows: FieldRow[],
+  originalMapping: Record<string, string>
+): Record<string, string | null> {
+  const payload: Record<string, string | null> = {};
+  const currentByKey = new Map(
+    rows.filter((r) => r.role && r.key.trim()).map((r) => [r.key.trim(), r.role as string])
+  );
+
+  for (const key of Object.keys(originalMapping)) {
+    if (currentByKey.get(key) !== originalMapping[key]) {
+      payload[key] = null;
+    }
+  }
+
+  for (const [key, role] of currentByKey) {
+    if (originalMapping[key] !== role) {
+      payload[key] = role;
+    }
+  }
+
+  return payload;
+}
+
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
@@ -119,6 +165,8 @@ interface FieldsEditorProps {
   rows: FieldRow[];
   onChange: (rows: FieldRow[]) => void;
   duplicateKeys?: Set<string>;
+  /** When set, shows a per-field toggle to assign this single mapping role (e.g. IP, Port) to one field. */
+  mappingRole?: MappingRoleConfig;
 }
 
 /**
@@ -126,7 +174,7 @@ interface FieldsEditorProps {
  * add/remove/edit rows, and for each row render exactly the controls that
  * make sense for its current type/ui (options, default value, etc).
  */
-export default function FieldsEditor({ rows, onChange, duplicateKeys }: FieldsEditorProps) {
+export default function FieldsEditor({ rows, onChange, duplicateKeys, mappingRole }: FieldsEditorProps) {
   const updateRow = (id: string, patch: Partial<FieldRow>) => {
     onChange(rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   };
@@ -134,6 +182,17 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys }: FieldsEd
   const updateDefinition = (id: string, patch: Partial<FieldDefinition>) => {
     onChange(
       rows.map((row) => (row.id === id ? { ...row, definition: { ...row.definition, ...patch } } : row))
+    );
+  };
+
+  // Only one field may hold a given mapping role at a time, so assigning it to a row clears it from any other.
+  const updateRole = (id: string, role: string | null) => {
+    onChange(
+      rows.map((row) => {
+        if (row.id === id) return { ...row, role };
+        if (role !== null && row.role === role) return { ...row, role: null };
+        return row;
+      })
     );
   };
 
@@ -147,9 +206,11 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys }: FieldsEd
 
   const handleTypeChange = (row: FieldRow, type: FieldType) => {
     const ui = UI_OPTIONS_BY_TYPE[type][0].value;
+    const staysCompatible = !mappingRole || mappingRole.compatibleTypes.includes(type);
     updateRow(row.id, {
       definition: { ...row.definition, type, ui, options: null, default: null },
       optionsText: "",
+      role: staysCompatible ? row.role : null,
     });
   };
 
@@ -169,10 +230,12 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys }: FieldsEd
         const showOptions = ui === "select" || ui === "radio";
         const isDuplicate = duplicateKeys?.has(row.key.trim().toLowerCase()) && row.key.trim() !== "";
 
+        const isMappingCompatible = mappingRole?.compatibleTypes.includes(row.definition.type) ?? false;
+
         return (
           <div key={row.id} className="border rounded-md p-3 space-y-3 bg-background hover:bg-muted/20 transition-colors">
             <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-3">
+              <div className={mappingRole ? "col-span-2" : "col-span-3"}>
                 <Field label="Key *">
                   <input
                     type="text"
@@ -239,6 +302,24 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys }: FieldsEd
                   </div>
                 </Field>
               </div>
+
+              {mappingRole && (
+                <div className="col-span-1">
+                  <Field label={`Is ${mappingRole.label}`}>
+                    <div className="flex h-[38px] items-center" title={
+                      isMappingCompatible
+                        ? `Mark this field as the ${mappingRole.label}`
+                        : `Only ${mappingRole.compatibleTypes.join("/")} fields can be the ${mappingRole.label}`
+                    }>
+                      <Toggle
+                        checked={isMappingCompatible && row.role === mappingRole.value}
+                        disabled={!isMappingCompatible}
+                        onChange={(val) => updateRole(row.id, val ? mappingRole.value : null)}
+                      />
+                    </div>
+                  </Field>
+                </div>
+              )}
 
               <div className="col-span-1 flex items-end justify-end">
                 <button
