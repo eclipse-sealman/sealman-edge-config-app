@@ -47,12 +47,12 @@ export default function NetworkMainLayout() {
   }
 
   return (
-    <div className="flex flex-col sm:flex-row h-full gap-4">
+    <div className="flex flex-col sm:flex-row h-full gap-4 bg-background">
       <div className="sm:hidden">
         <MobileTopBar/>
       </div>
 
-        <div id="network-list-container" className="hidden sm:block sm:w-1/4 h-full">
+        <div id="network-list-container" className="hidden sm:block sm:w-1/4 h-full overflow-y-auto">
           <SidebarNavButton
             label="Overview"
             active={displayOverview}
@@ -73,7 +73,7 @@ export default function NetworkMainLayout() {
 
         </div>
 
-      <div className="w-full sm:w-3/4 h-[calc(100%-56px)]" id="network-machine-content">
+      <div className="w-full sm:w-3/4 h-full overflow-y-auto bg-background" id="network-machine-content">
         <MainContentContainer />
       </div>
     </div>

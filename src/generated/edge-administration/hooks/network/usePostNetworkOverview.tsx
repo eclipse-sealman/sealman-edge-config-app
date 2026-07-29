@@ -12,7 +12,11 @@ interface props {
 }
 
 export default function usePostNetworkOverview() {
-  const mutation = edgeApi.useMutation("post", "/{device}/network/overview")
+  // See usePostDeviceNetworkDiscover.tsx - same background-poll rationale for skipping the
+  // app-wide invalidateQueries() on every mutation success.
+  const mutation = edgeApi.useMutation("post", "/{device}/network/overview", {
+    meta: { skipGlobalInvalidate: true },
+  })
 
   const mutateAsync = ({ deviceId, body }: props) => mutation.mutateAsync({
     body,

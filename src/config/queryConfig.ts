@@ -1,6 +1,16 @@
 import { MutationCache, QueryClient, QueryClientConfig } from "@tanstack/react-query";
 import { AxiosError } from 'axios';
 
+declare module "@tanstack/react-query" {
+  interface Register {
+    mutationMeta: {
+      // Opt a mutation out of the blanket invalidateQueries() below - for mutations that fire
+      // repeatedly (e.g. background polling) and have no bearing on the rest of the app's data.
+      skipGlobalInvalidate?: boolean;
+    };
+  }
+}
+
 const retryFunction = (failureCount: number, error: unknown) => {
   if (error instanceof AxiosError && error.response) {
     if (error.response.status >= 400 && error.response.status < 500)  // Don't retry client errors
@@ -20,7 +30,8 @@ const queryConfig: QueryClientConfig = {
     },
   },
   mutationCache: new MutationCache({
-    onSuccess: () => {
+    onSuccess: (_data, _variables, _context, mutation) => {
+      if (mutation.options.meta?.skipGlobalInvalidate) return;
       queryClient.invalidateQueries()
     },
   })

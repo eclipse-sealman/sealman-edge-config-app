@@ -6,7 +6,7 @@ import React from "react";
  */
 export default function SidebarLayout({sidebar}: {sidebar: React.ReactNode}) {
   return (
-    <div className="h-full grid grid-cols-6 gap-2 pt-2 border">
+    <div className="h-full grid grid-cols-6 grid-rows-[1fr] gap-2 pt-2 border">
       <div className="hidden xl:block xl:col-span-1 border border overflow-y-auto">
         {sidebar}
       </div>

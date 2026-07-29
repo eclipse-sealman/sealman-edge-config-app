@@ -7,13 +7,15 @@ import usePostDeviceNetworkDiscover, { ScanResult } from "@/generated/edge-admin
 import usePostNetworkOverview, { NetworkOverview } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import useGetNetworkScanPorts from "@/generated/edge-administration/hooks/network/useGetNetworkScanPorts";
 import useGetNetworkScanRange from "@/generated/edge-administration/hooks/network/useGetNetworkScanRange";
+import useGetNetworkScanRanges from "@/generated/edge-administration/hooks/network/useGetNetworkScanRanges";
+import usePutNetworkScanRanges from "@/generated/edge-administration/hooks/network/usePutNetworkScanRanges";
 import DiscoveredEndpointsCard from "./DiscoveredEndpointsCard";
 import UnidentifiedEndpointsCard from "./UnidentifiedEndpointsCard";
-import ScanNetworkDialog from "./ScanNetworkDialog";
+import ScanNetworkDialog, { ScanNetworkRange } from "./ScanNetworkDialog";
 import EndpointDetailsPage from "./EndpointDetailsPage";
 import ServiceDetailsPage from "./ServiceDetailsPage";
 
-const BACKGROUND_REFRESH_INTERVAL_MS = 3000;
+const BACKGROUND_REFRESH_INTERVAL_MS = 5000;
 
 function mergeScanResults(primary: ScanResult[], additions: ScanResult[][]): ScanResult[] {
   const byIp = new Map<string, ScanResult>();
@@ -30,11 +32,15 @@ export default function OverviewContentContainer() {
   const deviceId = useNetworkPageStore((s) => s.deviceId);
 
   const { data: catalogPorts, isLoading: isLoadingPorts, isError: isPortsError, refetch: refetchPorts } = useGetNetworkScanPorts(deviceId);
-  // The network range to scan is derived server-side from known endpoint IPs (configured
+  // The baseline network range is derived server-side from known endpoint IPs (configured
   // instances + endpoint type defaults), not a hardcoded range - see get_network_scan_range.py.
+  // There is no default entry: a fresh device with nothing known yet gets `undefined` here.
   const { data: scanRange, isLoading: isLoadingRange, isError: isRangeError, refetch: refetchRange } = useGetNetworkScanRange(deviceId);
+  // Additional ranges the user has explicitly added on top of that baseline, also starting empty.
+  const { data: extraRanges, isLoading: isLoadingRanges, isError: isRangesError, refetch: refetchRanges } = useGetNetworkScanRanges(deviceId);
   const { mutateAsync: discoverAsync } = usePostDeviceNetworkDiscover();
   const { mutateAsync: overviewAsync } = usePostNetworkOverview();
+  const { mutateAsync: putScanRangesAsync } = usePutNetworkScanRanges();
 
   const [overview, setOverview] = useState<NetworkOverview | undefined>(undefined);
   const [isScanning, setIsScanning] = useState(false);
@@ -51,30 +57,46 @@ export default function OverviewContentContainer() {
   const isScanInFlightRef = useRef(false);
 
   useEffect(() => {
-    if (!deviceId || !catalogPorts || !scanRange) return;
+    if (!deviceId || !catalogPorts || isLoadingRange || isLoadingRanges) return;
 
     let cancelled = false;
 
     async function performScan(): Promise<NetworkOverview | null> {
       const ports = [...new Set([...(catalogPorts ?? []), ...extraPorts])];
 
-      const mainScan = await discoverAsync({
-        deviceId,
-        body: { networkDefinition: scanRange!.networkDefinition, subnetMask: scanRange!.subnetMask, ports },
-      });
-      if (cancelled || !mainScan) return null;
+      const rangesToScan = [...(scanRange ? [scanRange] : []), ...(extraRanges ?? [])];
 
-      const extraScans = await Promise.all(
+      if (rangesToScan.length === 0 && extraIps.length === 0) {
+        // Nothing known/configured to scan yet - skip the network round-trip entirely and show
+        // an empty result set instead of erroring (the user can add a range via Scan Network).
+        return overviewAsync({
+          deviceId,
+          body: { scanResults: [], scanDefinition: { networkDefinition: "0.0.0.0", subnetMask: 32, ports } },
+        });
+      }
+
+      const rangeScans = await Promise.all(
+        rangesToScan.map((r) =>
+          discoverAsync({ deviceId, body: { networkDefinition: r.networkDefinition, subnetMask: r.subnetMask, ports } })
+        )
+      );
+      if (cancelled) return null;
+
+      const ipScans = await Promise.all(
         extraIps.map((ip) => discoverAsync({ deviceId, body: { networkDefinition: ip, subnetMask: 32, ports } }))
       );
       if (cancelled) return null;
 
+      const allScans = [...rangeScans, ...ipScans];
+      const primaryScan = allScans.find((s) => s);
+      if (!primaryScan) return null;
+
       const scanResults = mergeScanResults(
-        mainScan.payload.scanResults,
-        extraScans.map((s) => s?.payload.scanResults ?? [])
+        primaryScan.payload.scanResults,
+        allScans.filter((s) => s && s !== primaryScan).map((s) => s!.payload.scanResults)
       );
 
-      return overviewAsync({ deviceId, body: { scanResults, scanDefinition: mainScan.payload.scanDefinition } });
+      return overviewAsync({ deviceId, body: { scanResults, scanDefinition: primaryScan.payload.scanDefinition } });
     }
 
     async function runForeground() {
@@ -116,14 +138,16 @@ export default function OverviewContentContainer() {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceId, catalogPorts, scanRange, extraPorts, extraIps, refreshToken]);
+  }, [deviceId, catalogPorts, isLoadingRange, isLoadingRanges, scanRange, extraRanges, extraPorts, extraIps, refreshToken]);
 
   const handleRefresh = () => {
     setOverview(undefined);
     setRefreshToken((t) => t + 1);
   };
 
-  const handleConfirmScan = (newExtraPorts: number[], newExtraIps: string[]) => {
+  const handleConfirmScan = async (newRanges: ScanNetworkRange[], newExtraPorts: number[], newExtraIps: string[]) => {
+    await putScanRangesAsync({ deviceId, body: newRanges });
+    await refetchRanges();
     setExtraPorts(newExtraPorts);
     setExtraIps(newExtraIps);
     handleRefresh();
@@ -133,7 +157,7 @@ export default function OverviewContentContainer() {
   // their own data independently and shouldn't be blocked by those.
   if (detailsServiceId) {
     return (
-      <div className="pt-2">
+      <div className="pt-2 pb-8 min-h-full">
         <ServiceDetailsPage
           serviceId={detailsServiceId}
           onBack={() => setDetailsServiceId(null)}
@@ -145,7 +169,7 @@ export default function OverviewContentContainer() {
 
   if (detailsEndpointId) {
     return (
-      <div className="pt-2">
+      <div className="pt-2 pb-8 min-h-full">
         <EndpointDetailsPage
           endpointId={detailsEndpointId}
           onBack={() => setDetailsEndpointId(null)}
@@ -156,7 +180,7 @@ export default function OverviewContentContainer() {
     );
   }
 
-  if (isLoadingPorts || isLoadingRange) {
+  if (isLoadingPorts || isLoadingRange || isLoadingRanges) {
     return (
       <Centered>
         <p className="flex items-center gap-2 text-muted-foreground">
@@ -166,7 +190,7 @@ export default function OverviewContentContainer() {
     );
   }
 
-  if (isPortsError || isRangeError) {
+  if (isPortsError || isRangeError || isRangesError) {
     return (
       <Centered>
         <div className="flex flex-col items-center gap-3">
@@ -176,6 +200,7 @@ export default function OverviewContentContainer() {
             onClick={() => {
               if (isPortsError) refetchPorts();
               if (isRangeError) refetchRange();
+              if (isRangesError) refetchRanges();
             }}
           >
             Retry
@@ -230,6 +255,7 @@ export default function OverviewContentContainer() {
       <ScanNetworkDialog
         open={scanDialogOpen}
         onOpenChange={setScanDialogOpen}
+        ranges={extraRanges ?? []}
         extraPorts={extraPorts}
         extraIps={extraIps}
         onConfirm={handleConfirmScan}
