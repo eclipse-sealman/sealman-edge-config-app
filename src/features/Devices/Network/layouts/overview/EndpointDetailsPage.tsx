@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { ArrowLeft, ChevronRight, Loader2, Plus, Server, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, Loader2, Plus, Repeat, Server, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Centered } from "@/features/Devices/Network/components";
 import useGetEndpoint from "@/generated/edge-administration/hooks/endpoints/useGetEndpoint";
@@ -12,6 +12,7 @@ import TypeFieldsForm from "./TypeFieldsForm";
 import CustomFieldsEditor from "./CustomFieldsEditor";
 import AssignServiceDialog from "./AssignServiceDialog";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
+import ReassignEndpointDialog from "./ReassignEndpointDialog";
 
 interface props {
   endpointId: string;
@@ -34,14 +35,18 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
   const [isDirty, setIsDirty] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addServiceOpen, setAddServiceOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
 
-  // Only reset the form when we actually switch to a *different* endpoint - not on every
-  // background refetch of the same one, which would otherwise wipe in-progress edits.
+  // Only reset the form when we actually switch to a *different* endpoint, or the same endpoint
+  // gets reassigned to a different type - not on every background refetch of the same one/type,
+  // which would otherwise wipe in-progress edits.
   const initializedForRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!endpoint || initializedForRef.current === endpoint.endpoint_id) return;
-    initializedForRef.current = endpoint.endpoint_id;
+    if (!endpoint) return;
+    const initializationKey = `${endpoint.endpoint_id}:${endpoint.type_id}`;
+    if (initializedForRef.current === initializationKey) return;
+    initializedForRef.current = initializationKey;
     const initial: Record<string, unknown> = {};
     for (const [key, resolved] of Object.entries(endpoint.endpoint_data)) {
       initial[key] = resolved.value ?? null;
@@ -133,9 +138,14 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
                 <p className="text-sm text-muted-foreground mt-1.5">{endpoint.type_description}</p>
               )}
             </div>
-            <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} className="shrink-0">
-              <Trash2 /> Remove Endpoint
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={() => setReassignOpen(true)}>
+                <Repeat /> Reassign
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
+                <Trash2 /> Remove Endpoint
+              </Button>
+            </div>
           </div>
 
           {type && (
@@ -246,6 +256,19 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
           onUpdated();
         }}
       />
+
+      {endpoint && (
+        <ReassignEndpointDialog
+          open={reassignOpen}
+          onOpenChange={setReassignOpen}
+          endpointId={endpointId}
+          currentTypeId={endpoint.type_id}
+          onReassigned={async () => {
+            await refetch();
+            onUpdated();
+          }}
+        />
+      )}
     </div>
   );
 }

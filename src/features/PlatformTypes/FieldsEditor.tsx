@@ -1,7 +1,8 @@
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { components } from "@/generated/edge-administration/types";
-import FieldValueInput, { inputClass } from "./FieldValueInput";
+import FieldValueInput, { compactInputClass } from "./FieldValueInput";
 import Toggle from "./Toggle";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type FieldDefinition = components["schemas"]["FieldDefinition"];
 type FieldType = FieldDefinition["type"];
@@ -55,7 +56,7 @@ export function emptyFieldRow(): FieldRow {
     id: crypto.randomUUID(),
     originalKey: null,
     key: "",
-    definition: { type: "string", label: "", required: false, ui: "input", default: null },
+    definition: { type: "string", label: "", required: false, ui: "input", default: null, changeable: true },
     optionsText: "",
     role: null,
   };
@@ -235,102 +236,121 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, mappingRol
         return (
           <div key={row.id} className="border rounded-md p-3 space-y-3 bg-background hover:bg-muted/20 transition-colors">
             <div className="grid grid-cols-12 gap-3">
-              <div className={mappingRole ? "col-span-2" : "col-span-3"}>
+              <div className="col-span-3">
                 <Field label="Key *">
                   <input
                     type="text"
                     placeholder="field_key"
                     value={row.key}
                     onChange={(e) => updateRow(row.id, { key: e.target.value })}
-                    className={`${inputClass} font-mono ${isDuplicate ? "border-destructive focus:border-destructive" : ""}`}
+                    className={`${compactInputClass} font-mono ${isDuplicate ? "border-destructive focus:border-destructive" : ""}`}
                   />
                 </Field>
               </div>
 
-              <div className="col-span-3">
+              <div className="col-span-4">
                 <Field label="Label *">
                   <input
                     type="text"
                     placeholder="Human readable label"
                     value={row.definition.label}
                     onChange={(e) => updateDefinition(row.id, { label: e.target.value })}
-                    className={inputClass}
+                    className={compactInputClass}
                   />
                 </Field>
               </div>
 
               <div className="col-span-2">
                 <Field label="Type">
-                  <select
-                    value={row.definition.type}
-                    onChange={(e) => handleTypeChange(row, e.target.value as FieldType)}
-                    className={inputClass}
-                  >
-                    <option value="string">String</option>
-                    <option value="boolean">Boolean</option>
-                    <option value="integer">Integer</option>
-                    <option value="number">Number</option>
-                  </select>
+                  <Select value={row.definition.type} onValueChange={(v) => handleTypeChange(row, v as FieldType)}>
+                    <SelectTrigger className="h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="string">String</SelectItem>
+                      <SelectItem value="boolean">Boolean</SelectItem>
+                      <SelectItem value="integer">Integer</SelectItem>
+                      <SelectItem value="number">Number</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </Field>
               </div>
 
               <div className="col-span-2">
                 <Field label="Widget">
-                  <select
+                  <Select
                     value={ui}
-                    onChange={(e) =>
-                      updateDefinition(row.id, { ui: e.target.value as FieldUi, options: null, default: null })
+                    onValueChange={(v) =>
+                      updateDefinition(row.id, { ui: v as FieldUi, options: null, default: null })
                     }
-                    className={inputClass}
                   >
-                    {uiOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uiOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Field>
               </div>
 
-              <div className="col-span-1">
-                <Field label="Required">
-                  <div className="flex h-[38px] items-center">
-                    <Toggle
-                      checked={row.definition.required}
-                      onChange={(val) => updateDefinition(row.id, { required: val })}
-                    />
-                  </div>
+              <div className="col-span-1 flex justify-end">
+                {/* Invisible label matches the height of the sibling Field labels, so the button
+                    lines up with the inputs exactly instead of relying on flex/grid guesswork. */}
+                <Field label=" ">
+                  <button
+                    type="button"
+                    onClick={() => removeRow(row.id)}
+                    className="inline-flex items-center justify-center h-8 w-8 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors shadow-sm"
+                    aria-label="Remove field"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
                 </Field>
               </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground whitespace-nowrap">
+                <Toggle
+                  checked={row.definition.required}
+                  onChange={(val) => updateDefinition(row.id, { required: val })}
+                />
+                Required
+              </label>
+
+              <label
+                className="flex items-center gap-2 text-xs font-medium text-muted-foreground whitespace-nowrap"
+                title="If off, an instance's value for this field can no longer be edited once it's been set"
+              >
+                <Toggle
+                  checked={row.definition.changeable !== false}
+                  onChange={(val) => updateDefinition(row.id, { changeable: val })}
+                />
+                Changeable
+              </label>
 
               {mappingRole && (
-                <div className="col-span-1">
-                  <Field label={`Is ${mappingRole.label}`}>
-                    <div className="flex h-[38px] items-center" title={
-                      isMappingCompatible
-                        ? `Mark this field as the ${mappingRole.label}`
-                        : `Only ${mappingRole.compatibleTypes.join("/")} fields can be the ${mappingRole.label}`
-                    }>
-                      <Toggle
-                        checked={isMappingCompatible && row.role === mappingRole.value}
-                        disabled={!isMappingCompatible}
-                        onChange={(val) => updateRole(row.id, val ? mappingRole.value : null)}
-                      />
-                    </div>
-                  </Field>
-                </div>
-              )}
-
-              <div className="col-span-1 flex items-end justify-end">
-                <button
-                  type="button"
-                  onClick={() => removeRow(row.id)}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors shadow-sm"
-                  aria-label="Remove field"
+                <label
+                  className="flex items-center gap-2 text-xs font-medium text-muted-foreground whitespace-nowrap"
+                  title={
+                    isMappingCompatible
+                      ? `Mark this field as the ${mappingRole.label}`
+                      : `Only ${mappingRole.compatibleTypes.join("/")} fields can be the ${mappingRole.label}`
+                  }
                 >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </div>
+                  <Toggle
+                    checked={isMappingCompatible && row.role === mappingRole.value}
+                    disabled={!isMappingCompatible}
+                    onChange={(val) => updateRole(row.id, val ? mappingRole.value : null)}
+                  />
+                  Is {mappingRole.label}
+                </label>
+              )}
             </div>
 
             <div className="grid grid-cols-12 gap-3">
@@ -341,7 +361,7 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, mappingRol
                     placeholder="Optional help text"
                     value={row.definition.description ?? ""}
                     onChange={(e) => updateDefinition(row.id, { description: e.target.value || null })}
-                    className={inputClass}
+                    className={compactInputClass}
                   />
                 </Field>
               </div>
@@ -354,7 +374,7 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, mappingRol
                       placeholder="option1, option2, option3"
                       value={row.optionsText}
                       onChange={(e) => handleOptionsTextChange(row, e.target.value)}
-                      className={inputClass}
+                      className={compactInputClass}
                     />
                   </Field>
                 </div>

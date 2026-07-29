@@ -1990,7 +1990,12 @@ export interface components {
         };
         /** EndpointUpdate */
         EndpointUpdate: {
-            /** Endpoint Data */
+            /** Type Id */
+            type_id?: string | null;
+            /**
+             * Endpoint Data
+             * @default {}
+             */
             endpoint_data: {
                 [key: string]: unknown | null;
             };
@@ -2039,6 +2044,12 @@ export interface components {
              * @description Default value used when none is provided
              */
             default?: unknown | null;
+            /**
+             * Changeable
+             * @description If false, the value can no longer be edited once an instance has it set
+             * @default true
+             */
+            changeable: boolean;
         };
         /** FieldDefinitionUpdate */
         FieldDefinitionUpdate: {
@@ -2076,6 +2087,11 @@ export interface components {
              * @description Default value used when none is provided
              */
             default?: unknown | null;
+            /**
+             * Changeable
+             * @description If false, the value can no longer be edited once an instance has it set
+             */
+            changeable?: boolean | null;
         };
         /**
          * FieldValidation

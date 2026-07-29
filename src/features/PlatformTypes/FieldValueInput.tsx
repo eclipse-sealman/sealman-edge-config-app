@@ -9,6 +9,10 @@ export type FieldDefinitionLike = Pick<
 export const inputClass =
   "w-full px-3 py-2 rounded-md bg-muted/30 border border-slate-200 hover:border-slate-300 focus:bg-background focus:border-primary focus:ring-2 focus:ring-primary/20 outline-hidden transition";
 
+/** Same as inputClass, but for h-8 contexts (e.g. next to a "sm" button) - py-2 doesn't leave
+ * enough room for a line of text at a fixed 32px height, so this uses tighter py-1 instead. */
+export const compactInputClass = inputClass.replace("py-2", "py-1") + " h-8";
+
 /** Read-only counterpart to the input widget above: formats a value for display, driven by the same FieldDefinition. */
 export function formatMetadataValue(value: unknown, definition: Pick<FieldDefinitionLike, "type">): string {
   if (value === null || value === undefined || value === "") return "";
@@ -67,7 +71,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
         value={typeof value === "string" ? value : ""}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className={inputClass}
+        className={compactInputClass}
       >
         <option value="">—</option>
         {options.map((opt) => (
@@ -120,7 +124,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className={inputClass}
+        className={compactInputClass}
       />
     );
   }
@@ -154,7 +158,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-        className={inputClass}
+        className={compactInputClass}
       />
     );
   }
@@ -167,7 +171,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
       disabled={disabled}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className={inputClass}
+      className={compactInputClass}
     />
   );
 }

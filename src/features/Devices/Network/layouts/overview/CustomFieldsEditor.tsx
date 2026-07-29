@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { inputClass } from "@/features/PlatformTypes/FieldValueInput";
+import { compactInputClass } from "@/features/PlatformTypes/FieldValueInput";
 
 interface props {
   /** Instance data keys that aren't part of the type's own field schema. */
@@ -55,7 +55,7 @@ export default function CustomFieldsEditor({ customValues, onChange, onDelete, o
               type="text"
               value={toInputValue(value)}
               onChange={(e) => onChange(key, e.target.value)}
-              className={inputClass}
+              className={compactInputClass}
             />
           </div>
           <Button
@@ -78,12 +78,17 @@ export default function CustomFieldsEditor({ customValues, onChange, onDelete, o
             value={newKey}
             onChange={(e) => setNewKey(e.target.value)}
             placeholder="custom_field"
-            className={`${inputClass} font-mono`}
+            className={`${compactInputClass} font-mono`}
           />
         </div>
         <div className="flex-1 space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Value</label>
-          <input type="text" value={newValue} onChange={(e) => setNewValue(e.target.value)} className={inputClass} />
+          <input
+            type="text"
+            value={newValue}
+            onChange={(e) => setNewValue(e.target.value)}
+            className={compactInputClass}
+          />
         </div>
         <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={handleAdd}>
           <Plus /> Add Field

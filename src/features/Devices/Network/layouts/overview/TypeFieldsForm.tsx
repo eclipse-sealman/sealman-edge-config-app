@@ -26,14 +26,17 @@ export default function TypeFieldsForm({ fields, values, onChange, lockedFieldKe
   return (
     <div className="space-y-3">
       {entries.map(([key, definition]) => {
-        const isLocked = key === lockedFieldKey;
+        const hasValue = values[key] !== null && values[key] !== undefined && values[key] !== "";
+        const isNonChangeable = definition.changeable === false && hasValue;
+        const isLocked = key === lockedFieldKey || isNonChangeable;
         const canDelete = Boolean(onDelete) && !definition.required && !isLocked;
         return (
           <div key={key} className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">
               {definition.label}
               {definition.required && !isLocked ? " *" : ""}
-              {isLocked ? <span className="text-blue-600"> (detected on network)</span> : ""}
+              {key === lockedFieldKey ? <span className="text-blue-600"> (detected on network)</span> : ""}
+              {isNonChangeable ? <span className="text-muted-foreground"> (locked after first save)</span> : ""}
             </label>
             <div className="flex items-center gap-2">
               <div className="flex-1">
