@@ -11,12 +11,8 @@ const SETTINGS_TABS: SettingsTab[] = [
     path: "platform-types",
   },
   {
-    label: "Device Templates",
-    path: "device-templates",
-  },
-  {
-    label: "Device Template Vars",
-    path: "device-template-variables",
+    label: "Templates",
+    path: "templates",
   },
   // {
   //   label: "Smart EMS",

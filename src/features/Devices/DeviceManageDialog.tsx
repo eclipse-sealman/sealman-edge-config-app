@@ -29,6 +29,11 @@ export default function DeviceManageDialog() {
 
   const deviceTypes = deviceTypesQuery.data ?? [];
   const selectedType = deviceTypes.find((t) => t.type_id === typeId);
+  const defaultType = deviceTypes.find((t) => t.type_id === "default");
+  // The default type's required fields apply to every device type (see
+  // db/sqlalchemy/device.py:_effective_fields_for), so the form must surface and validate them
+  // even when a non-default type is selected; the selected type's own definitions win on collision.
+  const effectiveFields = { ...(defaultType?.fields ?? {}), ...(selectedType?.fields ?? {}) };
 
   const openDialog = () => {
     setOpen(true); setDeviceId(""); setAuthType("sas"); setRegistrationId("");
@@ -40,11 +45,10 @@ export default function DeviceManageDialog() {
   const handleTypeChange = (newTypeId: string) => {
     setTypeId(newTypeId);
     const type = deviceTypes.find((t) => t.type_id === newTypeId);
+    const fields = { ...(defaultType?.fields ?? {}), ...(type?.fields ?? {}) };
     const defaults: Record<string, unknown> = {};
-    if (type) {
-      for (const [key, field] of Object.entries(type.fields)) {
-        defaults[key] = field.default ?? null;
-      }
+    for (const [key, field] of Object.entries(fields)) {
+      defaults[key] = field.default ?? null;
     }
     setFieldValues(defaults);
   };
@@ -52,7 +56,7 @@ export default function DeviceManageDialog() {
   const handleCreate = async () => {
     if (!deviceId.trim()) { setError("Device ID is required"); return; }
     if (!typeId) { setError("Device type is required"); return; }
-    for (const [key, field] of Object.entries(selectedType?.fields ?? {})) {
+    for (const [key, field] of Object.entries(effectiveFields)) {
       const value = fieldValues[key];
       const isEmpty = value === null || value === undefined || value === "";
       if (field.required && isEmpty) {
@@ -141,11 +145,11 @@ export default function DeviceManageDialog() {
               )}
             </div>
 
-            {selectedType && Object.keys(selectedType.fields).length > 0 && (
+            {selectedType && Object.keys(effectiveFields).length > 0 && (
               <div>
                 <label className={labelCls}>Fields</label>
                 <div className="rounded-lg border border-gray-200 overflow-visible divide-y divide-gray-100">
-                  {Object.entries(selectedType.fields).map(([key, field]) => (
+                  {Object.entries(effectiveFields).map(([key, field]) => (
                     <div key={key} className="px-3 py-2.5">
                       <span className="text-sm text-gray-700 font-medium block mb-1">
                         {field.label}

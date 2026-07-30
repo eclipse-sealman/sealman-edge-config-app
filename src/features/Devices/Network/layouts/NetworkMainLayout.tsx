@@ -1,6 +1,6 @@
 import { MobileTopBar } from "@/features/Devices/Network/components";
 import { EndpointSidebar } from "@/features/Devices/Network/layouts";
-import { Status, useDisplayTopologyStore, useNetworkPageStore, useTwinConfigStore } from "../stores";
+import { useDisplayTopologyStore, useNetworkPageStore } from "../stores";
 import MainContentContainer from "./MainContentContainer";
 import { SidebarNavButton } from "../components/sidebar/SidebarNavButton";
 
@@ -9,39 +9,23 @@ export default function NetworkMainLayout() {
   const setDisplayTopology = useDisplayTopologyStore(s => s.setDisplayTopology)
   const displayEdgeDevice = useNetworkPageStore(s => s.displayEdgeDevice)
   const setDisplayEdgeDevice = useNetworkPageStore(s => s.setDisplayEdgeDevice)
-  const displayNetworkScanSetup = useNetworkPageStore(s => s.displayNetworkScanSetup)
-  const setDisplayNetworkScanSetup = useNetworkPageStore(s => s.setDisplayNetworkScanSetup)
   const displayOverview = useNetworkPageStore(s => s.displayOverview)
   const setDisplayOverview = useNetworkPageStore(s => s.setDisplayOverview)
-
-  const status = useTwinConfigStore(s => s.status)
 
   function handleOverviewClick(): void {
     setDisplayOverview(!displayOverview)
     setDisplayEdgeDevice(false)
     setDisplayTopology(false)
-    setDisplayNetworkScanSetup(false)
   }
 
-  // @ts-ignore TS6133: kept for future re-enable of Topology Viewer
   function handleTopologyClick(): void {
     setDisplayTopology(!displayTopology)
     setDisplayEdgeDevice(false)
-    setDisplayNetworkScanSetup(false)
     setDisplayOverview(false)
   }
 
   function handleEdgeDeviceClick(): void {
     setDisplayEdgeDevice(!displayEdgeDevice)
-    setDisplayTopology(false)
-    setDisplayNetworkScanSetup(false)
-    setDisplayOverview(false)
-  }
-
-
-  function handleNetworkScanConfigClick(): void {
-    setDisplayNetworkScanSetup(!displayNetworkScanSetup)
-    setDisplayEdgeDevice(false)
     setDisplayTopology(false)
     setDisplayOverview(false)
   }
@@ -54,7 +38,7 @@ export default function NetworkMainLayout() {
 
         <div id="network-list-container" className="hidden sm:block sm:w-1/4 h-full overflow-y-auto">
           <SidebarNavButton
-            label="Overview"
+            label="Endpoints & Services"
             active={displayOverview}
             onClick={() => handleOverviewClick()}
           />
@@ -63,13 +47,15 @@ export default function NetworkMainLayout() {
             active={displayEdgeDevice}
             onClick={() => handleEdgeDeviceClick()}
           />
-          {/* <SidebarNavButton
-            label="Topology Viewer"
+          <SidebarNavButton
+            label="Topology"
             active={displayTopology}
             onClick={() => handleTopologyClick()}
-          /> */}
+          />
 
-          {status == Status.Default ? <SidebarNavButton label="Configure Network Scan" active={displayNetworkScanSetup} onClick={handleNetworkScanConfigClick} /> : <EndpointSidebar />}
+          {/* This panel (search, endpoint list, scan settings) is only relevant alongside the
+              Topology canvas - Endpoints & Services already shows everything it needs on its own. */}
+          {displayTopology && <EndpointSidebar />}
 
         </div>
 

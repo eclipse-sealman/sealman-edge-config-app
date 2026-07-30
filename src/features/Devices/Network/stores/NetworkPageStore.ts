@@ -9,8 +9,6 @@ export interface NetworkPageStore {
   setPeriodicScanDateTime: (d: Date) => void
   displayEdgeDevice: boolean
   setDisplayEdgeDevice: (b: boolean) => void
-  displayNetworkScanSetup: boolean
-  setDisplayNetworkScanSetup: (b: boolean) => void
   displayOverview: boolean
   setDisplayOverview: (b: boolean) => void
 }
@@ -24,8 +22,6 @@ export default create<NetworkPageStore>(set => ({
   setPeriodicScanDateTime: (d) => set({periodicScanDateTime: d}),
   displayEdgeDevice: false,
   setDisplayEdgeDevice: (b) => set({displayEdgeDevice: b}),
-  displayNetworkScanSetup: false,
-  setDisplayNetworkScanSetup: (b) => set({displayNetworkScanSetup: b}),
   displayOverview: false,
   setDisplayOverview: (b) => set({displayOverview: b}),
 }))

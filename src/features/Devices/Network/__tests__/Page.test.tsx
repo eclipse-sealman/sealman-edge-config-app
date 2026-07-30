@@ -17,7 +17,6 @@ import { ApiError } from "@/generated/edge-administration/api"
 import { NETWORK_DISCOVER_MODULE_NAME } from "@/api/edgeConfig/moduleNames"
 
 vi.mock("@/generated/edge-administration/hooks/useGetModuleTwinConfig")
-vi.mock("@/features/Devices/Network/layouts/set_up_network_scan/SetupCard.tsx")
 vi.mock("@/features/Devices/Network/layouts/sidebar/EndpointSidebar.tsx")
 vi.mock("@/features/Devices/Network/components/mobile_top_bar/layout.tsx")
 vi.mock("@/features/Devices/Network/layouts/EndpointContent/EndpointContentContainer.tsx")

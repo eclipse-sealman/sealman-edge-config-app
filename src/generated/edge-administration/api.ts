@@ -49,7 +49,7 @@ export const errorHandlerMiddleware: Middleware = {
   },
 };
 
-const client = createFetchClient<paths>({
+export const client = createFetchClient<paths>({
   baseUrl: `${import.meta.env.VITE_API_URI}`,
 });
 

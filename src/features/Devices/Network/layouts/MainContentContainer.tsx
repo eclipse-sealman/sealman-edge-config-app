@@ -4,14 +4,12 @@ import { useDisplayTopologyStore, useNetworkPageStore } from "../stores"
 import Topology from "../Topology/Topology"
 import EdgeDeviceContentContainer from "./edge_device/EdgeDeviceContentContainer"
 import { EndpointContentContainer } from "./EndpointContent"
-import { SetupCard } from "./set_up_network_scan"
 import { OverviewContentContainer } from "./overview"
 
 export default function MainContentContainer() {
   const displayTopology = useDisplayTopologyStore(s => s.displayTopology)
   const displayEdgeDevice = useNetworkPageStore(s => s.displayEdgeDevice)
   const selectedEndpointIp = useNetworkPageStore((s) => s.selectedEndpointIp);
-  const displayNetworkScanSetup = useNetworkPageStore(s => s.displayNetworkScanSetup)
   const displayOverview = useNetworkPageStore(s => s.displayOverview)
   const setDisplayOverview = useNetworkPageStore(s => s.setDisplayOverview)
 
@@ -22,7 +20,7 @@ export default function MainContentContainer() {
   const [searchParams] = useSearchParams()
   const hasEndpointIpParam = !!searchParams.get("endpointIp")
 
-  const showDefault = !selectedEndpointIp && !hasEndpointIpParam && !displayEdgeDevice && !displayNetworkScanSetup && !displayTopology && !displayOverview
+  const showDefault = !selectedEndpointIp && !hasEndpointIpParam && !displayEdgeDevice && !displayTopology && !displayOverview
 
   useEffect(() => {
     if (showDefault) {
@@ -33,9 +31,7 @@ export default function MainContentContainer() {
   if (selectedEndpointIp || hasEndpointIpParam) return <EndpointContentContainer />
   if (displayOverview) return <OverviewContentContainer />
   if (displayEdgeDevice) return <EdgeDeviceContentContainer />
-  if (displayNetworkScanSetup) return <SetupCard />
   if (displayTopology) return <Topology />
 
   return <OverviewContentContainer />
 }
-

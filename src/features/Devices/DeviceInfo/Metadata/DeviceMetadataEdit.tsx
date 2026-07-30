@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import Badge, { BadgeColor } from "@/components/Typography/Badge";
 import DictionaryList from "@/components/Table/DictionaryList";
 import { Heading, HeadingButton, HeadingColor } from "@/components/Typography/Heading";
-import { InformationCircleIcon, PencilSquareIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { InformationCircleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { components } from "@/generated/edge-administration/types";
-import FieldValueInput from "@/features/PlatformTypes/FieldValueInput";
+import FieldValueInput, { compactInputClass } from "@/features/PlatformTypes/FieldValueInput";
 import usePatchDeviceMetadata from "../../../../generated/edge-administration/hooks/device_metadata/usePatchDeviceMetadata";
 
 type DeviceMetadataEntry = components["schemas"]["DeviceMetadataEntry"];
@@ -23,9 +23,39 @@ export default function DeviceMetadataEdit({ deviceMetadata, stopEditing }: Devi
   const [formValues, setFormValues] = useState<Record<string, unknown>>(
     Object.fromEntries(Object.entries(deviceMetadata).map(([key, entry]) => [key, entry.value])),
   );
+  // Keys the user has added in this session that aren't part of `deviceMetadata` yet - rendered
+  // as plain, schema-less fields (same as any other extra key already on the device).
+  const [newKeys, setNewKeys] = useState<string[]>([]);
+  const [newKeyInput, setNewKeyInput] = useState("");
+  const [newValueInput, setNewValueInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const patchDeviceMetadataMutation = usePatchDeviceMetadata();
+
+  const handleAddField = () => {
+    const key = newKeyInput.trim();
+    if (!key) {
+      toast.error("Enter a field name");
+      return;
+    }
+    if (key in formValues || newKeys.includes(key)) {
+      toast.error(`"${key}" already exists`);
+      return;
+    }
+    setNewKeys((prev) => [...prev, key]);
+    setFormValues((prev) => ({ ...prev, [key]: newValueInput }));
+    setNewKeyInput("");
+    setNewValueInput("");
+  };
+
+  const handleRemoveNewField = (key: string) => {
+    setNewKeys((prev) => prev.filter((k) => k !== key));
+    setFormValues((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (patchDeviceMetadataMutation.error) {
@@ -51,8 +81,8 @@ export default function DeviceMetadataEdit({ deviceMetadata, stopEditing }: Devi
     stopEditing();
   };
 
-  const tableData = Object.fromEntries(
-    sortedEntries.map(([key, entry]) => [
+  const tableData = Object.fromEntries([
+    ...sortedEntries.map(([key, entry]) => [
       entry.field?.label ?? key,
       <div key={key}>
         <FieldValueInput
@@ -65,8 +95,27 @@ export default function DeviceMetadataEdit({ deviceMetadata, stopEditing }: Devi
           <p className="text-xs text-muted-foreground mt-1">{entry.field.description}</p>
         )}
       </div>,
-    ]),
-  );
+    ] as const),
+    ...newKeys.map((key) => [
+      key,
+      <div key={key} className="flex items-center gap-2">
+        <FieldValueInput
+          definition={{ type: "string" }}
+          value={formValues[key]}
+          onChange={(value) => setFormValues((prev) => ({ ...prev, [key]: value }))}
+          placeholder={key}
+        />
+        <button
+          type="button"
+          onClick={() => handleRemoveNewField(key)}
+          className="shrink-0 text-muted-foreground hover:text-red-600"
+          title={`Remove "${key}"`}
+        >
+          <TrashIcon className="w-4 h-4" />
+        </button>
+      </div>,
+    ] as const),
+  ]);
 
   return (
     <div>
@@ -90,6 +139,36 @@ export default function DeviceMetadataEdit({ deviceMetadata, stopEditing }: Devi
       )}
 
       <DictionaryList dictionary={tableData} processing={patchDeviceMetadataMutation.isPending} />
+
+      <div className="flex items-end gap-2 p-2 mt-2 border-t">
+        <div className="w-1/3 space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Field name</label>
+          <input
+            type="text"
+            value={newKeyInput}
+            onChange={(e) => setNewKeyInput(e.target.value)}
+            placeholder="custom_field"
+            className={compactInputClass}
+          />
+        </div>
+        <div className="flex-1 space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Value</label>
+          <input
+            type="text"
+            value={newValueInput}
+            onChange={(e) => setNewValueInput(e.target.value)}
+            className={compactInputClass}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleAddField}
+          className="shrink-0 flex items-center gap-1 px-3 h-8 rounded-md border border-slate-200 text-sm hover:bg-gray-50"
+        >
+          <PlusIcon className="w-4 h-4" />
+          Add Field
+        </button>
+      </div>
     </div>
   );
 }

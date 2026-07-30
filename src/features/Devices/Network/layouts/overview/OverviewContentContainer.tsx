@@ -7,8 +7,6 @@ import usePostDeviceNetworkDiscover, { ScanResult } from "@/generated/edge-admin
 import usePostNetworkOverview, { NetworkOverview } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import useGetNetworkScanPorts from "@/generated/edge-administration/hooks/network/useGetNetworkScanPorts";
 import useGetNetworkScanRange from "@/generated/edge-administration/hooks/network/useGetNetworkScanRange";
-import useGetNetworkScanRanges from "@/generated/edge-administration/hooks/network/useGetNetworkScanRanges";
-import usePutNetworkScanRanges from "@/generated/edge-administration/hooks/network/usePutNetworkScanRanges";
 import DiscoveredEndpointsCard from "./DiscoveredEndpointsCard";
 import UnidentifiedEndpointsCard from "./UnidentifiedEndpointsCard";
 import ScanNetworkDialog, { ScanNetworkRange } from "./ScanNetworkDialog";
@@ -32,15 +30,12 @@ export default function OverviewContentContainer() {
   const deviceId = useNetworkPageStore((s) => s.deviceId);
 
   const { data: catalogPorts, isLoading: isLoadingPorts, isError: isPortsError, refetch: refetchPorts } = useGetNetworkScanPorts(deviceId);
-  // The baseline network range is derived server-side from known endpoint IPs (configured
-  // instances + endpoint type defaults), not a hardcoded range - see get_network_scan_range.py.
-  // There is no default entry: a fresh device with nothing known yet gets `undefined` here.
+  // The baseline scan range is derived server-side from known endpoint IPs (configured
+  // instances + endpoint type defaults) - see get_network_scan_range.py. There is no default
+  // entry: a fresh device with nothing known yet gets `undefined` here.
   const { data: scanRange, isLoading: isLoadingRange, isError: isRangeError, refetch: refetchRange } = useGetNetworkScanRange(deviceId);
-  // Additional ranges the user has explicitly added on top of that baseline, also starting empty.
-  const { data: extraRanges, isLoading: isLoadingRanges, isError: isRangesError, refetch: refetchRanges } = useGetNetworkScanRanges(deviceId);
   const { mutateAsync: discoverAsync } = usePostDeviceNetworkDiscover();
   const { mutateAsync: overviewAsync } = usePostNetworkOverview();
-  const { mutateAsync: putScanRangesAsync } = usePutNetworkScanRanges();
 
   const [overview, setOverview] = useState<NetworkOverview | undefined>(undefined);
   const [isScanning, setIsScanning] = useState(false);
@@ -49,22 +44,32 @@ export default function OverviewContentContainer() {
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [extraPorts, setExtraPorts] = useState<number[]>([]);
   const [extraIps, setExtraIps] = useState<string[]>([]);
+  // A one-time custom range from the Scan Network dialog (e.g. via its "Read Network
+  // Configuration" button) - not persisted, only affects this device's ongoing scan cycle until
+  // changed again via the same dialog.
+  const [extraRange, setExtraRange] = useState<ScanNetworkRange | null>(null);
   const [detailsEndpointId, setDetailsEndpointId] = useState<string | null>(null);
   const [detailsServiceId, setDetailsServiceId] = useState<string | null>(null);
 
   // Guards against a background tick starting a second overlapping scan while a full network
-  // scan (which can genuinely take much longer than the 3s interval) is still in flight.
+  // scan (which can genuinely take much longer than the 5s interval) is still in flight.
   const isScanInFlightRef = useRef(false);
+  // Monotonically increasing id, one per scan attempt (foreground or background). A scan only
+  // gets to apply its result if it's still the most recently *started* one by the time it
+  // finishes - this is what actually prevents an out-of-order/slower response (e.g. a stale
+  // scan still finishing after a newer one already completed) from overwriting fresher data,
+  // which a simple "was this effect cleaned up" flag doesn't reliably catch: cleanup only marks
+  // the old run as stale, it doesn't stop its in-flight request, and network responses can
+  // arrive in a different order than they were sent.
+  const latestRequestIdRef = useRef(0);
 
   useEffect(() => {
-    if (!deviceId || !catalogPorts || isLoadingRange || isLoadingRanges) return;
-
-    let cancelled = false;
+    if (!deviceId || isLoadingPorts || !catalogPorts || isLoadingRange) return;
 
     async function performScan(): Promise<NetworkOverview | null> {
       const ports = [...new Set([...(catalogPorts ?? []), ...extraPorts])];
 
-      const rangesToScan = [...(scanRange ? [scanRange] : []), ...(extraRanges ?? [])];
+      const rangesToScan = [...(scanRange ? [scanRange] : []), ...(extraRange ? [extraRange] : [])];
 
       if (rangesToScan.length === 0 && extraIps.length === 0) {
         // Nothing known/configured to scan yet - skip the network round-trip entirely and show
@@ -80,16 +85,20 @@ export default function OverviewContentContainer() {
           discoverAsync({ deviceId, body: { networkDefinition: r.networkDefinition, subnetMask: r.subnetMask, ports } })
         )
       );
-      if (cancelled) return null;
 
       const ipScans = await Promise.all(
         extraIps.map((ip) => discoverAsync({ deviceId, body: { networkDefinition: ip, subnetMask: 32, ports } }))
       );
-      if (cancelled) return null;
 
       const allScans = [...rangeScans, ...ipScans];
       const primaryScan = allScans.find((s) => s);
-      if (!primaryScan) return null;
+      if (!primaryScan) {
+        // A scan call resolved without throwing but returned nothing usable - surface this as a
+        // real failure (via the callers' catch blocks) rather than silently leaving `overview`
+        // and `errorMessage` both unset, which would otherwise get stuck on the loading spinner
+        // forever with no way to retry.
+        throw new Error("Network scan returned no result");
+      }
 
       const scanResults = mergeScanResults(
         primaryScan.payload.scanResults,
@@ -100,33 +109,37 @@ export default function OverviewContentContainer() {
     }
 
     async function runForeground() {
+      const requestId = ++latestRequestIdRef.current;
       isScanInFlightRef.current = true;
       setIsScanning(true);
       setErrorMessage(undefined);
       try {
         const mapped = await performScan();
-        if (cancelled || !mapped) return;
+        if (requestId !== latestRequestIdRef.current || !mapped) return;
         setOverview(mapped);
       } catch {
-        if (!cancelled) {
+        if (requestId === latestRequestIdRef.current) {
           setErrorMessage("Failed to scan the network. Please try again.");
         }
       } finally {
-        isScanInFlightRef.current = false;
-        if (!cancelled) setIsScanning(false);
+        if (requestId === latestRequestIdRef.current) {
+          isScanInFlightRef.current = false;
+          setIsScanning(false);
+        }
       }
     }
 
     async function runBackground() {
       if (isScanInFlightRef.current) return; // previous scan still running, skip this tick
+      const requestId = ++latestRequestIdRef.current;
       isScanInFlightRef.current = true;
       try {
         const mapped = await performScan();
-        if (!cancelled && mapped) setOverview(mapped);
+        if (requestId === latestRequestIdRef.current && mapped) setOverview(mapped);
       } catch {
         // Silent - keep showing the last good result, the next tick will retry.
       } finally {
-        isScanInFlightRef.current = false;
+        if (requestId === latestRequestIdRef.current) isScanInFlightRef.current = false;
       }
     }
 
@@ -134,20 +147,18 @@ export default function OverviewContentContainer() {
     const interval = setInterval(runBackground, BACKGROUND_REFRESH_INTERVAL_MS);
 
     return () => {
-      cancelled = true;
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceId, catalogPorts, isLoadingRange, isLoadingRanges, scanRange, extraRanges, extraPorts, extraIps, refreshToken]);
+  }, [deviceId, isLoadingPorts, catalogPorts, isLoadingRange, scanRange, extraRange, extraPorts, extraIps, refreshToken]);
 
   const handleRefresh = () => {
     setOverview(undefined);
     setRefreshToken((t) => t + 1);
   };
 
-  const handleConfirmScan = async (newRanges: ScanNetworkRange[], newExtraPorts: number[], newExtraIps: string[]) => {
-    await putScanRangesAsync({ deviceId, body: newRanges });
-    await refetchRanges();
+  const handleConfirmScan = (newRange: ScanNetworkRange | null, newExtraPorts: number[], newExtraIps: string[]) => {
+    setExtraRange(newRange);
     setExtraPorts(newExtraPorts);
     setExtraIps(newExtraIps);
     handleRefresh();
@@ -180,7 +191,7 @@ export default function OverviewContentContainer() {
     );
   }
 
-  if (isLoadingPorts || isLoadingRange || isLoadingRanges) {
+  if (isLoadingPorts || isLoadingRange) {
     return (
       <Centered>
         <p className="flex items-center gap-2 text-muted-foreground">
@@ -190,7 +201,7 @@ export default function OverviewContentContainer() {
     );
   }
 
-  if (isPortsError || isRangeError || isRangesError) {
+  if (isPortsError || isRangeError) {
     return (
       <Centered>
         <div className="flex flex-col items-center gap-3">
@@ -200,7 +211,6 @@ export default function OverviewContentContainer() {
             onClick={() => {
               if (isPortsError) refetchPorts();
               if (isRangeError) refetchRange();
-              if (isRangesError) refetchRanges();
             }}
           >
             Retry
@@ -255,7 +265,6 @@ export default function OverviewContentContainer() {
       <ScanNetworkDialog
         open={scanDialogOpen}
         onOpenChange={setScanDialogOpen}
-        ranges={extraRanges ?? []}
         extraPorts={extraPorts}
         extraIps={extraIps}
         onConfirm={handleConfirmScan}

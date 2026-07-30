@@ -73,6 +73,7 @@ useEffect(() => {
 
   // Render immediately rather than blocking on the twin config / network meta fetches -
   // Overview (the default view) doesn't need either, and legacy views that do (the sidebar's
-  // status switch, Configure Network Scan, etc.) update reactively once their data arrives.
+  // status switch, the endpoint sidebar's "Configure network scan" sheet, etc.) update
+  // reactively once their data arrives.
   return <NetworkMainLayout />
 }

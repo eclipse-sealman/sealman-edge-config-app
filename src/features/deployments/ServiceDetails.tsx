@@ -27,7 +27,7 @@ import {
 import { ServiceFormDialog } from "./ServiceFormDialog"
 import type { components } from "@/generated/edge-administration/types"
 
-type ServiceConfig = components["schemas"]["routers__compose_deployments__schemas__ServiceConfig"]
+type ServiceConfig = components["schemas"]["ServiceConfig"]
 type DeploymentDetailResponse = components["schemas"]["DeploymentDetailResponse"]
 
 function extractServices(detail: DeploymentDetailResponse): ServiceConfig[] {

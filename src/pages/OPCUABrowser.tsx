@@ -14,7 +14,7 @@ export default function OPCUABrrowserPage() {
   return (
     <>
       {endpoint ?
-        <OpcUaTreeBrowser moduleName="seal-app-opcua-client" endpoint={endpoint} />
+        <OpcUaTreeBrowser moduleName="seal-module-opcua-client" endpoint={endpoint} />
         :
         <EndpointForm />
       }

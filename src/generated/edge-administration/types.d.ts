@@ -645,7 +645,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{device}/twin/config/seal-app-opcua-client": {
+    "/{device}/twin/config/seal-module-opcua-client": {
         parameters: {
             query?: never;
             header?: never;
@@ -653,10 +653,10 @@ export interface paths {
             cookie?: never;
         };
         /** Get Opcua Client Twin Config */
-        get: operations["get_opcua_client_twin_config__device__twin_config_seal_app_opcua_client_get"];
+        get: operations["get_opcua_client_twin_config__device__twin_config_seal_module_opcua_client_get"];
         put?: never;
         /** Post Module Twin Config Opcua */
-        post: operations["post_module_twin_config_opcua__device__twin_config_seal_app_opcua_client_post"];
+        post: operations["post_module_twin_config_opcua__device__twin_config_seal_module_opcua_client_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1160,24 +1160,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{device}/network/scan-ranges": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Network Scan Ranges */
-        get: operations["get_network_scan_ranges__device__network_scan_ranges_get"];
-        /** Put Network Scan Ranges */
-        put: operations["put_network_scan_ranges__device__network_scan_ranges_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/{device}/line/": {
         parameters: {
             query?: never;
@@ -1232,58 +1214,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/device-endpoints/types": {
+    "/platform/device-template-variables": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Endpoint Types */
-        get: operations["get_endpoint_types_platform_device_endpoints_types_get"];
-        put?: never;
-        /** Update Endpoint Types */
-        post: operations["update_endpoint_types_platform_device_endpoints_types_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/device-endpoints/services": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Services */
-        get: operations["get_services_platform_device_endpoints_services_get"];
-        put?: never;
-        /** Update Services */
-        post: operations["update_services_platform_device_endpoints_services_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/device-template-config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Device Template Config */
-        get: operations["get_device_template_config_platform_device_template_config_get"];
+        /** Get Template Variables */
+        get: operations["get_template_variables_platform_device_template_variables_get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** Update Device Template Config */
-        patch: operations["update_device_template_config_platform_device_template_config_patch"];
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/device-template-variables/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Template Variable */
+        put: operations["set_template_variable_platform_device_template_variables__name__put"];
+        post?: never;
+        /** Delete Template Variable */
+        delete: operations["delete_template_variable_platform_device_template_variables__name__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/devices": {
@@ -1485,7 +1448,7 @@ export interface components {
             /** Description */
             description?: string | null;
             /** Services */
-            services: components["schemas"]["routers__compose_deployments__schemas__ServiceConfig"][];
+            services: components["schemas"]["ServiceConfig"][];
         };
         /** ComposeResponse */
         ComposeResponse: {
@@ -1743,13 +1706,6 @@ export interface components {
             /** Secretvalue */
             secretValue: string;
         };
-        /** DeviceTemplateConfigResponse */
-        DeviceTemplateConfigResponse: {
-            /** Config */
-            config: {
-                [key: string]: unknown;
-            };
-        };
         /** DeviceTypeCreate */
         DeviceTypeCreate: {
             /** Type Id */
@@ -1909,15 +1865,6 @@ export interface components {
                 [key: string]: components["schemas"]["PortStatus"];
             };
         };
-        /** EndpointType */
-        EndpointType: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-            /** Defaultip */
-            defaultIP?: string | null;
-        };
         /** EndpointTypeCreate */
         EndpointTypeCreate: {
             /** Type Id */
@@ -1982,11 +1929,6 @@ export interface components {
             mapping?: {
                 [key: string]: string | null;
             } | null;
-        };
-        /** EndpointTypeUpdateRequest */
-        EndpointTypeUpdateRequest: {
-            /** Types */
-            types: components["schemas"]["EndpointType"][];
         };
         /** EndpointUpdate */
         EndpointUpdate: {
@@ -2977,6 +2919,49 @@ export interface components {
                 [key: string]: components["schemas"]["LanInterface"];
             };
         };
+        /** ServiceConfig */
+        ServiceConfig: {
+            /** Name */
+            name: string;
+            /** Image */
+            image: string;
+            /**
+             * Serving Http Port
+             * @default 80
+             */
+            serving_http_port: number;
+            /** Exposed Ports */
+            exposed_ports?: string[];
+            /** Env */
+            env?: string[];
+            /** Volumes */
+            volumes?: string[];
+            /**
+             * Tile Enabled
+             * @default true
+             */
+            tile_enabled: boolean;
+            /**
+             * Tile Title
+             * @default Unnamed App
+             */
+            tile_title: string;
+            /**
+             * Tile Description
+             * @default Empty Description
+             */
+            tile_description: string;
+            /**
+             * Tile Group
+             * @default Undefined
+             */
+            tile_group: string;
+            /**
+             * Tile Icon
+             * @default data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48cmVjdCB4PSIyMCIgeT0iNjAiIHdpZHRoPSIyMCIgaGVpZ2h0PSI0OCIgZmlsbD0iIzRjYWY1MCIvPjxyZWN0IHg9IjU0IiB5PSI0MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjY4IiBmaWxsPSIjMjE5NmYzIi8+PHJlY3QgeD0iODgiIHk9IjI0IiB3aWR0aD0iMjAiIGhlaWdodD0iODQiIGZpbGw9IiNmZjk4MDAiLz48L3N2Zz4=
+             */
+            tile_icon: string;
+        };
         /** ServiceCreate */
         ServiceCreate: {
             /** Type Id */
@@ -3091,11 +3076,6 @@ export interface components {
                 [key: string]: unknown | null;
             };
         };
-        /** ServiceUpdateRequest */
-        ServiceUpdateRequest: {
-            /** Services */
-            services: components["schemas"]["routers__platform_configuration__schemas__ServiceConfig"][];
-        };
         /** SessionConfigurationSchema */
         "SessionConfigurationSchema-Input": {
             /** Credentials */
@@ -3121,6 +3101,11 @@ export interface components {
             dynamicDeclarations?: {
                 [key: string]: string;
             } | null;
+        };
+        /** SetTemplateVariableRequest */
+        SetTemplateVariableRequest: {
+            /** Value */
+            value: string;
         };
         /** StaticRoutingConfig */
         StaticRoutingConfig: {
@@ -3309,6 +3294,13 @@ export interface components {
             /** Templates */
             templates: components["schemas"]["TemplateInfo"][];
         };
+        /** TemplateVariableListResponse */
+        TemplateVariableListResponse: {
+            /** Variables */
+            variables: {
+                [key: string]: string;
+            };
+        };
         /** TopologyData */
         TopologyData: {
             /** Nodetype */
@@ -3329,13 +3321,6 @@ export interface components {
             x: number;
             /** Y */
             y: number;
-        };
-        /** UpdateDeviceTemplateConfigRequest */
-        UpdateDeviceTemplateConfigRequest: {
-            /** Config */
-            config: {
-                [key: string]: unknown;
-            };
         };
         /** UserListResponse */
         UserListResponse: components["schemas"]["UserWithTeamsResponse"][];
@@ -3445,58 +3430,6 @@ export interface components {
             lan3: {
                 [key: string]: components["schemas"]["VlanConfig"];
             };
-        };
-        /** ServiceConfig */
-        routers__compose_deployments__schemas__ServiceConfig: {
-            /** Name */
-            name: string;
-            /** Image */
-            image: string;
-            /**
-             * Serving Http Port
-             * @default 80
-             */
-            serving_http_port: number;
-            /** Exposed Ports */
-            exposed_ports?: string[];
-            /** Env */
-            env?: string[];
-            /** Volumes */
-            volumes?: string[];
-            /**
-             * Tile Enabled
-             * @default true
-             */
-            tile_enabled: boolean;
-            /**
-             * Tile Title
-             * @default Unnamed App
-             */
-            tile_title: string;
-            /**
-             * Tile Description
-             * @default Empty Description
-             */
-            tile_description: string;
-            /**
-             * Tile Group
-             * @default Undefined
-             */
-            tile_group: string;
-            /**
-             * Tile Icon
-             * @default data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48cmVjdCB4PSIyMCIgeT0iNjAiIHdpZHRoPSIyMCIgaGVpZ2h0PSI0OCIgZmlsbD0iIzRjYWY1MCIvPjxyZWN0IHg9IjU0IiB5PSI0MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjY4IiBmaWxsPSIjMjE5NmYzIi8+PHJlY3QgeD0iODgiIHk9IjI0IiB3aWR0aD0iMjAiIGhlaWdodD0iODQiIGZpbGw9IiNmZjk4MDAiLz48L3N2Zz4=
-             */
-            tile_icon: string;
-        };
-        /** ServiceConfig */
-        routers__platform_configuration__schemas__ServiceConfig: {
-            /** Deviceendpointservicename */
-            deviceEndpointServiceName: string;
-            /** Description */
-            description?: string | null;
-            /** Defaultport */
-            defaultPort?: string | null;
         };
     };
     responses: never;
@@ -5479,7 +5412,7 @@ export interface operations {
             };
         };
     };
-    get_opcua_client_twin_config__device__twin_config_seal_app_opcua_client_get: {
+    get_opcua_client_twin_config__device__twin_config_seal_module_opcua_client_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5510,7 +5443,7 @@ export interface operations {
             };
         };
     };
-    post_module_twin_config_opcua__device__twin_config_seal_app_opcua_client_post: {
+    post_module_twin_config_opcua__device__twin_config_seal_module_opcua_client_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -6607,72 +6540,6 @@ export interface operations {
             };
         };
     };
-    get_network_scan_ranges__device__network_scan_ranges_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NetworkRange"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    put_network_scan_ranges__device__network_scan_ranges_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NetworkRange"][];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NetworkRange"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_line_by_device_id__device__line__get: {
         parameters: {
             query?: never;
@@ -6856,7 +6723,7 @@ export interface operations {
             };
         };
     };
-    get_endpoint_types_platform_device_endpoints_types_get: {
+    get_template_variables_platform_device_template_variables_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -6871,21 +6738,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["TemplateVariableListResponse"];
                 };
             };
         };
     };
-    update_endpoint_types_platform_device_endpoints_types_post: {
+    set_template_variable_platform_device_template_variables__name__put: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                name: string;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EndpointTypeUpdateRequest"];
+                "application/json": components["schemas"]["SetTemplateVariableRequest"];
             };
         };
         responses: {
@@ -6895,7 +6764,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["TemplateVariableListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6909,11 +6778,13 @@ export interface operations {
             };
         };
     };
-    get_services_platform_device_endpoints_services_get: {
+    delete_template_variable_platform_device_template_variables__name__delete: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                name: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -6925,83 +6796,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    update_services_platform_device_endpoints_services_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_device_template_config_platform_device_template_config_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeviceTemplateConfigResponse"];
-                };
-            };
-        };
-    };
-    update_device_template_config_platform_device_template_config_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDeviceTemplateConfigRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeviceTemplateConfigResponse"];
                 };
             };
             /** @description Validation Error */

@@ -12,5 +12,4 @@ export interface DeviceListProps {
 export interface DeviceCardsProps extends DeviceListProps {
   globalFilter: string;
   data: DeviceDataDisplay[];
-  clearTableFilter: () => void;
 }

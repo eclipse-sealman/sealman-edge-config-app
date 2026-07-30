@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Badge, { BadgeColor } from "../../components/Typography/Badge";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -16,14 +16,10 @@ import {
   useReactTable,
   getFilteredRowModel,
   getSortedRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFacetedMinMaxValues,
   Updater,
   ColumnFiltersState,
   ColumnDef,
 } from "@tanstack/react-table";
-import Filter from "../../components/Table/Filter";
 import { DeviceData } from "../../api/edgeConfig/edgeConfigApiHooks";
 import DevicesHeader, { DeviceOnlineFilterStatus } from "./DevicesHeader";
 import DebouncedInput from "../../components/Input/DebouncedInput";
@@ -104,21 +100,38 @@ export default function DeviceList() {
     [data],
   );
 
-  // Fields configured as visible in Settings → Platform Types → Devices Table Columns.
-  const visibleMetadataFields = useMemo(
-    () => metadataFields.filter(([key]) => columnVisibilityOverrides[key] ?? defaultFieldVisible(key)),
-    [metadataFields, columnVisibilityOverrides],
-  );
-
+  // Metadata columns are just the customizable display in the table - which fields show up
+  // there is controlled by Settings → Platform Types → Devices Table Columns. Search itself is
+  // scoped separately, below, to every metadata key a device has (see metadataSearchIndexColumn).
   const columns = useMemo<ColumnDef<DeviceDataDisplay, any>[]>(() => {
-    const metadataColumns = visibleMetadataFields.map(([key, field]) =>
+    const metadataColumns = metadataFields.map(([key, field]) =>
       columnHelper.accessor((row) => formatMetadataValue(row.deviceMetadata[key]?.value, field), {
         id: `meta:${key}`,
         header: () => field.label,
       }),
     );
-    return [...baseColumns, ...metadataColumns];
-  }, [visibleMetadataFields]);
+    // Hidden column whose value is every metadata value a device has, joined into one search
+    // blob - not just the fields configured as table columns above - so the search bar reaches
+    // fields that aren't shown (or aren't even part of the default type's required fields).
+    const metadataSearchIndexColumn = columnHelper.accessor(
+      (row) =>
+        Object.values(row.deviceMetadata ?? {})
+          .map((entry) => entry?.value)
+          .filter((value) => value !== null && value !== undefined && value !== "")
+          .map(String)
+          .join(" "),
+      { id: "metadataSearchIndex", header: () => null },
+    );
+    return [...baseColumns, ...metadataColumns, metadataSearchIndexColumn];
+  }, [metadataFields]);
+
+  const columnVisibility = useMemo(() => {
+    const visibility: Record<string, boolean> = { iotEdgeRuntime: false, metadataSearchIndex: false };
+    for (const [key] of metadataFields) {
+      visibility[`meta:${key}`] = columnVisibilityOverrides[key] ?? defaultFieldVisible(key);
+    }
+    return visibility;
+  }, [metadataFields, columnVisibilityOverrides]);
 
   const table = useReactTable({
     data: tableData,
@@ -126,11 +139,7 @@ export default function DeviceList() {
     state: {
       columnFilters,
       globalFilter,
-    },
-    initialState: {
-      columnVisibility: {
-        iotEdgeRuntime: false,
-      },
+      columnVisibility,
     },
     defaultColumn: {
       size: 200,
@@ -142,23 +151,16 @@ export default function DeviceList() {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
     globalFilterFn: "includesString",
-    getColumnCanGlobalFilter: () => true,
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues(),
+    // Search device IDs plus the full metadata index (every key a device has, regardless of
+    // whether it's shown as a column) - not the per-field meta:* columns or Status/Edge Runtime.
+    getColumnCanGlobalFilter: (column) => column.id === "deviceId" || column.id === "metadataSearchIndex",
   });
 
    useEffect(() => {
     table.resetColumnFilters();
     table.resetGlobalFilter();
 0;  }, []);
-
-  const clearTableFilter = useCallback(() => {
-    table.resetColumnFilters();
-    table.resetGlobalFilter();
-    setGlobalFilter("");
-  }, [table]);
 
   const calculateDeviceOnlineFilter = () => {
     if (columnFilters.length === 1 && columnFilters[0].id === "onlineStatus") {
@@ -201,34 +203,30 @@ export default function DeviceList() {
     <div className="@container w-full">
       <div className="hidden @2xl:block">
         <div className="sticky top-0 h-10 z-10 bg-slate-200 flex flex-row b">
-          <div className="flex-0 flex flex-row">
+          <div className="flex-0 flex flex-row items-center py-2 px-2">
+            <DebouncedInput
+              type="text"
+              name="filter"
+              value={globalFilter}
+              onChange={(value) => table.setGlobalFilter(value as string)}
+              placeholder="Search device ID or metadata"
+              className="text-sm text-black -my-1 p-1 w-72"
+            />
+          </div>
+          <div className="flex-0 flex flex-row items-center gap-2">
             <DevicesHeader
               deviceOnlineFilter={deviceOnlineFilter}
               setDeviceOnlineFilter={filterByStatusFromHeader}
             />
-            <div className="p-2">
-              {data ? (
-                <FilterDetails
-                  totalRows={data.length}
-                  filteredRows={table.getRowModel().rows.length}
-                  clearTableFilter={clearTableFilter}
-                />
-              ) : (
-                <></>
-              )}
-            </div>
-          </div>
-          <div className="flex-1 flex flex-row-reverse py-2 px-2 gap-4 items-center">
-            <div className="flex-0 self-end">
-              <DebouncedInput
-                type="text"
-                name="filter"
-                value={globalFilter}
-                onChange={(value) => table.setGlobalFilter(value as string)}
-                placeholder="Search all"
-                className="text-sm text-black -my-1 p-1 float-right"
+            {data && (
+              <FilterDetails
+                totalRows={data.length}
+                filteredRows={table.getRowModel().rows.length}
+                className="items-center"
               />
-            </div>
+            )}
+          </div>
+          <div className="flex-1 flex flex-row justify-end py-2 px-2 gap-4 items-center">
             <div className="flex-0 self-center">
               <DeviceManageDialog />
             </div>
@@ -241,7 +239,6 @@ export default function DeviceList() {
           table={table}
           globalFilter={globalFilter}
           data={tableData}
-          clearTableFilter={clearTableFilter}
         />
       </div>
     </div>
@@ -262,27 +259,15 @@ function DeviceTable({ table }: DeviceListProps) {
               <TR key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TH key={header.id} style={{ width: `${header.getSize()}px` }}>
-                    <div>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </div>
-                    {header.column.getCanFilter() ? (
-                      <div className="py-1">
-                        <Filter column={header.column} />
-                      </div>
-                    ) : (
-                      <div className="min-h-8"></div>
-                    )}
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                   </TH>
                 ))}
-                <TH style={{ width: "60px" }}>
-                  <div></div>
-                  <div className="min-h-8"></div>
-                </TH>
+                <TH style={{ width: "60px" }} />
               </TR>
             ))}
           </THead>

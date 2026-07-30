@@ -5,7 +5,7 @@ import { registerBrowser, BrowserComponentProps } from "@/lib/browserRegistry";
 // before anything tries to look a kind up. Add new `registerBrowser(...)` calls here as more
 // browsers become available.
 
-const OPCUA_MODULE_NAME = "seal-app-opcua-client";
+const OPCUA_MODULE_NAME = "seal-module-opcua-client";
 
 function OpcUaBrowser({ ip, port }: BrowserComponentProps) {
   return <OpcUaTreeBrowser moduleName={OPCUA_MODULE_NAME} endpoint={`opc.tcp://${ip}:${port}`} />;
