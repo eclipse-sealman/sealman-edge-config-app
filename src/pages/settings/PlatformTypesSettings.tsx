@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import TypesManager from "@/features/PlatformTypes/TypesManager";
 import DeviceTableColumnsCard from "@/features/PlatformTypes/DeviceTableColumnsCard";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
@@ -19,6 +20,14 @@ export default function PlatformTypesSettings() {
   const { postDeviceType } = usePostDeviceType();
   const { updateDeviceType } = useUpdateDeviceType();
   const { deleteDeviceType } = useDeleteDeviceType();
+
+  // The default type's fields always apply to every device type (see
+  // db/sqlalchemy/device_type.py:_serialize_with_mirroring), so a brand-new device type should
+  // start with them pre-filled rather than a blank fields editor.
+  const defaultDeviceTypeFields = useMemo(
+    () => deviceTypesQuery.data?.find((t) => t.type_id === "default")?.fields ?? {},
+    [deviceTypesQuery.data],
+  );
 
   const endpointTypesQuery = useGetEndpointTypes();
   const { postEndpointType } = usePostEndpointType();
@@ -47,6 +56,8 @@ export default function PlatformTypesSettings() {
           description="Types available when creating devices."
           types={deviceTypesQuery.data ?? []}
           isLoading={deviceTypesQuery.isLoading}
+          defaultFields={defaultDeviceTypeFields}
+          protectedTypeId="default"
           onCreate={async (body) => {
             await postDeviceType(body);
             await deviceTypesQuery.refetch();
@@ -70,6 +81,8 @@ export default function PlatformTypesSettings() {
           types={endpointTypesQuery.data ?? []}
           isLoading={endpointTypesQuery.isLoading}
           mappingRole={{ value: "ip", label: "IP Address", compatibleTypes: ["string"] }}
+          typeIdPlaceholder="e.g. powerpak-3000"
+          cascadeDelete={{ instancesLabel: "endpoint" }}
           onCreate={async (body) => {
             await postEndpointType({ ...body, mapping: body.mapping ?? {} });
             await endpointTypesQuery.refetch();
@@ -79,7 +92,7 @@ export default function PlatformTypesSettings() {
             await endpointTypesQuery.refetch();
           }}
           onDelete={async (typeId) => {
-            await deleteEndpointType(typeId);
+            await deleteEndpointType(typeId, true);
             await endpointTypesQuery.refetch();
           }}
         />
@@ -92,6 +105,8 @@ export default function PlatformTypesSettings() {
           isLoading={serviceTypesQuery.isLoading}
           mappingRole={{ value: "port", label: "Port", compatibleTypes: ["integer", "number"] }}
           browserKindOptions={listRegisteredBrowsers()}
+          typeIdPlaceholder="e.g. ftp"
+          cascadeDelete={{ instancesLabel: "service" }}
           onCreate={async (body) => {
             await postServiceType({ ...body, mapping: body.mapping ?? {} });
             await serviceTypesQuery.refetch();
@@ -101,7 +116,7 @@ export default function PlatformTypesSettings() {
             await serviceTypesQuery.refetch();
           }}
           onDelete={async (typeId) => {
-            await deleteServiceType(typeId);
+            await deleteServiceType(typeId, true);
             await serviceTypesQuery.refetch();
           }}
         />

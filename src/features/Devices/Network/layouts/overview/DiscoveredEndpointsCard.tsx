@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion } from "@/components/ui/accordion";
 import EndpointAccordionItem from "./EndpointAccordionItem";
@@ -31,7 +31,8 @@ export default function DiscoveredEndpointsCard({
           </p>
         </div>
         <Button variant="outline" onClick={onScan} disabled={isScanning} className="shrink-0">
-          <Search /> Scan Network
+          {isScanning ? <Loader2 className="animate-spin" /> : <Search />}
+          {isScanning ? "Scanning..." : "Scan Network"}
         </Button>
       </div>
 

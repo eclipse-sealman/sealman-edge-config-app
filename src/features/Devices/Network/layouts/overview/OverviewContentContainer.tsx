@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Centered } from "@/features/Devices/Network/components";
 import { useNetworkPageStore } from "@/features/Devices/Network/stores";
 import usePostDeviceNetworkDiscover, { ScanResult } from "@/generated/edge-administration/hooks/network/usePostDeviceNetworkDiscover";
-import usePostNetworkOverview, { NetworkOverview } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
+import usePostNetworkOverview, { MappedEndpoint, NetworkOverview } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import useGetNetworkScanPorts from "@/generated/edge-administration/hooks/network/useGetNetworkScanPorts";
 import useGetNetworkScanRange from "@/generated/edge-administration/hooks/network/useGetNetworkScanRange";
 import DiscoveredEndpointsCard from "./DiscoveredEndpointsCard";
@@ -26,27 +27,42 @@ function mergeScanResults(primary: ScanResult[], additions: ScanResult[][]): Sca
   return [...byIp.values()];
 }
 
+// `primary` (the recurring baseline scan) wins on IP conflicts since it's the freshest data;
+// `extras` (the one-time custom scan's sticky results, see `extraEndpoints` below) only fill in
+// IPs the baseline scan doesn't currently cover.
+function mergeEndpointsByIp(primary: MappedEndpoint[], extras: MappedEndpoint[]): MappedEndpoint[] {
+  const byIp = new Map<string, MappedEndpoint>();
+  for (const endpoint of extras) byIp.set(endpoint.ip, endpoint);
+  for (const endpoint of primary) byIp.set(endpoint.ip, endpoint);
+  return [...byIp.values()];
+}
+
 export default function OverviewContentContainer() {
   const deviceId = useNetworkPageStore((s) => s.deviceId);
 
   const { data: catalogPorts, isLoading: isLoadingPorts, isError: isPortsError, refetch: refetchPorts } = useGetNetworkScanPorts(deviceId);
-  // The baseline scan range is derived server-side from known endpoint IPs (configured
-  // instances + endpoint type defaults) - see get_network_scan_range.py. There is no default
-  // entry: a fresh device with nothing known yet gets `undefined` here.
+  // The baseline scan range is derived server-side from this device's own configured endpoints'
+  // IPs - see get_network_scan_range.py. There is no default entry: a fresh device with nothing
+  // configured yet gets `undefined` here.
   const { data: scanRange, isLoading: isLoadingRange, isError: isRangeError, refetch: refetchRange } = useGetNetworkScanRange(deviceId);
   const { mutateAsync: discoverAsync } = usePostDeviceNetworkDiscover();
   const { mutateAsync: overviewAsync } = usePostNetworkOverview();
 
   const [overview, setOverview] = useState<NetworkOverview | undefined>(undefined);
+  // Sticky results from the one-time custom scan (Scan Network dialog) - kept around and merged
+  // into what's shown for as long as this page stays open, even though the recurring baseline
+  // scan below never re-scans that custom range/IPs itself (see `runExtraScan`).
+  const [extraEndpoints, setExtraEndpoints] = useState<MappedEndpoint[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [refreshToken, setRefreshToken] = useState(0);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [extraPorts, setExtraPorts] = useState<number[]>([]);
   const [extraIps, setExtraIps] = useState<string[]>([]);
-  // A one-time custom range from the Scan Network dialog (e.g. via its "Read Network
-  // Configuration" button) - not persisted, only affects this device's ongoing scan cycle until
-  // changed again via the same dialog.
+  // The most recently confirmed custom range from the Scan Network dialog (e.g. via its "Read
+  // Network Configuration" button) - not persisted server-side, and not re-scanned on every
+  // background tick; only used to fire the one-time scan in `runExtraScan` (on confirm, and
+  // again on `handleRefresh` so its results stay fresh after CRUD actions elsewhere on the page).
   const [extraRange, setExtraRange] = useState<ScanNetworkRange | null>(null);
   const [detailsEndpointId, setDetailsEndpointId] = useState<string | null>(null);
   const [detailsServiceId, setDetailsServiceId] = useState<string | null>(null);
@@ -54,67 +70,100 @@ export default function OverviewContentContainer() {
   // Guards against a background tick starting a second overlapping scan while a full network
   // scan (which can genuinely take much longer than the 5s interval) is still in flight.
   const isScanInFlightRef = useRef(false);
-  // Monotonically increasing id, one per scan attempt (foreground or background). A scan only
-  // gets to apply its result if it's still the most recently *started* one by the time it
-  // finishes - this is what actually prevents an out-of-order/slower response (e.g. a stale
+  // Monotonically increasing id, one per baseline scan attempt (foreground or background). A
+  // scan only gets to apply its result if it's still the most recently *started* one by the time
+  // it finishes - this is what actually prevents an out-of-order/slower response (e.g. a stale
   // scan still finishing after a newer one already completed) from overwriting fresher data,
   // which a simple "was this effect cleaned up" flag doesn't reliably catch: cleanup only marks
   // the old run as stale, it doesn't stop its in-flight request, and network responses can
   // arrive in a different order than they were sent.
   const latestRequestIdRef = useRef(0);
+  // Same pattern as above, but for the separate one-time extra scan (`runExtraScan`), which can
+  // overlap with baseline scans and with itself if triggered again before the last one finishes.
+  const isExtraScanInFlightRef = useRef(false);
+  const latestExtraRequestIdRef = useRef(0);
+
+  async function runDiscoverAndOverview(
+    ranges: ScanNetworkRange[],
+    ips: string[],
+    ports: number[],
+  ): Promise<NetworkOverview | null> {
+    if (ranges.length === 0 && ips.length === 0) {
+      // Nothing known/configured to scan yet - skip the network round-trip entirely and show
+      // an empty result set instead of erroring (the user can add a range via Scan Network).
+      return overviewAsync({
+        deviceId,
+        body: { scanResults: [], scanDefinition: { networkDefinition: "0.0.0.0", subnetMask: 32, ports } },
+      });
+    }
+
+    const rangeScans = await Promise.all(
+      ranges.map((r) =>
+        discoverAsync({ deviceId, body: { networkDefinition: r.networkDefinition, subnetMask: r.subnetMask, ports } })
+      )
+    );
+
+    const ipScans = await Promise.all(
+      ips.map((ip) => discoverAsync({ deviceId, body: { networkDefinition: ip, subnetMask: 32, ports } }))
+    );
+
+    const allScans = [...rangeScans, ...ipScans];
+    const primaryScan = allScans.find((s) => s);
+    if (!primaryScan) {
+      // A scan call resolved without throwing but returned nothing usable - surface this as a
+      // real failure (via the callers' catch blocks) rather than silently leaving `overview`
+      // and `errorMessage` both unset, which would otherwise get stuck on the loading spinner
+      // forever with no way to retry.
+      throw new Error("Network scan returned no result");
+    }
+
+    const scanResults = mergeScanResults(
+      primaryScan.payload.scanResults,
+      allScans.filter((s) => s && s !== primaryScan).map((s) => s!.payload.scanResults)
+    );
+
+    return overviewAsync({ deviceId, body: { scanResults, scanDefinition: primaryScan.payload.scanDefinition } });
+  }
+
+  // Runs the one-time custom scan (Scan Network dialog) once and keeps its results in
+  // `extraEndpoints`, merged into what's displayed, without re-scanning that range on every
+  // 5s background tick - only the persisted baseline `scanRange` is re-scanned automatically.
+  async function runExtraScan(range: ScanNetworkRange | null, ports: number[], ips: string[]) {
+    if (!deviceId || (!range && ips.length === 0)) {
+      setExtraEndpoints([]);
+      return;
+    }
+    const requestId = ++latestExtraRequestIdRef.current;
+    isExtraScanInFlightRef.current = true;
+    setIsScanning(true);
+    try {
+      const allPorts = [...new Set([...(catalogPorts ?? []), ...ports])];
+      const mapped = await runDiscoverAndOverview(range ? [range] : [], ips, allPorts);
+      if (requestId !== latestExtraRequestIdRef.current || !mapped) return;
+      setExtraEndpoints(mapped.endpoints ?? []);
+    } catch {
+      if (requestId === latestExtraRequestIdRef.current) {
+        toast.error("Failed to scan the custom network range. Please try again.");
+      }
+    } finally {
+      if (requestId === latestExtraRequestIdRef.current) {
+        isExtraScanInFlightRef.current = false;
+        setIsScanning(false);
+      }
+    }
+  }
 
   useEffect(() => {
     if (!deviceId || isLoadingPorts || !catalogPorts || isLoadingRange) return;
 
-    async function performScan(): Promise<NetworkOverview | null> {
-      const ports = [...new Set([...(catalogPorts ?? []), ...extraPorts])];
-
-      const rangesToScan = [...(scanRange ? [scanRange] : []), ...(extraRange ? [extraRange] : [])];
-
-      if (rangesToScan.length === 0 && extraIps.length === 0) {
-        // Nothing known/configured to scan yet - skip the network round-trip entirely and show
-        // an empty result set instead of erroring (the user can add a range via Scan Network).
-        return overviewAsync({
-          deviceId,
-          body: { scanResults: [], scanDefinition: { networkDefinition: "0.0.0.0", subnetMask: 32, ports } },
-        });
-      }
-
-      const rangeScans = await Promise.all(
-        rangesToScan.map((r) =>
-          discoverAsync({ deviceId, body: { networkDefinition: r.networkDefinition, subnetMask: r.subnetMask, ports } })
-        )
-      );
-
-      const ipScans = await Promise.all(
-        extraIps.map((ip) => discoverAsync({ deviceId, body: { networkDefinition: ip, subnetMask: 32, ports } }))
-      );
-
-      const allScans = [...rangeScans, ...ipScans];
-      const primaryScan = allScans.find((s) => s);
-      if (!primaryScan) {
-        // A scan call resolved without throwing but returned nothing usable - surface this as a
-        // real failure (via the callers' catch blocks) rather than silently leaving `overview`
-        // and `errorMessage` both unset, which would otherwise get stuck on the loading spinner
-        // forever with no way to retry.
-        throw new Error("Network scan returned no result");
-      }
-
-      const scanResults = mergeScanResults(
-        primaryScan.payload.scanResults,
-        allScans.filter((s) => s && s !== primaryScan).map((s) => s!.payload.scanResults)
-      );
-
-      return overviewAsync({ deviceId, body: { scanResults, scanDefinition: primaryScan.payload.scanDefinition } });
-    }
-
     async function runForeground() {
+      if (isScanInFlightRef.current) return;
       const requestId = ++latestRequestIdRef.current;
       isScanInFlightRef.current = true;
       setIsScanning(true);
       setErrorMessage(undefined);
       try {
-        const mapped = await performScan();
+        const mapped = await runDiscoverAndOverview(scanRange ? [scanRange] : [], [], catalogPorts ?? []);
         if (requestId !== latestRequestIdRef.current || !mapped) return;
         setOverview(mapped);
       } catch {
@@ -134,7 +183,7 @@ export default function OverviewContentContainer() {
       const requestId = ++latestRequestIdRef.current;
       isScanInFlightRef.current = true;
       try {
-        const mapped = await performScan();
+        const mapped = await runDiscoverAndOverview(scanRange ? [scanRange] : [], [], catalogPorts ?? []);
         if (requestId === latestRequestIdRef.current && mapped) setOverview(mapped);
       } catch {
         // Silent - keep showing the last good result, the next tick will retry.
@@ -150,18 +199,23 @@ export default function OverviewContentContainer() {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceId, isLoadingPorts, catalogPorts, isLoadingRange, scanRange, extraRange, extraPorts, extraIps, refreshToken]);
+  }, [deviceId, isLoadingPorts, catalogPorts, isLoadingRange, scanRange, refreshToken]);
 
   const handleRefresh = () => {
     setOverview(undefined);
     setRefreshToken((t) => t + 1);
+    // Keep the custom scan's results fresh too, so they don't go stale after e.g. assigning one
+    // of its discovered hosts to a real endpoint elsewhere on the page.
+    if (extraRange || extraIps.length > 0) {
+      runExtraScan(extraRange, extraPorts, extraIps);
+    }
   };
 
   const handleConfirmScan = (newRange: ScanNetworkRange | null, newExtraPorts: number[], newExtraIps: string[]) => {
     setExtraRange(newRange);
     setExtraPorts(newExtraPorts);
     setExtraIps(newExtraIps);
-    handleRefresh();
+    runExtraScan(newRange, newExtraPorts, newExtraIps);
   };
 
   // Checked before the scan-pipeline's own loading/error states, since the details pages fetch
@@ -246,7 +300,7 @@ export default function OverviewContentContainer() {
     );
   }
 
-  const endpoints = overview?.endpoints ?? [];
+  const endpoints = mergeEndpointsByIp(overview?.endpoints ?? [], extraEndpoints);
   const discovered = endpoints.filter((e) => e.source !== "unidentified");
   const unidentified = endpoints.filter((e) => e.source === "unidentified");
 

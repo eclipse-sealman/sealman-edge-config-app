@@ -4629,7 +4629,9 @@ export interface operations {
     };
     delete_endpoint_type_endpoint_types__type_id__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                cascade?: boolean;
+            };
             header?: never;
             path: {
                 type_id: string;
@@ -4942,7 +4944,9 @@ export interface operations {
     };
     delete_service_type_service_types__type_id__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                cascade?: boolean;
+            };
             header?: never;
             path: {
                 type_id: string;

@@ -3,6 +3,8 @@ import { toast } from "react-toastify";
 import { PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import SimpleDialog from "@/components/Modal/SimpleDialog";
 import Button, { ButtonColor, ButtonSize } from "@/components/Input/Button";
+import { compactInputClass } from "@/features/PlatformTypes/FieldValueInput";
+import { ApiError } from "@/generated/edge-administration/api";
 import TypeFormDialog, { BrowserKindOption, TypeFormResult, TypeRecord } from "./TypeFormDialog";
 import { FieldDefinition, MappingRoleConfig } from "./FieldsEditor";
 
@@ -16,6 +18,24 @@ export interface TypesManagerProps {
   mappingRole?: MappingRoleConfig;
   /** When set, the form lets this type be assigned one of these built-in browsers. */
   browserKindOptions?: BrowserKindOption[];
+  /** Example shown in the Type ID field's placeholder (e.g. "powerpak-3000" for endpoint types,
+   * "ftp" for service types). Defaults to a generic example when unset. */
+  typeIdPlaceholder?: string;
+  /** When set, a brand-new type starts pre-populated with these fields instead of a blank row -
+   * used for Device Types, where the default type's fields always apply anyway. */
+  defaultFields?: Record<string, FieldDefinition>;
+  /** Type ID that can't be deleted (its delete button is hidden entirely) - used for the
+   * "default" device type, which the backend also rejects deleting. */
+  protectedTypeId?: string;
+  /**
+   * When set, deleting a type is a cascading delete that also removes every instance of it
+   * (e.g. every endpoint of an endpoint type) - `instancesLabel` is the singular noun for one
+   * instance (e.g. "endpoint"), used in copy like "every {instancesLabel} of it". To guard
+   * against a stray click nuking real data, the user must type the type's exact Type ID before
+   * the Delete button is enabled. When unset, deletion is a plain, non-cascading, single-click
+   * confirmation (e.g. for Device Types).
+   */
+  cascadeDelete?: { instancesLabel: string };
   onCreate: (body: {
     type_id: string;
     label: string;
@@ -57,6 +77,10 @@ export default function TypesManager({
   isLoading,
   mappingRole,
   browserKindOptions,
+  typeIdPlaceholder,
+  defaultFields,
+  protectedTypeId,
+  cascadeDelete,
   onCreate,
   onUpdate,
   onDelete,
@@ -68,12 +92,17 @@ export default function TypesManager({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<TypeRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
 
   const sortedTypes = [...types].sort((a, b) => a.label.localeCompare(b.label));
 
   const openAdd = () => setDialogState({ open: true, editing: null });
   const openEdit = (type: TypeRecord) => setDialogState({ open: true, editing: type });
   const closeDialog = () => setDialogState({ open: false, editing: null });
+  const closeDeleteDialog = () => {
+    setPendingDelete(null);
+    setDeleteConfirmationText("");
+  };
 
   const handleSubmit = async (result: TypeFormResult) => {
     setIsSubmitting(true);
@@ -106,13 +135,17 @@ export default function TypesManager({
 
   const handleDelete = async () => {
     if (!pendingDelete) return;
+    if (cascadeDelete && deleteConfirmationText !== pendingDelete.type_id) return;
     setIsDeleting(true);
     try {
       await onDelete(pendingDelete.type_id);
       toast.success(`${singularLabel} "${pendingDelete.label}" deleted`);
-      setPendingDelete(null);
-    } catch {
-      toast.error(`Failed to delete ${singularLabel.toLowerCase()} "${pendingDelete.label}"`);
+      closeDeleteDialog();
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : null;
+      toast.error(
+        message ?? `Failed to delete ${singularLabel.toLowerCase()} "${pendingDelete.label}"`
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -181,13 +214,15 @@ export default function TypesManager({
                       >
                         <PencilSquareIcon className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => setPendingDelete(type)}
-                        className="inline-flex items-center px-3 py-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors shadow-sm"
-                        aria-label={`Delete ${type.label}`}
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
+                      {type.type_id !== protectedTypeId && (
+                        <button
+                          onClick={() => setPendingDelete(type)}
+                          className="inline-flex items-center px-3 py-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors shadow-sm"
+                          aria-label={`Delete ${type.label}`}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -206,6 +241,8 @@ export default function TypesManager({
         isPending={isSubmitting}
         mappingRole={mappingRole}
         browserKindOptions={browserKindOptions}
+        typeIdPlaceholder={typeIdPlaceholder}
+        defaultFields={defaultFields}
       />
 
       <SimpleDialog
@@ -213,17 +250,44 @@ export default function TypesManager({
         title={pendingDelete ? `Delete ${singularLabel.toLowerCase()} "${pendingDelete.label}"` : ""}
       >
         <div className="space-y-4">
-          <p className="text-sm">
-            This will permanently remove this {singularLabel.toLowerCase()}. This cannot be undone.
-          </p>
+          {cascadeDelete ? (
+            <>
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+                This permanently deletes this {singularLabel.toLowerCase()} <strong>and every {cascadeDelete.instancesLabel} of it</strong>. This cannot be undone.
+              </p>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Type <span className="font-mono">{pendingDelete?.type_id}</span> to confirm
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmationText}
+                  onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                  placeholder={pendingDelete?.type_id}
+                  autoFocus
+                  className={`${compactInputClass} font-mono`}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-sm">
+              This will permanently remove this {singularLabel.toLowerCase()}. This cannot be undone.
+            </p>
+          )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button size={ButtonSize.Small} color={ButtonColor.Red} onClick={handleDelete} processing={isDeleting}>
+            <Button
+              size={ButtonSize.Small}
+              color={ButtonColor.Red}
+              onClick={handleDelete}
+              processing={isDeleting}
+              disabled={cascadeDelete ? deleteConfirmationText !== pendingDelete?.type_id : false}
+            >
               Delete
             </Button>
             <Button
               size={ButtonSize.Small}
               color={ButtonColor.Gray}
-              onClick={() => setPendingDelete(null)}
+              onClick={closeDeleteDialog}
               disabled={isDeleting}
             >
               Cancel

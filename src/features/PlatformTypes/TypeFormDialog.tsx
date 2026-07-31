@@ -49,6 +49,16 @@ interface TypeFormDialogProps {
   /** When set, shows a "Browse Action" dropdown letting this type be assigned one of these
    * built-in browsers (e.g. VNC, OPC-UA, plain HTTP) for its "Browse" button on the Overview page. */
   browserKindOptions?: BrowserKindOption[];
+  /** Example shown in the Type ID field's placeholder - pick something representative of what
+   * this kind of type actually looks like (e.g. "powerpak-3000" for endpoint types, "ftp" for
+   * service types). */
+  typeIdPlaceholder?: string;
+  /** When set, a brand-new type (not editing an existing one) starts with these fields
+   * pre-populated instead of a single blank row - used so creating a device type shows the
+   * default type's fields right away, since they'll apply to it regardless (see
+   * db/sqlalchemy/device_type.py:_serialize_with_mirroring). Ignored while editing an existing
+   * type, since `initial.fields` already reflects the current mirrored view in that case. */
+  defaultFields?: Record<string, FieldDefinition>;
 }
 
 export default function TypeFormDialog({
@@ -60,6 +70,8 @@ export default function TypeFormDialog({
   isPending,
   mappingRole,
   browserKindOptions,
+  typeIdPlaceholder = "e.g. plc_gateway",
+  defaultFields,
 }: TypeFormDialogProps) {
   const isEdit = Boolean(initial);
 
@@ -76,9 +88,15 @@ export default function TypeFormDialog({
     setLabel(initial?.label ?? "");
     setDescription(initial?.description ?? "");
     setBrowserKind(initial?.browser_kind ?? "");
-    setRows(initial ? rowsFromFields(initial.fields, initial.mapping ?? {}) : [emptyFieldRow()]);
+    if (initial) {
+      setRows(rowsFromFields(initial.fields, initial.mapping ?? {}));
+    } else if (defaultFields && Object.keys(defaultFields).length > 0) {
+      setRows(rowsFromFields(defaultFields, {}));
+    } else {
+      setRows([emptyFieldRow()]);
+    }
     setError(null);
-  }, [isOpen, initial]);
+  }, [isOpen, initial, defaultFields]);
 
   if (!isOpen) return null;
 
@@ -164,7 +182,7 @@ export default function TypeFormDialog({
             <Field label="Type ID *">
               <input
                 type="text"
-                placeholder="e.g. plc_gateway"
+                placeholder={typeIdPlaceholder}
                 value={typeId}
                 disabled={isEdit}
                 onChange={(e) => setTypeId(e.target.value)}

@@ -28,6 +28,10 @@ export default function DeviceMetadataEdit({ deviceMetadata, stopEditing }: Devi
   const [newKeys, setNewKeys] = useState<string[]>([]);
   const [newKeyInput, setNewKeyInput] = useState("");
   const [newValueInput, setNewValueInput] = useState("");
+  // Existing (already-saved) keys removed in this session - hidden from the form immediately,
+  // and sent as `null` in the PATCH so the backend actually deletes them (see patch_data in
+  // db/merge.py: omitting a key leaves it unchanged, only an explicit null removes it).
+  const [deletedKeys, setDeletedKeys] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const patchDeviceMetadataMutation = usePatchDeviceMetadata();
@@ -57,6 +61,11 @@ export default function DeviceMetadataEdit({ deviceMetadata, stopEditing }: Devi
     });
   };
 
+  const handleDeleteExistingField = (key: string) => {
+    setDeletedKeys((prev) => [...prev, key]);
+    setFormValues((prev) => ({ ...prev, [key]: null }));
+  };
+
   useEffect(() => {
     if (patchDeviceMetadataMutation.error) {
       toast.error(`Error while updating device metadata. ${patchDeviceMetadataMutation.error}`);
@@ -82,20 +91,36 @@ export default function DeviceMetadataEdit({ deviceMetadata, stopEditing }: Devi
   };
 
   const tableData = Object.fromEntries([
-    ...sortedEntries.map(([key, entry]) => [
-      entry.field?.label ?? key,
-      <div key={key}>
-        <FieldValueInput
-          definition={entry.field ?? { type: "string" }}
-          value={formValues[key]}
-          onChange={(value) => setFormValues((prev) => ({ ...prev, [key]: value }))}
-          placeholder={entry.field?.label ?? key}
-        />
-        {entry.field?.description && (
-          <p className="text-xs text-muted-foreground mt-1">{entry.field.description}</p>
-        )}
-      </div>,
-    ] as const),
+    ...sortedEntries
+      .filter(([key]) => !deletedKeys.includes(key))
+      .map(([key, entry]) => [
+        entry.field?.label ?? key,
+        <div key={key}>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <FieldValueInput
+                definition={entry.field ?? { type: "string" }}
+                value={formValues[key]}
+                onChange={(value) => setFormValues((prev) => ({ ...prev, [key]: value }))}
+                placeholder={entry.field?.label ?? key}
+              />
+            </div>
+            {!entry.field?.required && (
+              <button
+                type="button"
+                onClick={() => handleDeleteExistingField(key)}
+                className="shrink-0 text-muted-foreground hover:text-red-600"
+                title={`Remove "${entry.field?.label ?? key}"`}
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {entry.field?.description && (
+            <p className="text-xs text-muted-foreground mt-1">{entry.field.description}</p>
+          )}
+        </div>,
+      ] as const),
     ...newKeys.map((key) => [
       key,
       <div key={key} className="flex items-center gap-2">

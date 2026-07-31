@@ -133,7 +133,11 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
                 <RefreshCw className={isReading ? "animate-spin" : ""} /> Read Network Configuration
               </Button>
             </div>
-            <div className="grid grid-cols-[1fr_auto] gap-2">
+            {/* Fixed width on the mask column, not `auto` - `inputClass` already sets `w-full` on
+                the input itself, which only resolves to something sane against a definite-width
+                column (an `auto` track sized by an already-100%-wide child is a circular/degenerate
+                case that collapses to a sliver in most browsers). */}
+            <div className="grid grid-cols-[1fr_7rem] gap-2">
               <input
                 type="text"
                 value={networkInput}
@@ -147,8 +151,8 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
                 max={32}
                 value={maskInput}
                 onChange={(e) => setMaskInput(e.target.value)}
-                placeholder="mask"
-                className={`${inputClass} h-9 w-20`}
+                placeholder="e.g. 24"
+                className={`${inputClass} h-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
               />
             </div>
           </div>
