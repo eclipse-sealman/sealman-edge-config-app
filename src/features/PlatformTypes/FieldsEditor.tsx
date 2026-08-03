@@ -1,6 +1,7 @@
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { CheckCircleIcon, PlusIcon, TrashIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import { components } from "@/generated/edge-administration/types";
-import FieldValueInput, { compactInputClass } from "./FieldValueInput";
+import FieldValueInput, { compactInputClass, validateFieldValue } from "./FieldValueInput";
 import Toggle from "./Toggle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -163,6 +164,47 @@ export function Field({ label, children }: { label: string; children: React.Reac
   );
 }
 
+/**
+ * A live sandbox next to a field's definition: type a value in the same widget an instance form
+ * would use, and see immediately whether it satisfies the `required`/`validation` constraints
+ * currently configured - without having to save the type and go create a real instance just to
+ * find out. `key`-ed by type/ui at the call site so switching between them resets the test value
+ * instead of carrying over a now-nonsensical one (e.g. a string left over after switching to
+ * integer); constraint edits (pattern, bounds, etc.) intentionally do NOT reset it, so you can
+ * keep one value in place and watch it flip valid/invalid as you tune the constraints.
+ */
+function FieldValueTester({ label, definition }: { label: string; definition: FieldDefinition }) {
+  const [testValue, setTestValue] = useState<unknown>(definition.type === "boolean" ? false : null);
+  const isEmpty = testValue === null || testValue === undefined || testValue === "";
+  const effectiveLabel = label.trim() || "This field";
+  const error = definition.required && isEmpty
+    ? `"${effectiveLabel}" is required`
+    : validateFieldValue(effectiveLabel, testValue, definition);
+
+  return (
+    <div className="w-56 shrink-0 border rounded-md p-3 bg-muted/20 space-y-2">
+      <div className="text-xs font-semibold text-muted-foreground">Test this field</div>
+      <FieldValueInput
+        definition={definition}
+        value={testValue}
+        onChange={setTestValue}
+        placeholder="Try a value..."
+      />
+      {isEmpty && !definition.required ? (
+        <p className="text-xs text-muted-foreground">Enter a value to test</p>
+      ) : error ? (
+        <p className="text-xs text-destructive flex items-start gap-1">
+          <XCircleIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {error}
+        </p>
+      ) : (
+        <p className="text-xs text-green-600 flex items-center gap-1">
+          <CheckCircleIcon className="w-3.5 h-3.5 shrink-0" /> Valid
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface FieldsEditorProps {
   rows: FieldRow[];
   onChange: (rows: FieldRow[]) => void;
@@ -264,7 +306,8 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, mappingRol
         const isMappingCompatible = mappingRole?.compatibleTypes.includes(row.definition.type) ?? false;
 
         return (
-          <div key={row.id} className="border rounded-md p-3 space-y-3 bg-background hover:bg-muted/20 transition-colors">
+          <div key={row.id} className="flex gap-3 items-start">
+          <div className="flex-1 min-w-0 border rounded-md p-3 space-y-3 bg-background hover:bg-muted/20 transition-colors">
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-3">
                 <Field label="Key *">
@@ -519,6 +562,13 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, mappingRol
                 </label>
               </div>
             )}
+          </div>
+
+          <FieldValueTester
+            key={`${row.definition.type}-${ui}`}
+            label={row.definition.label || row.key}
+            definition={row.definition}
+          />
           </div>
         );
       })}
