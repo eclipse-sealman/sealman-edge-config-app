@@ -8,6 +8,10 @@ import { MappedEndpoint, MappedPort } from "@/generated/edge-administration/hook
 import AssignEndpointDialog from "./AssignEndpointDialog";
 import AssignServiceDialog from "./AssignServiceDialog";
 import BrowseDialog from "./BrowseDialog";
+import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
+
+const GuardedButton = withPermissionRequiredTooltip(Button);
 
 interface props {
   endpoint: MappedEndpoint;
@@ -62,7 +66,9 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
               Details
             </Button>
           ) : (
-            <Button
+            <GuardedButton
+              deviceId={deviceId}
+              permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
               variant="outline"
               size="sm"
               onClick={(e) => {
@@ -71,7 +77,7 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
               }}
             >
               Assign
-            </Button>
+            </GuardedButton>
           )}
         </div>
       </div>
@@ -107,9 +113,15 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       {port.source !== "configured" && isConfigured && (
-                        <Button variant="outline" size="sm" onClick={() => setAssignPort(port)}>
+                        <GuardedButton
+                          deviceId={deviceId}
+                          permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAssignPort(port)}
+                        >
                           Assign
-                        </Button>
+                        </GuardedButton>
                       )}
                       {port.browser_kind && (
                         <Button variant="outline" size="sm" onClick={() => setBrowsingPort(port)}>

@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { ArrowLeft, ChevronRight, Loader2, Plus, Repeat, Server, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Centered } from "@/features/Devices/Network/components";
+import { useNetworkPageStore } from "@/features/Devices/Network/stores";
 import useGetEndpoint from "@/generated/edge-administration/hooks/endpoints/useGetEndpoint";
 import { useUpdateEndpoint } from "@/generated/edge-administration/hooks/endpoints/useUpdateEndpoint";
 import { useDeleteEndpoint } from "@/generated/edge-administration/hooks/endpoints/useDeleteEndpoint";
@@ -13,6 +14,10 @@ import CustomFieldsEditor from "./CustomFieldsEditor";
 import AssignServiceDialog from "./AssignServiceDialog";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
 import ReassignEndpointDialog from "./ReassignEndpointDialog";
+import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
+
+const GuardedButton = withPermissionRequiredTooltip(Button);
 
 interface props {
   endpointId: string;
@@ -22,6 +27,7 @@ interface props {
 }
 
 export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceDetails, onUpdated }: props) {
+  const deviceId = useNetworkPageStore((s) => s.deviceId);
   const { data: endpoint, isLoading, isError, refetch } = useGetEndpoint(endpointId);
   const { data: endpointTypes } = useGetEndpointTypes();
   const { data: services, refetch: refetchServices } = useGetServices({ endpointId });
@@ -139,12 +145,24 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={() => setReassignOpen(true)}>
+              <GuardedButton
+                deviceId={deviceId}
+                permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                variant="outline"
+                size="sm"
+                onClick={() => setReassignOpen(true)}
+              >
                 <Repeat /> Reassign
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
+              </GuardedButton>
+              <GuardedButton
+                deviceId={deviceId}
+                permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteOpen(true)}
+              >
                 <Trash2 /> Remove Endpoint
-              </Button>
+              </GuardedButton>
             </div>
           </div>
 
@@ -181,9 +199,15 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
                 <h3 className="text-sm font-semibold">Instance Data</h3>
                 <p className="text-xs text-muted-foreground mt-1">The actual field values for this endpoint.</p>
               </div>
-              <Button size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
+              <GuardedButton
+                deviceId={deviceId}
+                permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                size="sm"
+                onClick={handleSave}
+                disabled={!isDirty || isSaving}
+              >
                 {isSaving ? "Saving..." : "Save Changes"}
-              </Button>
+              </GuardedButton>
             </div>
             <div className="p-4 space-y-6">
               {type && (
@@ -210,9 +234,15 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
           <div className="border rounded-lg overflow-hidden bg-background">
             <div className="px-4 py-3 border-b flex items-center justify-between">
               <h3 className="text-sm font-semibold">Services</h3>
-              <Button variant="outline" size="sm" onClick={() => setAddServiceOpen(true)}>
+              <GuardedButton
+                deviceId={deviceId}
+                permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                variant="outline"
+                size="sm"
+                onClick={() => setAddServiceOpen(true)}
+              >
                 <Plus /> Add Service
-              </Button>
+              </GuardedButton>
             </div>
             {(services ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground p-4">No services configured on this endpoint yet.</p>

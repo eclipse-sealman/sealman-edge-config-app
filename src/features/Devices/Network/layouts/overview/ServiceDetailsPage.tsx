@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Centered } from "@/features/Devices/Network/components";
+import { useNetworkPageStore } from "@/features/Devices/Network/stores";
 import useGetService from "@/generated/edge-administration/hooks/services/useGetService";
 import { useUpdateService } from "@/generated/edge-administration/hooks/services/useUpdateService";
 import { useDeleteService } from "@/generated/edge-administration/hooks/services/useDeleteService";
@@ -10,6 +11,10 @@ import useGetServiceTypes from "@/generated/edge-administration/hooks/service_ty
 import TypeFieldsForm from "./TypeFieldsForm";
 import CustomFieldsEditor from "./CustomFieldsEditor";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
+import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
+
+const GuardedButton = withPermissionRequiredTooltip(Button);
 
 interface props {
   serviceId: string;
@@ -18,6 +23,7 @@ interface props {
 }
 
 export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: props) {
+  const deviceId = useNetworkPageStore((s) => s.deviceId);
   const { data: service, isLoading, isError, refetch } = useGetService(serviceId);
   const { data: serviceTypes } = useGetServiceTypes();
   const { updateService, isPending: isSaving } = useUpdateService();
@@ -128,9 +134,16 @@ export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: pro
                 <p className="text-sm text-muted-foreground mt-1.5">{service.type_description}</p>
               )}
             </div>
-            <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} className="shrink-0">
+            <GuardedButton
+              deviceId={deviceId}
+              permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+              variant="destructive"
+              size="sm"
+              onClick={() => setDeleteOpen(true)}
+              className="shrink-0"
+            >
               <Trash2 /> Remove Service
-            </Button>
+            </GuardedButton>
           </div>
 
           {type && (
@@ -166,9 +179,15 @@ export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: pro
                 <h3 className="text-sm font-semibold">Instance Data</h3>
                 <p className="text-xs text-muted-foreground mt-1">The actual field values for this service.</p>
               </div>
-              <Button size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
+              <GuardedButton
+                deviceId={deviceId}
+                permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                size="sm"
+                onClick={handleSave}
+                disabled={!isDirty || isSaving}
+              >
                 {isSaving ? "Saving..." : "Save Changes"}
-              </Button>
+              </GuardedButton>
             </div>
             <div className="p-4 space-y-6">
               {type && (
