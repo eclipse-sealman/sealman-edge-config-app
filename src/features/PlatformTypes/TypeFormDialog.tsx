@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { inputClass } from "./FieldValueInput";
+import { inputClass, validateFieldValue } from "./FieldValueInput";
 import FieldsEditor, {
   Field,
   FieldDefinition,
@@ -140,6 +140,39 @@ export default function TypeFormDialog({
       if ((ui === "select" || ui === "radio") && (row.definition.options ?? []).length === 0) {
         setError(`Field "${row.key.trim()}" needs at least one option`);
         return;
+      }
+
+      const validation = row.definition.validation;
+      if (validation?.pattern) {
+        try {
+          new RegExp(validation.pattern);
+        } catch {
+          setError(`Field "${row.key.trim()}" has an invalid regex pattern`);
+          return;
+        }
+      }
+      if (
+        validation?.min_length != null &&
+        validation?.max_length != null &&
+        validation.min_length > validation.max_length
+      ) {
+        setError(`Field "${row.key.trim()}": min length cannot be greater than max length`);
+        return;
+      }
+      if (validation?.minimum != null && validation?.maximum != null && validation.minimum > validation.maximum) {
+        setError(`Field "${row.key.trim()}": minimum cannot be greater than maximum`);
+        return;
+      }
+      if (ui === "slider" && (validation?.minimum == null || validation?.maximum == null)) {
+        setError(`Field "${row.key.trim()}": a slider needs both a minimum and a maximum`);
+        return;
+      }
+      if (row.definition.default != null) {
+        const defaultError = validateFieldValue(row.definition.label || row.key.trim(), row.definition.default, row.definition);
+        if (defaultError) {
+          setError(`Field "${row.key.trim()}" default value: ${defaultError}`);
+          return;
+        }
       }
     }
 

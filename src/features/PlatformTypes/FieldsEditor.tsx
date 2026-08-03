@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export type FieldDefinition = components["schemas"]["FieldDefinition"];
 type FieldType = FieldDefinition["type"];
 type FieldUi = NonNullable<FieldDefinition["ui"]>;
+type FieldValidation = NonNullable<FieldDefinition["validation"]>;
 
 export interface FieldRow {
   /** Stable id for React keys / row identity, independent of the (editable) field key. */
@@ -209,7 +210,10 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, mappingRol
     const ui = UI_OPTIONS_BY_TYPE[type][0].value;
     const staysCompatible = !mappingRole || mappingRole.compatibleTypes.includes(type);
     updateRow(row.id, {
-      definition: { ...row.definition, type, ui, options: null, default: null },
+      // validation is reset too - none of string's pattern/min_length/max_length or
+      // integer/number's minimum/maximum/multiple_of carry over correctly across a type change,
+      // and the backend forbids `validation` entirely for type=boolean.
+      definition: { ...row.definition, type, ui, options: null, default: null, validation: null },
       optionsText: "",
       role: staysCompatible ? row.role : null,
     });
@@ -217,6 +221,32 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, mappingRol
 
   const handleOptionsTextChange = (row: FieldRow, text: string) => {
     updateRow(row.id, { optionsText: text, definition: { ...row.definition, options: parseOptions(text) } });
+  };
+
+  // Merges a validation patch into the row's definition; drops the whole `validation` object
+  // once every constraint is cleared back to its default, so an empty `{}` never gets persisted.
+  const updateValidation = (id: string, patch: Partial<FieldValidation>) => {
+    onChange(
+      rows.map((row) => {
+        if (row.id !== id) return row;
+        const merged = { ...(row.definition.validation ?? {}), ...patch };
+        const validation: FieldValidation = {
+          ...merged,
+          exclusive_minimum: merged.exclusive_minimum ?? false,
+          exclusive_maximum: merged.exclusive_maximum ?? false,
+        };
+        const isEmpty =
+          validation.pattern == null &&
+          validation.min_length == null &&
+          validation.max_length == null &&
+          validation.minimum == null &&
+          validation.maximum == null &&
+          validation.multiple_of == null &&
+          !validation.exclusive_minimum &&
+          !validation.exclusive_maximum;
+        return { ...row, definition: { ...row.definition, validation: isEmpty ? null : validation } };
+      })
+    );
   };
 
   return (
@@ -390,6 +420,105 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, mappingRol
                 </Field>
               </div>
             </div>
+
+            {row.definition.type === "string" && (
+              <div className="grid grid-cols-12 gap-3 pt-1 border-t">
+                <div className="col-span-6">
+                  <Field label="Pattern (regex, must fully match)">
+                    <input
+                      type="text"
+                      placeholder="e.g. ^[A-Z]{2}\d{4}$"
+                      value={row.definition.validation?.pattern ?? ""}
+                      onChange={(e) => updateValidation(row.id, { pattern: e.target.value || null })}
+                      className={`${compactInputClass} font-mono`}
+                    />
+                  </Field>
+                </div>
+                <div className="col-span-3">
+                  <Field label="Min length">
+                    <input
+                      type="number"
+                      min={0}
+                      value={row.definition.validation?.min_length ?? ""}
+                      onChange={(e) =>
+                        updateValidation(row.id, { min_length: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                      className={compactInputClass}
+                    />
+                  </Field>
+                </div>
+                <div className="col-span-3">
+                  <Field label="Max length">
+                    <input
+                      type="number"
+                      min={0}
+                      value={row.definition.validation?.max_length ?? ""}
+                      onChange={(e) =>
+                        updateValidation(row.id, { max_length: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                      className={compactInputClass}
+                    />
+                  </Field>
+                </div>
+              </div>
+            )}
+
+            {(row.definition.type === "integer" || row.definition.type === "number") && (
+              <div className="grid grid-cols-12 gap-3 pt-1 border-t items-end">
+                <div className="col-span-2">
+                  <Field label="Minimum">
+                    <input
+                      type="number"
+                      value={row.definition.validation?.minimum ?? ""}
+                      onChange={(e) =>
+                        updateValidation(row.id, { minimum: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                      className={compactInputClass}
+                    />
+                  </Field>
+                </div>
+                <div className="col-span-2">
+                  <Field label="Maximum">
+                    <input
+                      type="number"
+                      value={row.definition.validation?.maximum ?? ""}
+                      onChange={(e) =>
+                        updateValidation(row.id, { maximum: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                      className={compactInputClass}
+                    />
+                  </Field>
+                </div>
+                <div className="col-span-2">
+                  <Field label="Multiple of">
+                    <input
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={row.definition.validation?.multiple_of ?? ""}
+                      onChange={(e) =>
+                        updateValidation(row.id, { multiple_of: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                      className={compactInputClass}
+                    />
+                  </Field>
+                </div>
+                <label className="col-span-3 flex items-center gap-2 text-xs font-medium text-muted-foreground whitespace-nowrap pb-1.5">
+                  <Toggle
+                    checked={row.definition.validation?.exclusive_minimum ?? false}
+                    onChange={(val) => updateValidation(row.id, { exclusive_minimum: val })}
+                  />
+                  Exclusive min
+                </label>
+                <label className="col-span-3 flex items-center gap-2 text-xs font-medium text-muted-foreground whitespace-nowrap pb-1.5">
+                  <Toggle
+                    checked={row.definition.validation?.exclusive_maximum ?? false}
+                    onChange={(val) => updateValidation(row.id, { exclusive_maximum: val })}
+                  />
+                  Exclusive max
+                </label>
+              </div>
+            )}
           </div>
         );
       })}

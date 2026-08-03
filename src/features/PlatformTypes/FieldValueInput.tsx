@@ -5,6 +5,8 @@ export type FieldDefinitionLike = Pick<
   components["schemas"]["FieldDefinition"],
   "type" | "ui" | "options" | "validation"
 >;
+type FieldDefinition = components["schemas"]["FieldDefinition"];
+type FieldValidation = NonNullable<FieldDefinitionLike["validation"]>;
 
 export const inputClass =
   "w-full px-3 py-2 rounded-md bg-muted/30 border border-slate-200 hover:border-slate-300 focus:bg-background focus:border-primary focus:ring-2 focus:ring-primary/20 outline-hidden transition";
@@ -18,6 +20,98 @@ export function formatMetadataValue(value: unknown, definition: Pick<FieldDefini
   if (value === null || value === undefined || value === "") return "";
   if (definition.type === "boolean") return value ? "Yes" : "No";
   return String(value);
+}
+
+/**
+ * Mirrors the backend's field_validation.py:validate_value - the single source of truth for
+ * whether a (non-empty) value satisfies a field's `validation` constraints and `options` list.
+ * `required`/emptiness is intentionally not checked here (see `validateFields` below), since an
+ * empty value is either fine (optional field) or a distinct "is required" error, not a
+ * pattern/length/bounds violation.
+ */
+export function validateFieldValue(label: string, value: unknown, definition: FieldDefinitionLike): string | null {
+  if (value === null || value === undefined || value === "") return null;
+
+  const { type } = definition;
+  if (type === "boolean" && typeof value !== "boolean") return `"${label}" must be a boolean`;
+  if (type === "integer" && (typeof value !== "number" || !Number.isInteger(value))) {
+    return `"${label}" must be an integer`;
+  }
+  if (type === "number" && typeof value !== "number") return `"${label}" must be a number`;
+  if (type === "string" && typeof value !== "string") return `"${label}" must be a string`;
+
+  const validation: Partial<FieldValidation> = definition.validation ?? {};
+
+  if (type === "string" && typeof value === "string") {
+    if (validation.pattern) {
+      let matches: boolean;
+      try {
+        // Python's re.fullmatch requires the whole string to match - `^(?:...)$` mirrors that.
+        matches = new RegExp(`^(?:${validation.pattern})$`).test(value);
+      } catch {
+        matches = true; // an invalid pattern shouldn't block the user here - it's caught at
+        // field-definition save time instead (see TypeFormDialog's handleSave).
+      }
+      if (!matches) return `"${label}" does not match the required pattern`;
+    }
+    if (validation.min_length != null && value.length < validation.min_length) {
+      return `"${label}" must be at least ${validation.min_length} characters long`;
+    }
+    if (validation.max_length != null && value.length > validation.max_length) {
+      return `"${label}" must be at most ${validation.max_length} characters long`;
+    }
+  } else if ((type === "integer" || type === "number") && typeof value === "number") {
+    if (validation.minimum != null) {
+      const violates = validation.exclusive_minimum ? value <= validation.minimum : value < validation.minimum;
+      if (violates) {
+        return validation.exclusive_minimum
+          ? `"${label}" must be greater than ${validation.minimum}`
+          : `"${label}" must be at least ${validation.minimum}`;
+      }
+    }
+    if (validation.maximum != null) {
+      const violates = validation.exclusive_maximum ? value >= validation.maximum : value > validation.maximum;
+      if (violates) {
+        return validation.exclusive_maximum
+          ? `"${label}" must be less than ${validation.maximum}`
+          : `"${label}" must be at most ${validation.maximum}`;
+      }
+    }
+    if (validation.multiple_of != null && value % validation.multiple_of !== 0) {
+      return `"${label}" must be a multiple of ${validation.multiple_of}`;
+    }
+  }
+
+  if (definition.options && !definition.options.includes(value as string)) {
+    return `"${label}" must be one of ${definition.options.join(", ")}`;
+  }
+
+  return null;
+}
+
+/**
+ * Validates a full set of instance values against their fields' definitions - required first,
+ * then `validateFieldValue` - returning the first error found (or null if all pass). This is the
+ * one function every device/endpoint/service instance create/edit form should call before
+ * submitting, so bad input is caught locally instead of relying on the backend's generic
+ * failure toast.
+ */
+export function validateFields(
+  values: Record<string, unknown>,
+  fields: Record<string, FieldDefinition>,
+): string | null {
+  for (const [key, definition] of Object.entries(fields)) {
+    const value = values[key];
+    const isEmpty = value === null || value === undefined || value === "";
+    if (definition.required && isEmpty) {
+      return `"${definition.label}" is required`;
+    }
+    if (!isEmpty) {
+      const error = validateFieldValue(definition.label, value, definition);
+      if (error) return error;
+    }
+  }
+  return null;
 }
 
 function defaultUiFor(type: FieldDefinitionLike["type"]) {
@@ -111,6 +205,8 @@ export default function FieldValueInput({ definition, value, onChange, placehold
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         rows={2}
+        minLength={definition.validation?.min_length ?? undefined}
+        maxLength={definition.validation?.max_length ?? undefined}
         className={inputClass}
       />
     );
@@ -124,6 +220,9 @@ export default function FieldValueInput({ definition, value, onChange, placehold
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
+        pattern={definition.validation?.pattern ?? undefined}
+        minLength={definition.validation?.min_length ?? undefined}
+        maxLength={definition.validation?.max_length ?? undefined}
         className={compactInputClass}
       />
     );
@@ -139,6 +238,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
           type="range"
           min={min}
           max={max}
+          step={definition.validation?.multiple_of ?? (definition.type === "integer" ? 1 : "any")}
           disabled={disabled}
           value={numericValue}
           onChange={(e) => onChange(Number(e.target.value))}
@@ -153,7 +253,9 @@ export default function FieldValueInput({ definition, value, onChange, placehold
     return (
       <input
         type="number"
-        step={definition.type === "integer" ? 1 : "any"}
+        step={definition.validation?.multiple_of ?? (definition.type === "integer" ? 1 : "any")}
+        min={definition.validation?.minimum ?? undefined}
+        max={definition.validation?.maximum ?? undefined}
         value={typeof value === "number" ? value : ""}
         disabled={disabled}
         placeholder={placeholder}
@@ -171,6 +273,9 @@ export default function FieldValueInput({ definition, value, onChange, placehold
       disabled={disabled}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
+      pattern={definition.validation?.pattern ?? undefined}
+      minLength={definition.validation?.min_length ?? undefined}
+      maxLength={definition.validation?.max_length ?? undefined}
       className={compactInputClass}
     />
   );

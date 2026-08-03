@@ -9,6 +9,7 @@ import { useUpdateEndpoint } from "@/generated/edge-administration/hooks/endpoin
 import { useDeleteEndpoint } from "@/generated/edge-administration/hooks/endpoints/useDeleteEndpoint";
 import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes";
 import useGetServices from "@/generated/edge-administration/hooks/services/useGetServices";
+import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import TypeFieldsForm from "./TypeFieldsForm";
 import CustomFieldsEditor from "./CustomFieldsEditor";
 import AssignServiceDialog from "./AssignServiceDialog";
@@ -87,6 +88,16 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
   };
 
   const handleSave = async () => {
+    // Only schema fields the user hasn't just deleted have anything to validate against -
+    // custom fields are free-form, and a deleted field is about to be removed regardless.
+    const fieldsToValidate = Object.fromEntries(
+      Object.entries(schemaFields).filter(([key]) => !deletedKeys.has(key)),
+    );
+    const validationError = validateFields(values, fieldsToValidate);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       const payload: Record<string, unknown> = { ...values };
       for (const key of deletedKeys) {

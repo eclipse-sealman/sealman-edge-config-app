@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { inputClass } from "@/features/PlatformTypes/FieldValueInput";
+import { inputClass, validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import { components } from "@/generated/edge-administration/types";
 import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes";
 import { usePostEndpoint } from "@/generated/edge-administration/hooks/endpoints/usePostEndpoint";
@@ -91,12 +91,10 @@ export default function AssignEndpointDialog({
       setError("Select an endpoint type");
       return;
     }
-    for (const [key, definition] of Object.entries(selectedType.fields)) {
-      const value = values[key];
-      if (definition.required && (value === null || value === undefined || value === "")) {
-        setError(`"${definition.label}" is required`);
-        return;
-      }
+    const validationError = validateFields(values, selectedType.fields);
+    if (validationError) {
+      setError(validationError);
+      return;
     }
     setError(null);
     try {

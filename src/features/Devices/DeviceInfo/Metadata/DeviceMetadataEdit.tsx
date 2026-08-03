@@ -6,10 +6,11 @@ import { InformationCircleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { components } from "@/generated/edge-administration/types";
-import FieldValueInput, { compactInputClass } from "@/features/PlatformTypes/FieldValueInput";
+import FieldValueInput, { compactInputClass, validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import usePatchDeviceMetadata from "../../../../generated/edge-administration/hooks/device_metadata/usePatchDeviceMetadata";
 
 type DeviceMetadataEntry = components["schemas"]["DeviceMetadataEntry"];
+type FieldDefinition = components["schemas"]["FieldDefinition"];
 
 export interface DeviceMetadataEditProps {
   deviceMetadata: Record<string, DeviceMetadataEntry>;
@@ -77,13 +78,17 @@ export default function DeviceMetadataEdit({ deviceMetadata, stopEditing }: Devi
   );
 
   const onSubmit = async () => {
-    for (const [key, entry] of sortedEntries) {
-      const value = formValues[key];
-      const isEmpty = value === null || value === undefined || value === "";
-      if (entry.field?.required && isEmpty) {
-        setError(`"${entry.field.label}" is required`);
-        return;
-      }
+    // Only schema-defined fields (entry.field) have anything to validate against - schema-less
+    // extra keys are free-form - and a field the user just deleted has nothing left to check.
+    const fieldsToValidate: Record<string, FieldDefinition> = Object.fromEntries(
+      sortedEntries
+        .filter(([key, entry]) => entry.field && !deletedKeys.includes(key))
+        .map(([key, entry]) => [key, entry.field as FieldDefinition]),
+    );
+    const validationError = validateFields(formValues, fieldsToValidate);
+    if (validationError) {
+      setError(validationError);
+      return;
     }
     setError(null);
     await patchDeviceMetadataMutation.query({ deviceId, body: formValues });

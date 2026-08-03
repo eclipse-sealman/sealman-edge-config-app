@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
 import { useQueryClient } from "@tanstack/react-query";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
-import FieldValueInput from "@/features/PlatformTypes/FieldValueInput";
+import FieldValueInput, { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 
 const fieldCls =
   "w-full h-9 px-3 rounded-md border border-gray-200 bg-white text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all";
@@ -56,14 +56,8 @@ export default function DeviceManageDialog() {
   const handleCreate = async () => {
     if (!deviceId.trim()) { setError("Device ID is required"); return; }
     if (!typeId) { setError("Device type is required"); return; }
-    for (const [key, field] of Object.entries(effectiveFields)) {
-      const value = fieldValues[key];
-      const isEmpty = value === null || value === undefined || value === "";
-      if (field.required && isEmpty) {
-        setError(`"${field.label}" is required`);
-        return;
-      }
-    }
+    const validationError = validateFields(fieldValues, effectiveFields);
+    if (validationError) { setError(validationError); return; }
     setLoading(true); setError(null);
     try {
       const meta: Record<string, unknown> = {};

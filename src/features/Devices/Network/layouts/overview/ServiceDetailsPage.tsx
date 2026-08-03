@@ -8,6 +8,7 @@ import useGetService from "@/generated/edge-administration/hooks/services/useGet
 import { useUpdateService } from "@/generated/edge-administration/hooks/services/useUpdateService";
 import { useDeleteService } from "@/generated/edge-administration/hooks/services/useDeleteService";
 import useGetServiceTypes from "@/generated/edge-administration/hooks/service_types/useGetServiceTypes";
+import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import TypeFieldsForm from "./TypeFieldsForm";
 import CustomFieldsEditor from "./CustomFieldsEditor";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
@@ -77,6 +78,16 @@ export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: pro
   };
 
   const handleSave = async () => {
+    // Only schema fields the user hasn't just deleted have anything to validate against -
+    // custom fields are free-form, and a deleted field is about to be removed regardless.
+    const fieldsToValidate = Object.fromEntries(
+      Object.entries(schemaFields).filter(([key]) => !deletedKeys.has(key)),
+    );
+    const validationError = validateFields(values, fieldsToValidate);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       const payload: Record<string, unknown> = { ...values };
       for (const key of deletedKeys) {
