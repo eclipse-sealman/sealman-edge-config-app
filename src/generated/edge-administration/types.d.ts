@@ -2564,9 +2564,14 @@ export interface components {
         /** NetworkRange */
         NetworkRange: {
             /** Networkdefinition */
-            networkDefinition: string;
+            networkDefinition?: string | null;
             /** Subnetmask */
-            subnetMask: number;
+            subnetMask?: number | null;
+            /**
+             * Suggestedips
+             * @default []
+             */
+            suggestedIps: string[];
         };
         /** NetworkScan */
         "NetworkScan-Input": {

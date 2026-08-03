@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Centered } from "@/features/Devices/Network/components";
 import { useNetworkPageStore } from "@/features/Devices/Network/stores";
 import usePostDeviceNetworkDiscover, { ScanResult } from "@/generated/edge-administration/hooks/network/usePostDeviceNetworkDiscover";
-import usePostNetworkOverview, { MappedEndpoint, NetworkOverview } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
+import usePostNetworkOverview, { MappedEndpoint, MappedPort, NetworkOverview } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import useGetNetworkScanPorts from "@/generated/edge-administration/hooks/network/useGetNetworkScanPorts";
 import useGetNetworkScanRange from "@/generated/edge-administration/hooks/network/useGetNetworkScanRange";
 import DiscoveredEndpointsCard from "./DiscoveredEndpointsCard";
@@ -14,7 +14,7 @@ import ScanNetworkDialog, { ScanNetworkRange } from "./ScanNetworkDialog";
 import EndpointDetailsPage from "./EndpointDetailsPage";
 import ServiceDetailsPage from "./ServiceDetailsPage";
 
-const BACKGROUND_REFRESH_INTERVAL_MS = 5000;
+const BACKGROUND_REFRESH_INTERVAL_MS = 3000;
 
 function mergeScanResults(primary: ScanResult[], additions: ScanResult[][]): ScanResult[] {
   const byIp = new Map<string, ScanResult>();
@@ -27,13 +27,25 @@ function mergeScanResults(primary: ScanResult[], additions: ScanResult[][]): Sca
   return [...byIp.values()];
 }
 
-// `primary` (the recurring baseline scan) wins on IP conflicts since it's the freshest data;
-// `extras` (the one-time custom scan's sticky results, see `extraEndpoints` below) only fill in
-// IPs the baseline scan doesn't currently cover.
+// `primary` (the recurring baseline scan) wins on endpoint-level metadata (status, source, etc.)
+// for IPs it also covers, since it's the freshest data. But its port list only ever reflects
+// `catalogPorts` - it doesn't know about the extra ports from the one-time custom scan (see
+// `extraEndpoints` below) - so ports are unioned per IP rather than letting the baseline endpoint
+// blot out the whole custom-scan endpoint. Within a shared port number, primary still wins.
 function mergeEndpointsByIp(primary: MappedEndpoint[], extras: MappedEndpoint[]): MappedEndpoint[] {
   const byIp = new Map<string, MappedEndpoint>();
   for (const endpoint of extras) byIp.set(endpoint.ip, endpoint);
-  for (const endpoint of primary) byIp.set(endpoint.ip, endpoint);
+  for (const endpoint of primary) {
+    const extra = byIp.get(endpoint.ip);
+    if (!extra) {
+      byIp.set(endpoint.ip, endpoint);
+      continue;
+    }
+    const ports = new Map<number, MappedPort>();
+    for (const port of extra.ports) ports.set(port.port, port);
+    for (const port of endpoint.ports) ports.set(port.port, port);
+    byIp.set(endpoint.ip, { ...endpoint, ports: [...ports.values()] });
+  }
   return [...byIp.values()];
 }
 
@@ -42,8 +54,10 @@ export default function OverviewContentContainer() {
 
   const { data: catalogPorts, isLoading: isLoadingPorts, isError: isPortsError, refetch: refetchPorts } = useGetNetworkScanPorts(deviceId);
   // The baseline scan range is derived server-side from this device's own configured endpoints'
-  // IPs - see get_network_scan_range.py. There is no default entry: a fresh device with nothing
-  // configured yet gets `undefined` here.
+  // IPs - see get_network_scan_range.py. `networkDefinition`/`subnetMask` are null when there's
+  // no per-device evidence yet, but `suggestedIps` (endpoint types' default IPs, probed
+  // individually, never persisted) can still be non-empty in that case. The whole response is
+  // `undefined` only when there's truly nothing at all - no evidence and no type has a default.
   const { data: scanRange, isLoading: isLoadingRange, isError: isRangeError, refetch: refetchRange } = useGetNetworkScanRange(deviceId);
   const { mutateAsync: discoverAsync } = usePostDeviceNetworkDiscover();
   const { mutateAsync: overviewAsync } = usePostNetworkOverview();
@@ -156,6 +170,17 @@ export default function OverviewContentContainer() {
   useEffect(() => {
     if (!deviceId || isLoadingPorts || !catalogPorts || isLoadingRange) return;
 
+    // The persisted baseline range (only present once there's real per-device evidence for it -
+    // see get_network_scan_range.py), plus every endpoint type's default IP as an individual
+    // probe (`suggestedIps`) - global suggestions, tried fresh every cycle, never persisted, so
+    // "a type has a default IP" alone leads to auto-discovery without needing a configured
+    // endpoint or a manual scan first.
+    const baselineRanges: ScanNetworkRange[] =
+      scanRange?.networkDefinition && scanRange?.subnetMask != null
+        ? [{ networkDefinition: scanRange.networkDefinition, subnetMask: scanRange.subnetMask }]
+        : [];
+    const suggestedIps = scanRange?.suggestedIps ?? [];
+
     async function runForeground() {
       if (isScanInFlightRef.current) return;
       const requestId = ++latestRequestIdRef.current;
@@ -163,7 +188,7 @@ export default function OverviewContentContainer() {
       setIsScanning(true);
       setErrorMessage(undefined);
       try {
-        const mapped = await runDiscoverAndOverview(scanRange ? [scanRange] : [], [], catalogPorts ?? []);
+        const mapped = await runDiscoverAndOverview(baselineRanges, suggestedIps, catalogPorts ?? []);
         if (requestId !== latestRequestIdRef.current || !mapped) return;
         setOverview(mapped);
       } catch {
@@ -183,7 +208,7 @@ export default function OverviewContentContainer() {
       const requestId = ++latestRequestIdRef.current;
       isScanInFlightRef.current = true;
       try {
-        const mapped = await runDiscoverAndOverview(scanRange ? [scanRange] : [], [], catalogPorts ?? []);
+        const mapped = await runDiscoverAndOverview(baselineRanges, suggestedIps, catalogPorts ?? []);
         if (requestId === latestRequestIdRef.current && mapped) setOverview(mapped);
       } catch {
         // Silent - keep showing the last good result, the next tick will retry.
