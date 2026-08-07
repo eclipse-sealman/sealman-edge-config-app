@@ -9,9 +9,17 @@ type AttributeNameComboboxProps = {
   value: string;
   options: string[];
   onChange: (value: string) => void;
+  placeholder?: string;
+  searchPlaceholder?: string;
 };
 
-export function AttributeNameCombobox({ value, options, onChange }: AttributeNameComboboxProps) {
+export function AttributeNameCombobox({
+  value,
+  options,
+  onChange,
+  placeholder = "Select or type metadata key...",
+  searchPlaceholder = "Search metadata keys...",
+}: AttributeNameComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -37,14 +45,14 @@ export function AttributeNameCombobox({ value, options, onChange }: AttributeNam
           aria-expanded={open}
           className="w-full justify-between"
         >
-          <span className="truncate text-left">{value || "Select or type metadata key..."}</span>
+          <span className="truncate text-left">{value || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command>
           <CommandInput
-            placeholder="Search metadata keys..."
+            placeholder={searchPlaceholder}
             value={search}
             onValueChange={setSearch}
           />

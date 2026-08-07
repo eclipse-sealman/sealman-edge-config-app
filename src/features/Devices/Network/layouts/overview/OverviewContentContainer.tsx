@@ -155,12 +155,25 @@ export default function OverviewContentContainer() {
   // would just be a duplicate discover call for a host we're already scanning.
   const suggestedIps = excludeIpsCoveredByRanges(scanRange?.suggestedIps ?? [], baselineRanges);
 
+  // Primitive, value-based cache keys rather than the raw `catalogPorts`/`scanRange` objects -
+  // those come from other queries' `.data`, and even with structural sharing there's no
+  // guarantee they stay reference-stable across every refetch. If the queryKey below changed
+  // reference on every tick even though nothing meaningfully changed, TanStack Query would treat
+  // it as a brand new query each time - discarding the cached `data` and resetting to a fresh
+  // "first load" state, which is exactly the "page updates/flickers even when nothing changed"
+  // symptom the cache is supposed to prevent. Keying on this instead means the query - and its
+  // cached result - only actually changes identity when the scan target itself changes.
+  const catalogPortsKey = (catalogPorts ?? []).join(",");
+  const scanRangeKey = scanRange
+    ? `${scanRange.networkDefinition ?? ""}/${scanRange.subnetMask ?? ""}:${[...(scanRange.suggestedIps ?? [])].sort().join(",")}`
+    : "";
+
   // The recurring baseline scan - driven entirely by TanStack Query's own `refetchInterval`
   // scheduling instead of a hand-rolled setInterval/in-flight-guard: it already de-dupes
   // concurrent fetches for the same query key and only ever has one fetch for this key in
   // flight at a time, which is what previously needed manual refs to enforce.
   const overviewQuery = useQuery({
-    queryKey: ["network-overview", deviceId, catalogPorts, scanRange],
+    queryKey: ["network-overview", deviceId, catalogPortsKey, scanRangeKey],
     queryFn: () => runDiscoverAndOverview(baselineRanges, suggestedIps, catalogPorts ?? []),
     enabled: Boolean(deviceId) && !isLoadingPorts && Boolean(catalogPorts) && !isLoadingRange,
     refetchInterval: BACKGROUND_REFRESH_INTERVAL_MS,
@@ -171,7 +184,7 @@ export default function OverviewContentContainer() {
   // range/IPs are currently set, so setting them (via `handleConfirmScan`) automatically fires
   // this query without a manual `.refetch()` call racing the not-yet-committed state update.
   const extraScanQuery = useQuery({
-    queryKey: ["network-extra-scan", deviceId, extraRange, extraPorts, extraIps, catalogPorts],
+    queryKey: ["network-extra-scan", deviceId, extraRange, extraPorts, extraIps, catalogPortsKey],
     queryFn: () => {
       const allPorts = [...new Set([...(catalogPorts ?? []), ...extraPorts])];
       const ranges = extraRange ? [extraRange] : [];
