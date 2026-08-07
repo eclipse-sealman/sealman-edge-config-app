@@ -29,7 +29,11 @@ interface props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   deviceId: string;
-  ip: string;
+  /** The live IP this endpoint is being assigned at, if any. Omitted for a manually-added
+   * endpoint that isn't (yet) live/discovered on the network - in that case nothing is
+   * pre-filled or locked, and the admin fills in every field (including the built-in IP field)
+   * by hand. */
+  ip?: string;
   defaultTypeId?: string | null;
   existingEndpoint?: ExistingEndpoint | null;
   onCreated: () => void;
@@ -57,9 +61,9 @@ export default function AssignEndpointDialog({
 
   const selectedType = (endpointTypes ?? []).find((t) => t.type_id === typeId);
   const ipFieldKey = useMemo(() => {
-    if (!selectedType) return null;
+    if (!selectedType || !ip) return null;
     return Object.entries(selectedType.mapping).find(([, role]) => role === "ip")?.[0] ?? null;
-  }, [selectedType]);
+  }, [selectedType, ip]);
 
   useEffect(() => {
     if (!open) return;
@@ -75,7 +79,7 @@ export default function AssignEndpointDialog({
     const isSameExistingType = existingEndpoint?.type_id === selectedType.type_id;
     const initial: Record<string, unknown> = {};
     for (const [key, definition] of Object.entries(selectedType.fields)) {
-      if (key === ipFieldKey) {
+      if (key === ipFieldKey && ip) {
         initial[key] = ip;
       } else if (isSameExistingType) {
         initial[key] = existingEndpoint?.endpoint_data[key]?.value ?? definition.default ?? null;
@@ -99,14 +103,22 @@ export default function AssignEndpointDialog({
     setError(null);
     try {
       if (existingEndpoint && existingEndpoint.type_id === selectedType.type_id) {
-        await updateEndpoint({ endpointId: existingEndpoint.endpoint_id, body: { endpoint_data: values } });
+        await updateEndpoint({
+          endpointId: existingEndpoint.endpoint_id,
+          body: { endpoint_data: values },
+        });
         toast.success(`Endpoint "${selectedType.label}" updated`);
       } else {
         if (existingEndpoint) {
           await deleteEndpoint(existingEndpoint.endpoint_id);
         }
-        await postEndpoint({ deviceId, body: { type_id: selectedType.type_id, endpoint_data: values } });
-        toast.success(`Endpoint "${selectedType.label}" ${existingEndpoint ? "reassigned" : "created"} for ${ip}`);
+        await postEndpoint({
+          deviceId,
+          body: { type_id: selectedType.type_id, endpoint_data: values },
+        });
+        toast.success(
+          `Endpoint "${selectedType.label}" ${existingEndpoint ? "reassigned" : "created"}${ip ? ` for ${ip}` : ""}`
+        );
       }
       onCreated();
       onOpenChange(false);
@@ -115,16 +127,19 @@ export default function AssignEndpointDialog({
     }
   };
 
+  const title = isEdit ? "Edit Endpoint" : ip ? "Assign Endpoint" : "Add Endpoint";
+  const description = isEdit
+    ? `Change the type or field values for ${ip}.`
+    : ip
+      ? `Assign ${ip} to an endpoint type using its current, actual value on the network.`
+      : "Manually add an endpoint that isn't currently discovered on the network.";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Endpoint" : "Assign Endpoint"}</DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? `Change the type or field values for ${ip}.`
-              : `Assign ${ip} to an endpoint type using its current, actual value on the network.`}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

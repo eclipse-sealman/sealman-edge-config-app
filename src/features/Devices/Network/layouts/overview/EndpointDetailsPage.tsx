@@ -150,10 +150,13 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
         <>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold leading-none tracking-tight">{endpoint.type_label}</h2>
-              {endpoint.type_description && (
-                <p className="text-sm text-muted-foreground mt-1.5">{endpoint.type_description}</p>
-              )}
+              <h2 className="text-lg font-semibold leading-none tracking-tight">
+                {(values.name as string | undefined) || endpoint.type_label}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1.5">
+                {endpoint.type_label}
+                {endpoint.type_description ? ` · ${endpoint.type_description}` : ""}
+              </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <GuardedButton

@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { EndpointStatus, Port, LastStatusChange } from "@/features/Devices/Network/components";
 import { MappedEndpoint, MappedPort } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
+import { formatMetadataValue } from "@/features/PlatformTypes/FieldValueInput";
 import AssignEndpointDialog from "./AssignEndpointDialog";
 import AssignServiceDialog from "./AssignServiceDialog";
 import BrowseDialog from "./BrowseDialog";
@@ -12,6 +13,8 @@ import { withPermissionRequiredTooltip } from "@/features/authorization/permissi
 import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const GuardedButton = withPermissionRequiredTooltip(Button);
+
+const ALWAYS_SHOWN_ENDPOINT_FIELD_KEYS = new Set(["ip", "name"]);
 
 interface props {
   endpoint: MappedEndpoint;
@@ -23,6 +26,18 @@ interface props {
 export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, onOpenDetails }: props) {
   const isUnidentified = endpoint.source === "unidentified";
   const isConfigured = endpoint.source === "configured";
+  // "name" is a regular resolved field (like "ip"), not a top-level property - only present once
+  // there's a real instance ("configured" source).
+  const name = endpoint.endpoint_data?.name?.value as string | undefined;
+
+  // Extra endpoint type fields to show next to the IP address - each field's own "Show in
+  // endpoints list" toggle (set on the endpoint type's field definition, see FieldsEditor.tsx)
+  // decides this, not a separate settings page.
+  const extraEndpointInfo = Object.entries(endpoint.endpoint_data ?? {})
+    .filter(([key]) => !ALWAYS_SHOWN_ENDPOINT_FIELD_KEYS.has(key))
+    .filter(([, resolved]) => resolved.field?.show_in_list)
+    .map(([, resolved]) => (resolved.field ? formatMetadataValue(resolved.value, resolved.field) : null))
+    .filter((value): value is string => Boolean(value));
 
   const [assignEndpointOpen, setAssignEndpointOpen] = useState(false);
   const [assignPort, setAssignPort] = useState<MappedPort | null>(null);
@@ -42,9 +57,13 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                 )}
                 <div className="text-left">
                   <p className={isUnidentified ? "font-medium text-orange-600" : "font-medium"}>
-                    {endpoint.type_label ?? "Unidentified"}
+                    {name ?? endpoint.type_label ?? "Unidentified"}
                   </p>
-                  <p className="text-xs text-muted-foreground">{endpoint.ip}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {endpoint.type_label && name ? `${endpoint.type_label} · ` : ""}
+                    {endpoint.ip}
+                    {extraEndpointInfo.length > 0 ? ` · ${extraEndpointInfo.join(" · ")}` : ""}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">

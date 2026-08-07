@@ -80,11 +80,12 @@ export default function PlatformTypesSettings() {
           description="Types available when creating endpoints on a device."
           types={endpointTypesQuery.data ?? []}
           isLoading={endpointTypesQuery.isLoading}
-          mappingRole={{ value: "ip", label: "IP Address", compatibleTypes: ["string"] }}
-          typeIdPlaceholder="e.g. powerpak-3000"
+          reservedField={{ key: "ip", label: "IP Address", type: "string" }}
+          hiddenFieldKeys={["name"]}
+          supportsListVisibility
           cascadeDelete={{ instancesLabel: "endpoint" }}
           onCreate={async (body) => {
-            await postEndpointType({ ...body, mapping: body.mapping ?? {} });
+            await postEndpointType(body);
             await endpointTypesQuery.refetch();
           }}
           onUpdate={async (typeId, body) => {
@@ -103,12 +104,11 @@ export default function PlatformTypesSettings() {
           description="Types available when creating services on an endpoint."
           types={serviceTypesQuery.data ?? []}
           isLoading={serviceTypesQuery.isLoading}
-          mappingRole={{ value: "port", label: "Port", compatibleTypes: ["integer", "number"] }}
           browserKindOptions={listRegisteredBrowsers()}
-          typeIdPlaceholder="e.g. ftp"
+          reservedField={{ key: "port", label: "Port", type: "integer" }}
           cascadeDelete={{ instancesLabel: "service" }}
           onCreate={async (body) => {
-            await postServiceType({ ...body, mapping: body.mapping ?? {} });
+            await postServiceType(body);
             await serviceTypesQuery.refetch();
           }}
           onUpdate={async (typeId, body) => {

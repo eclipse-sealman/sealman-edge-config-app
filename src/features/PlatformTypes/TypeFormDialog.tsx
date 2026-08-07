@@ -5,15 +5,10 @@ import FieldsEditor, {
   Field,
   FieldDefinition,
   FieldRow,
-  MappingRoleConfig,
   buildFieldsPayload,
-  buildMappingPayload,
-  emptyFieldRow,
   findDuplicateKeys,
   rowsFromFields,
 } from "./FieldsEditor";
-
-const TYPE_ID_PATTERN = /^[a-z0-9_-]+$/;
 
 export interface BrowserKindOption {
   value: string;
@@ -30,12 +25,19 @@ export interface TypeRecord {
 }
 
 export interface TypeFormResult {
-  type_id: string;
   label: string;
   description: string | null;
   fields: Record<string, FieldDefinition | null>;
-  mapping: Record<string, string | null>;
   browser_kind: string | null;
+}
+
+/** Describes the single built-in field (e.g. "ip" for endpoint types, "port" for service types)
+ * every type of this kind automatically gets - the backend always enforces its key/type/required/
+ * changeable, so the only thing shown here is a plain input for its default value. */
+export interface ReservedFieldConfig {
+  key: string;
+  label: string;
+  type: "string" | "integer";
 }
 
 interface TypeFormDialogProps {
@@ -45,20 +47,25 @@ interface TypeFormDialogProps {
   initial?: TypeRecord | null;
   singularLabel: string;
   isPending?: boolean;
-  mappingRole?: MappingRoleConfig;
   /** When set, shows a "Browse Action" dropdown letting this type be assigned one of these
    * built-in browsers (e.g. VNC, OPC-UA, plain HTTP) for its "Browse" button on the Overview page. */
   browserKindOptions?: BrowserKindOption[];
-  /** Example shown in the Type ID field's placeholder - pick something representative of what
-   * this kind of type actually looks like (e.g. "powerpak-3000" for endpoint types, "ftp" for
-   * service types). */
-  typeIdPlaceholder?: string;
   /** When set, a brand-new type (not editing an existing one) starts with these fields
    * pre-populated instead of a single blank row - used so creating a device type shows the
    * default type's fields right away, since they'll apply to it regardless (see
    * db/sqlalchemy/device_type.py:_serialize_with_mirroring). Ignored while editing an existing
    * type, since `initial.fields` already reflects the current mirrored view in that case. */
   defaultFields?: Record<string, FieldDefinition>;
+  /** When set, this type always has a built-in field the backend injects automatically - shown
+   * here as a single plain "default value" input, not as a row in the Fields editor below. */
+  reservedField?: ReservedFieldConfig;
+  /** Field keys that are entirely backend-managed with nothing to configure (e.g. "name" on
+   * endpoint types) - never shown as a row in the Fields editor, and never included in what's
+   * submitted, so they can't be edited or deleted from here at all. */
+  hiddenFieldKeys?: string[];
+  /** When set, each field row gets a "Show in list" toggle controlling whether its value shows
+   * as extra info in the endpoints list - only meaningful for endpoint types. */
+  supportsListVisibility?: boolean;
 }
 
 export default function TypeFormDialog({
@@ -68,54 +75,50 @@ export default function TypeFormDialog({
   initial,
   singularLabel,
   isPending,
-  mappingRole,
   browserKindOptions,
-  typeIdPlaceholder = "e.g. plc_gateway",
   defaultFields,
+  reservedField,
+  hiddenFieldKeys,
+  supportsListVisibility,
 }: TypeFormDialogProps) {
   const isEdit = Boolean(initial);
 
-  const [typeId, setTypeId] = useState("");
   const [label, setLabel] = useState("");
   const [description, setDescription] = useState("");
   const [browserKind, setBrowserKind] = useState("");
   const [rows, setRows] = useState<FieldRow[]>([]);
+  const [reservedDefault, setReservedDefault] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    setTypeId(initial?.type_id ?? "");
     setLabel(initial?.label ?? "");
     setDescription(initial?.description ?? "");
     setBrowserKind(initial?.browser_kind ?? "");
-    if (initial) {
-      setRows(rowsFromFields(initial.fields, initial.mapping ?? {}));
+    const excludedKeys = new Set([reservedField?.key, ...(hiddenFieldKeys ?? [])].filter(Boolean));
+    const fieldsForRows =
+      initial && excludedKeys.size > 0
+        ? Object.fromEntries(Object.entries(initial.fields).filter(([key]) => !excludedKeys.has(key)))
+        : initial?.fields;
+    if (fieldsForRows) {
+      setRows(rowsFromFields(fieldsForRows));
     } else if (defaultFields && Object.keys(defaultFields).length > 0) {
-      setRows(rowsFromFields(defaultFields, {}));
+      setRows(rowsFromFields(defaultFields));
     } else {
-      setRows([emptyFieldRow()]);
+      // No pre-filled blank row - the user presses "Add field" to start defining one.
+      setRows([]);
     }
+    const reservedCurrentDefault = reservedField ? initial?.fields[reservedField.key]?.default : null;
+    setReservedDefault(reservedCurrentDefault != null ? String(reservedCurrentDefault) : "");
     setError(null);
-  }, [isOpen, initial, defaultFields]);
+  }, [isOpen, initial, defaultFields, reservedField, hiddenFieldKeys]);
 
   if (!isOpen) return null;
 
   const duplicateKeys = findDuplicateKeys(rows);
 
   const handleSave = async () => {
-    const trimmedTypeId = typeId.trim();
     const trimmedLabel = label.trim();
-
-    if (!isEdit) {
-      if (!trimmedTypeId) {
-        setError("Type ID is required");
-        return;
-      }
-      if (!TYPE_ID_PATTERN.test(trimmedTypeId)) {
-        setError("Type ID may only contain lowercase letters, numbers, underscores and hyphens");
-        return;
-      }
-    }
 
     if (!trimmedLabel) {
       setError("Label is required");
@@ -176,15 +179,46 @@ export default function TypeFormDialog({
       }
     }
 
+    let reservedDefaultValue: string | number | null = null;
+    if (reservedField) {
+      const trimmed = reservedDefault.trim();
+      if (trimmed) {
+        if (reservedField.type === "integer") {
+          if (!Number.isInteger(Number(trimmed))) {
+            setError(`"${reservedField.label}" default must be a whole number`);
+            return;
+          }
+          reservedDefaultValue = Number(trimmed);
+        } else {
+          reservedDefaultValue = trimmed;
+        }
+      }
+    }
+
     const originalKeys = Object.keys(initial?.fields ?? {});
+    const fields = buildFieldsPayload(rows, originalKeys);
+    // Hidden fields are never rows, so buildFieldsPayload treats them as "removed" and would set
+    // them to null - drop them from the payload entirely instead, so the backend leaves them
+    // untouched (they're fully backend-managed, nothing here to submit for them).
+    for (const key of hiddenFieldKeys ?? []) {
+      delete fields[key];
+    }
+    if (reservedField) {
+      fields[reservedField.key] = {
+        type: reservedField.type,
+        label: reservedField.label,
+        required: true,
+        changeable: false,
+        show_in_list: false,
+        default: reservedDefaultValue,
+      };
+    }
 
     try {
       await onSubmit({
-        type_id: isEdit ? (initial as TypeRecord).type_id : trimmedTypeId,
         label: trimmedLabel,
         description: description.trim() || null,
-        fields: buildFieldsPayload(rows, originalKeys),
-        mapping: buildMappingPayload(rows, initial?.mapping ?? {}),
+        fields,
         browser_kind: browserKind || null,
       });
       setError(null);
@@ -211,28 +245,26 @@ export default function TypeFormDialog({
         </div>
 
         <div className="px-6 py-4 space-y-5 overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Type ID *">
+          {isEdit && (
+            <Field label="Type ID">
               <input
                 type="text"
-                placeholder={typeIdPlaceholder}
-                value={typeId}
-                disabled={isEdit}
-                onChange={(e) => setTypeId(e.target.value)}
-                className={`${inputClass} font-mono ${isEdit ? "opacity-60 cursor-not-allowed" : ""}`}
+                value={(initial as TypeRecord).type_id}
+                disabled
+                className={`${inputClass} font-mono opacity-60 cursor-not-allowed`}
               />
             </Field>
+          )}
 
-            <Field label="Label *">
-              <input
-                type="text"
-                placeholder="Human readable name"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-          </div>
+          <Field label="Label *">
+            <input
+              type="text"
+              placeholder="Human readable name"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              className={inputClass}
+            />
+          </Field>
 
           <Field label="Description">
             <input
@@ -261,9 +293,26 @@ export default function TypeFormDialog({
             </Field>
           )}
 
+          {reservedField && (
+            <Field label={`${reservedField.label} (default)`}>
+              <input
+                type={reservedField.type === "integer" ? "number" : "text"}
+                placeholder="Optional default value"
+                value={reservedDefault}
+                onChange={(e) => setReservedDefault(e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+          )}
+
           <div>
             <h3 className="text-sm font-semibold mb-2">Fields</h3>
-            <FieldsEditor rows={rows} onChange={setRows} duplicateKeys={duplicateKeys} mappingRole={mappingRole} />
+            <FieldsEditor
+              rows={rows}
+              onChange={setRows}
+              duplicateKeys={duplicateKeys}
+              showListVisibility={supportsListVisibility}
+            />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -281,7 +330,7 @@ export default function TypeFormDialog({
           <button
             type="button"
             onClick={handleSave}
-            disabled={isPending}
+            disabled={isPending || duplicateKeys.size > 0}
             className="px-4 py-1.5 rounded-md text-sm font-medium bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {isPending ? "Saving..." : isEdit ? "Save changes" : `Add ${singularLabel.toLowerCase()}`}

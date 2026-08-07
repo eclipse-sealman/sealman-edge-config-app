@@ -27,6 +27,15 @@ interface props {
   onOpenChange: (open: boolean) => void;
   extraPorts: number[];
   extraIps: string[];
+  /** Every port currently scanned automatically, regardless of range/IP - shown read-only. */
+  autoPorts: number[];
+  /** Lifted up to the parent (rather than kept as local state here) so a "Read Network
+   * Configuration" result - or anything typed by hand - survives closing and reopening this
+   * dialog, instead of resetting to blank every time. */
+  networkInput: string;
+  maskInput: string;
+  onNetworkInputChange: (value: string) => void;
+  onMaskInputChange: (value: string) => void;
   onConfirm: (range: ScanNetworkRange | null, extraPorts: number[], extraIps: string[]) => void;
 }
 
@@ -35,12 +44,21 @@ interface props {
  * derived from known endpoint IPs) - useful for reaching a device outside that range so it can
  * be assigned. Nothing here is persisted; it only affects the scan this dialog triggers.
  */
-export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extraIps, onConfirm }: props) {
+export default function ScanNetworkDialog({
+  open,
+  onOpenChange,
+  extraPorts,
+  extraIps,
+  autoPorts,
+  networkInput,
+  maskInput,
+  onNetworkInputChange,
+  onMaskInputChange,
+  onConfirm,
+}: props) {
   const deviceId = useNetworkPageStore((s) => s.deviceId);
   const { readNetwork, isReading } = useReadNetworkDefinition(deviceId);
 
-  const [networkInput, setNetworkInput] = useState("");
-  const [maskInput, setMaskInput] = useState("");
   const [ports, setPorts] = useState<number[]>(extraPorts);
   const [ips, setIps] = useState<string[]>(extraIps);
   const [portInput, setPortInput] = useState("");
@@ -48,8 +66,6 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
 
   useEffect(() => {
     if (!open) return;
-    setNetworkInput("");
-    setMaskInput("");
     setPorts(extraPorts);
     setIps(extraIps);
     setPortInput("");
@@ -59,8 +75,8 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
   const handleReadNetworkConfig = async () => {
     const network = await readNetwork();
     if (!network) return;
-    setNetworkInput(network.address);
-    setMaskInput(String(network.mask));
+    onNetworkInputChange(network.address);
+    onMaskInputChange(String(network.mask));
   };
 
   const addPort = () => {
@@ -107,6 +123,8 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
     onOpenChange(false);
   };
 
+  const hasAutoScanned = autoPorts.length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -120,6 +138,19 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
         </DialogHeader>
 
         <div className="space-y-4">
+          {hasAutoScanned && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Automatically scanned ports</label>
+              <div className="flex flex-wrap gap-2">
+                {autoPorts.map((port) => (
+                  <Badge key={port} variant="outline" className="gap-1">
+                    {port}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-muted-foreground">Network range for this scan</label>
@@ -141,7 +172,7 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
               <input
                 type="text"
                 value={networkInput}
-                onChange={(e) => setNetworkInput(e.target.value)}
+                onChange={(e) => onNetworkInputChange(e.target.value)}
                 placeholder="e.g. 172.22.220.0"
                 className={`${inputClass} h-9`}
               />
@@ -150,7 +181,7 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
                 min={1}
                 max={32}
                 value={maskInput}
-                onChange={(e) => setMaskInput(e.target.value)}
+                onChange={(e) => onMaskInputChange(e.target.value)}
                 placeholder="e.g. 24"
                 className={`${inputClass} h-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
               />
@@ -158,7 +189,7 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
           </div>
 
           <div className="space-y-2 pt-2 border-t">
-            <label className="text-xs font-medium text-muted-foreground">Additional ports</label>
+            <label className="text-xs font-medium text-muted-foreground">Additional ports for scan</label>
             <div className="flex gap-2">
               <input
                 type="number"
@@ -192,7 +223,7 @@ export default function ScanNetworkDialog({ open, onOpenChange, extraPorts, extr
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Additional IP addresses</label>
+            <label className="text-xs font-medium text-muted-foreground">Additional endpoints for scan</label>
             <div className="flex gap-2">
               <input
                 type="text"

@@ -1,4 +1,4 @@
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion } from "@/components/ui/accordion";
 import EndpointAccordionItem from "./EndpointAccordionItem";
@@ -9,6 +9,7 @@ interface props {
   deviceId: string;
   onScan: () => void;
   isScanning: boolean;
+  onAddEndpoint: () => void;
   onEndpointCreated: () => void;
   onOpenDetails: (endpointId: string) => void;
 }
@@ -18,6 +19,7 @@ export default function DiscoveredEndpointsCard({
   deviceId,
   onScan,
   isScanning,
+  onAddEndpoint,
   onEndpointCreated,
   onOpenDetails,
 }: props) {
@@ -30,10 +32,15 @@ export default function DiscoveredEndpointsCard({
             Physical machines and systems discovered on the network. Expand each endpoint to view its services.
           </p>
         </div>
-        <Button variant="outline" onClick={onScan} disabled={isScanning} className="shrink-0">
-          {isScanning ? <Loader2 className="animate-spin" /> : <Search />}
-          {isScanning ? "Scanning..." : "Scan Network"}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" onClick={onScan} disabled={isScanning}>
+            {isScanning ? <Loader2 className="animate-spin" /> : <Search />}
+            {isScanning ? "Scanning..." : "Scan Network"}
+          </Button>
+          <Button variant="outline" onClick={onAddEndpoint}>
+            <Plus /> Add Endpoint
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg overflow-hidden bg-background">

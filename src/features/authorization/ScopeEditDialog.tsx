@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
+import { useEffect, useMemo, useState } from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { Button } from "@/components/ui/button";
 import { AttributeNameCombobox } from "./AttributeNameCombobox";
+import useDeviceMetadataFields from "@/features/PlatformTypes/useDeviceMetadataFields";
 import {
   Dialog,
   DialogContent,
@@ -111,8 +111,18 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
   const [description, setDescription] = useState("");
   const [accessRule, setAccessRule] = useState<"ALL" | "ANY">("ALL");
   const [attributeRows, setAttributeRows] = useState<AttributeRow[]>([]);
-  const [platformMetadataKeys, setPlatformMetadataKeys] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // The "default" device type's required fields - these are enforced for every device
+  // regardless of its own type (see db/sqlalchemy/device.py:_effective_fields_for), so they're
+  // guaranteed to exist on every device's metadata, which is exactly what makes them safe
+  // candidates for a scope attribute key (a scope referencing a key that some devices don't
+  // have would just silently never match for those devices).
+  const { fields: deviceMetadataFields } = useDeviceMetadataFields();
+  const platformMetadataKeys = useMemo(
+    () => deviceMetadataFields.map(([key]) => key).sort((a, b) => a.localeCompare(b)),
+    [deviceMetadataFields],
+  );
 
   const isEditMode = Boolean(scope);
   const isSaving = createScopeMutation.isPending || updateScopeMutation.isPending;
@@ -140,35 +150,6 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
 
     setError(null);
   }, [open, scope]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    let isActive = true;
-
-    const loadPlatformMetadataKeys = async () => {
-      try {
-        const metadata = await edgeConfigApi.getMetadataKeys();
-        if (!isActive) {
-          return;
-        }
-        setPlatformMetadataKeys(Object.keys(metadata).sort((a, b) => a.localeCompare(b)));
-      } catch {
-        if (!isActive) {
-          return;
-        }
-        setPlatformMetadataKeys([]);
-      }
-    };
-
-    void loadPlatformMetadataKeys();
-
-    return () => {
-      isActive = false;
-    };
-  }, [open]);
 
   const handleSave = async () => {
     setError(null);

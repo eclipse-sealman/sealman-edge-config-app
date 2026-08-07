@@ -1708,8 +1708,6 @@ export interface components {
         };
         /** DeviceTypeCreate */
         DeviceTypeCreate: {
-            /** Type Id */
-            type_id: string;
             /** Label */
             label: string;
             /** Description */
@@ -1867,8 +1865,6 @@ export interface components {
         };
         /** EndpointTypeCreate */
         EndpointTypeCreate: {
-            /** Type Id */
-            type_id: string;
             /** Label */
             label: string;
             /** Description */
@@ -1879,13 +1875,6 @@ export interface components {
              */
             fields: {
                 [key: string]: components["schemas"]["FieldDefinition"];
-            };
-            /**
-             * Mapping
-             * @default {}
-             */
-            mapping: {
-                [key: string]: string;
             };
         };
         /** EndpointTypeResponse */
@@ -1924,10 +1913,6 @@ export interface components {
             /** Fields */
             fields?: {
                 [key: string]: components["schemas"]["FieldDefinitionUpdate"] | null;
-            } | null;
-            /** Mapping */
-            mapping?: {
-                [key: string]: string | null;
             } | null;
         };
         /** EndpointUpdate */
@@ -1992,6 +1977,12 @@ export interface components {
              * @default true
              */
             changeable: boolean;
+            /**
+             * Show In List
+             * @description If true, this field's value shows as extra info in the endpoints list
+             * @default true
+             */
+            show_in_list: boolean;
         };
         /** FieldDefinitionUpdate */
         FieldDefinitionUpdate: {
@@ -2034,6 +2025,11 @@ export interface components {
              * @description If false, the value can no longer be edited once an instance has it set
              */
             changeable?: boolean | null;
+            /**
+             * Show In List
+             * @description If true, this field's value shows as extra info in the endpoints list
+             */
+            show_in_list?: boolean | null;
         };
         /**
          * FieldValidation
@@ -3005,8 +3001,6 @@ export interface components {
         };
         /** ServiceTypeCreate */
         ServiceTypeCreate: {
-            /** Type Id */
-            type_id: string;
             /** Label */
             label: string;
             /** Description */
@@ -3017,13 +3011,6 @@ export interface components {
              */
             fields: {
                 [key: string]: components["schemas"]["FieldDefinition"];
-            };
-            /**
-             * Mapping
-             * @default {}
-             */
-            mapping: {
-                [key: string]: string;
             };
             /** Browser Kind */
             browser_kind?: string | null;
@@ -3066,10 +3053,6 @@ export interface components {
             /** Fields */
             fields?: {
                 [key: string]: components["schemas"]["FieldDefinitionUpdate"] | null;
-            } | null;
-            /** Mapping */
-            mapping?: {
-                [key: string]: string | null;
             } | null;
             /** Browser Kind */
             browser_kind?: string | null;

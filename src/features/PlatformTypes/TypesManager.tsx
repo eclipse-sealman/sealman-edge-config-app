@@ -5,8 +5,8 @@ import SimpleDialog from "@/components/Modal/SimpleDialog";
 import Button, { ButtonColor, ButtonSize } from "@/components/Input/Button";
 import { compactInputClass } from "@/features/PlatformTypes/FieldValueInput";
 import { ApiError } from "@/generated/edge-administration/api";
-import TypeFormDialog, { BrowserKindOption, TypeFormResult, TypeRecord } from "./TypeFormDialog";
-import { FieldDefinition, MappingRoleConfig } from "./FieldsEditor";
+import TypeFormDialog, { BrowserKindOption, ReservedFieldConfig, TypeFormResult, TypeRecord } from "./TypeFormDialog";
+import { FieldDefinition } from "./FieldsEditor";
 
 export interface TypesManagerProps {
   title: string;
@@ -14,16 +14,20 @@ export interface TypesManagerProps {
   description?: string;
   types: TypeRecord[];
   isLoading: boolean;
-  /** When set, the form lets a single field be assigned this mapping role (e.g. IP, Port). */
-  mappingRole?: MappingRoleConfig;
   /** When set, the form lets this type be assigned one of these built-in browsers. */
   browserKindOptions?: BrowserKindOption[];
-  /** Example shown in the Type ID field's placeholder (e.g. "powerpak-3000" for endpoint types,
-   * "ftp" for service types). Defaults to a generic example when unset. */
-  typeIdPlaceholder?: string;
   /** When set, a brand-new type starts pre-populated with these fields instead of a blank row -
    * used for Device Types, where the default type's fields always apply anyway. */
   defaultFields?: Record<string, FieldDefinition>;
+  /** When set, this type always has a built-in field (e.g. "ip" for endpoint types, "port" for
+   * service types) the backend injects automatically. */
+  reservedField?: ReservedFieldConfig;
+  /** Field keys that are entirely backend-managed with nothing to configure (e.g. "name" on
+   * endpoint types) - never shown in the Fields editor at all. */
+  hiddenFieldKeys?: string[];
+  /** When set, each field row gets a "Show in list" toggle controlling whether its value shows
+   * as extra info in the endpoints list - only meaningful for endpoint types. */
+  supportsListVisibility?: boolean;
   /** Type ID that can't be deleted (its delete button is hidden entirely) - used for the
    * "default" device type, which the backend also rejects deleting. */
   protectedTypeId?: string;
@@ -31,17 +35,16 @@ export interface TypesManagerProps {
    * When set, deleting a type is a cascading delete that also removes every instance of it
    * (e.g. every endpoint of an endpoint type) - `instancesLabel` is the singular noun for one
    * instance (e.g. "endpoint"), used in copy like "every {instancesLabel} of it". To guard
-   * against a stray click nuking real data, the user must type the type's exact Type ID before
-   * the Delete button is enabled. When unset, deletion is a plain, non-cascading, single-click
+   * against a stray click nuking real data, the user must type "confirm" before the Delete
+   * button is enabled - not the type's own ID, since that's now a server-generated UUID nobody
+   * can reasonably type or remember. When unset, deletion is a plain, non-cascading, single-click
    * confirmation (e.g. for Device Types).
    */
   cascadeDelete?: { instancesLabel: string };
   onCreate: (body: {
-    type_id: string;
     label: string;
     description: string | null;
     fields: Record<string, FieldDefinition>;
-    mapping?: Record<string, string>;
     browser_kind?: string | null;
   }) => Promise<unknown>;
   onUpdate: (
@@ -50,7 +53,6 @@ export interface TypesManagerProps {
       label: string;
       description: string | null;
       fields: Record<string, FieldDefinition | null>;
-      mapping?: Record<string, string | null>;
       browser_kind?: string | null;
     }
   ) => Promise<unknown>;
@@ -63,22 +65,17 @@ function nonNullFields(fields: Record<string, FieldDefinition | null>): Record<s
   );
 }
 
-function nonNullMapping(mapping: Record<string, string | null>): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(mapping).filter((entry): entry is [string, string] => entry[1] !== null)
-  );
-}
-
 export default function TypesManager({
   title,
   singularLabel,
   description,
   types,
   isLoading,
-  mappingRole,
   browserKindOptions,
-  typeIdPlaceholder,
   defaultFields,
+  reservedField,
+  hiddenFieldKeys,
+  supportsListVisibility,
   protectedTypeId,
   cascadeDelete,
   onCreate,
@@ -112,17 +109,14 @@ export default function TypesManager({
           label: result.label,
           description: result.description,
           fields: result.fields,
-          ...(mappingRole ? { mapping: result.mapping } : {}),
           ...(browserKindOptions ? { browser_kind: result.browser_kind } : {}),
         });
         toast.success(`${singularLabel} "${result.label}" updated`);
       } else {
         await onCreate({
-          type_id: result.type_id,
           label: result.label,
           description: result.description,
           fields: nonNullFields(result.fields),
-          ...(mappingRole ? { mapping: nonNullMapping(result.mapping) } : {}),
           ...(browserKindOptions ? { browser_kind: result.browser_kind } : {}),
         });
         toast.success(`${singularLabel} "${result.label}" created`);
@@ -133,9 +127,11 @@ export default function TypesManager({
     }
   };
 
+  const isDeleteConfirmationValid = deleteConfirmationText.trim().toLowerCase() === "confirm";
+
   const handleDelete = async () => {
     if (!pendingDelete) return;
-    if (cascadeDelete && deleteConfirmationText !== pendingDelete.type_id) return;
+    if (cascadeDelete && !isDeleteConfirmationValid) return;
     setIsDeleting(true);
     try {
       await onDelete(pendingDelete.type_id);
@@ -239,10 +235,11 @@ export default function TypesManager({
         initial={dialogState.editing}
         singularLabel={singularLabel}
         isPending={isSubmitting}
-        mappingRole={mappingRole}
         browserKindOptions={browserKindOptions}
-        typeIdPlaceholder={typeIdPlaceholder}
         defaultFields={defaultFields}
+        reservedField={reservedField}
+        hiddenFieldKeys={hiddenFieldKeys}
+        supportsListVisibility={supportsListVisibility}
       />
 
       <SimpleDialog
@@ -257,13 +254,13 @@ export default function TypesManager({
               </p>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Type <span className="font-mono">{pendingDelete?.type_id}</span> to confirm
+                  Type <span className="font-mono">confirm</span> to confirm
                 </label>
                 <input
                   type="text"
                   value={deleteConfirmationText}
                   onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                  placeholder={pendingDelete?.type_id}
+                  placeholder="confirm"
                   autoFocus
                   className={`${compactInputClass} font-mono`}
                 />
@@ -280,7 +277,7 @@ export default function TypesManager({
               color={ButtonColor.Red}
               onClick={handleDelete}
               processing={isDeleting}
-              disabled={cascadeDelete ? deleteConfirmationText !== pendingDelete?.type_id : false}
+              disabled={cascadeDelete ? !isDeleteConfirmationValid : false}
             >
               Delete
             </Button>
