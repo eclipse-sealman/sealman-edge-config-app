@@ -9,6 +9,7 @@ import usePostDeviceNetworkDiscover, { ScanResult } from "@/generated/edge-admin
 import usePostNetworkOverview, { MappedEndpoint, MappedPort, NetworkOverview } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import useGetNetworkScanPorts from "@/generated/edge-administration/hooks/network/useGetNetworkScanPorts";
 import useGetNetworkScanRange from "@/generated/edge-administration/hooks/network/useGetNetworkScanRange";
+import { client } from "@/generated/edge-administration/api";
 import DiscoveredEndpointsCard from "./DiscoveredEndpointsCard";
 import UnidentifiedEndpointsCard from "./UnidentifiedEndpointsCard";
 import ScanNetworkDialog, { ScanNetworkRange } from "./ScanNetworkDialog";
@@ -66,6 +67,52 @@ function mergeEndpointsByIp(primary: MappedEndpoint[], extras: MappedEndpoint[])
     byIp.set(endpoint.ip, { ...endpoint, ports: [...ports.values()] });
   }
   return [...byIp.values()];
+}
+
+// The live scan needs the device itself to be reachable (it's a direct method call through IoT
+// Hub) - if it's offline, `discover`/`overview` simply can't succeed, no matter how many times
+// we retry. But what's actually *configured* for this device (endpoints/services already saved
+// to the database) is a plain backend read, independent of the device's own connectivity - so
+// it's still available and worth showing, just with everything marked "offline" since we have no
+// live confirmation of its current state.
+async function buildOfflineFallbackOverview(deviceId: string): Promise<NetworkOverview> {
+  const { data: endpoints } = await client.GET("/endpoints", { params: { query: { device_id: deviceId } } });
+
+  const mappedEndpoints: MappedEndpoint[] = await Promise.all(
+    (endpoints ?? []).map(async (endpoint) => {
+      const { data: services } = await client.GET("/services", {
+        params: { query: { endpoint_id: endpoint.endpoint_id } },
+      });
+
+      const ports: MappedPort[] = (services ?? []).map((service) => ({
+        port: Number(service.service_data.port?.value ?? 0),
+        status: "offline",
+        source: "configured",
+        service_id: service.service_id,
+        type_id: service.type_id,
+        type_label: service.type_label,
+        type_description: service.type_description,
+        service_data: service.service_data,
+      }));
+
+      return {
+        ip: String(endpoint.endpoint_data.ip?.value ?? "unknown"),
+        status: "offline",
+        source: "configured",
+        endpoint_id: endpoint.endpoint_id,
+        type_id: endpoint.type_id,
+        type_label: endpoint.type_label,
+        type_description: endpoint.type_description,
+        endpoint_data: endpoint.endpoint_data,
+        ports,
+      };
+    }),
+  );
+
+  return {
+    scanDefinition: { networkDefinition: "0.0.0.0", subnetMask: 32, ports: [] },
+    endpoints: mappedEndpoints,
+  };
 }
 
 export default function OverviewContentContainer() {
@@ -180,6 +227,18 @@ export default function OverviewContentContainer() {
   });
   const overview = overviewQuery.data ?? undefined;
 
+  // What's actually configured for this device (endpoints/services already saved to the
+  // database) is a plain backend read, independent of the device's own connectivity - unlike
+  // `overviewQuery`, it doesn't need the device to be reachable. It's always kept alongside the
+  // live scan and merged in below (as "offline" entries) rather than only shown as a fallback
+  // when the live scan errors, since a live scan that's simply empty right now (or hasn't
+  // finished its first tick yet) shouldn't make already-configured endpoints disappear either.
+  const offlineFallbackQuery = useQuery({
+    queryKey: ["network-offline-fallback", deviceId],
+    queryFn: () => buildOfflineFallbackOverview(deviceId),
+    enabled: Boolean(deviceId),
+  });
+
   // The one-time custom scan (Scan Network dialog) - `enabled` is derived from whether a custom
   // range/IPs are currently set, so setting them (via `handleConfirmScan`) automatically fires
   // this query without a manual `.refetch()` call racing the not-yet-committed state update.
@@ -207,6 +266,7 @@ export default function OverviewContentContainer() {
 
   const handleRefresh = () => {
     overviewQuery.refetch();
+    offlineFallbackQuery.refetch();
     // Keep the custom scan's results fresh too, so they don't go stale after e.g. assigning one
     // of its discovered hosts to a real endpoint elsewhere on the page.
     if (extraRange || extraIps.length > 0) {
@@ -277,14 +337,18 @@ export default function OverviewContentContainer() {
   }
 
   // A failed fetch keeps the last successful `overview` in place (TanStack Query never clears
-  // `data` on error) so a background tick's failure is silent and just shown again next tick -
-  // only when there has never been a successful result yet does the failure need a full retry UI.
-  if (!overview && overviewQuery.isError) {
+  // `data` on error) so a background tick's failure is silent and just shown again next tick.
+  // Only when NEITHER source has ever produced anything - no live result and no configured data
+  // either - is there truly nothing to show. And only when both are also actively erroring is it
+  // a real failure needing a retry button; otherwise it's just the first tick still in flight.
+  const hasNothingYet = overview === undefined && offlineFallbackQuery.data === undefined;
+
+  if (hasNothingYet && overviewQuery.isError && offlineFallbackQuery.isError) {
     return (
       <Centered>
         <div className="flex flex-col items-center gap-3">
           <p className="text-sm text-destructive">Failed to scan the network. Please try again.</p>
-          <Button variant="outline" onClick={() => overviewQuery.refetch()}>
+          <Button variant="outline" onClick={handleRefresh}>
             Retry
           </Button>
         </div>
@@ -292,7 +356,7 @@ export default function OverviewContentContainer() {
     );
   }
 
-  if (!overview) {
+  if (hasNothingYet) {
     return (
       <Centered>
         <p className="flex items-center gap-2 text-muted-foreground">
@@ -302,7 +366,13 @@ export default function OverviewContentContainer() {
     );
   }
 
-  const endpoints = mergeEndpointsByIp(overview.endpoints ?? [], extraEndpoints);
+  // Configured endpoints (from the DB) are always merged in underneath whatever the live scan
+  // currently finds - `mergeEndpointsByIp` lets live data (fresher) win per IP while still
+  // keeping configured-only entries around, shown as offline.
+  const endpoints = mergeEndpointsByIp(
+    mergeEndpointsByIp(overview?.endpoints ?? [], extraEndpoints),
+    offlineFallbackQuery.data?.endpoints ?? [],
+  );
   const discovered = endpoints.filter((e) => e.source !== "unidentified");
   const unidentified = endpoints.filter((e) => e.source === "unidentified");
 
