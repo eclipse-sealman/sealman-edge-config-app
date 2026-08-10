@@ -63,6 +63,10 @@ export default function AssignServiceDialog({
     if (!selectedType) return null;
     return Object.entries(selectedType.mapping).find(([, role]) => role === "port")?.[0] ?? null;
   }, [selectedType]);
+  // See AssignEndpointDialog's identical `isSameExistingType` - without this, a service type's
+  // own default port (a `changeable: false` field) would lock the port field before anything's
+  // actually been saved, making it impossible to type in a different port on first creation.
+  const isSameExistingType = existingService?.type_id === selectedType?.type_id;
 
   useEffect(() => {
     if (!open) return;
@@ -75,7 +79,6 @@ export default function AssignServiceDialog({
       setValues({});
       return;
     }
-    const isSameExistingType = existingService?.type_id === selectedType.type_id;
     const initial: Record<string, unknown> = {};
     for (const [key, definition] of Object.entries(selectedType.fields)) {
       if (key === portFieldKey && isLocked) {
@@ -87,7 +90,7 @@ export default function AssignServiceDialog({
       }
     }
     setValues(initial);
-  }, [selectedType, portFieldKey, port, isLocked, existingService]);
+  }, [selectedType, portFieldKey, port, isLocked, existingService, isSameExistingType]);
 
   const handleSubmit = async () => {
     if (!selectedType) {
@@ -153,6 +156,7 @@ export default function AssignServiceDialog({
               values={values}
               onChange={(key, value) => setValues((v) => ({ ...v, [key]: value }))}
               lockedFieldKey={isLocked ? portFieldKey : null}
+              lockSavedValues={isSameExistingType}
             />
           )}
 

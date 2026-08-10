@@ -69,6 +69,34 @@ function mergeEndpointsByIp(primary: MappedEndpoint[], extras: MappedEndpoint[])
   return [...byIp.values()];
 }
 
+// Same idea as `mergeEndpointsByIp`, but keyed by `endpoint_id` (falling back to `ip` only for
+// entries that genuinely have no id, e.g. a live "unidentified" host). Configured/DB-backed
+// endpoints - both the live scan's "configured" matches and the offline fallback below - always
+// carry a real, unique `endpoint_id`, unlike their `ip`: several distinct configured endpoints of
+// the same type can share the exact same (or an empty/default) IP, and deduping by IP alone would
+// wrongly collapse them into a single row.
+function endpointMergeKey(endpoint: MappedEndpoint): string {
+  return endpoint.endpoint_id ? `id:${endpoint.endpoint_id}` : `ip:${endpoint.ip}`;
+}
+
+function mergeConfiguredEndpoints(primary: MappedEndpoint[], configured: MappedEndpoint[]): MappedEndpoint[] {
+  const byKey = new Map<string, MappedEndpoint>();
+  for (const endpoint of configured) byKey.set(endpointMergeKey(endpoint), endpoint);
+  for (const endpoint of primary) {
+    const key = endpointMergeKey(endpoint);
+    const match = byKey.get(key);
+    if (!match) {
+      byKey.set(key, endpoint);
+      continue;
+    }
+    const ports = new Map<number, MappedPort>();
+    for (const port of match.ports) ports.set(port.port, port);
+    for (const port of endpoint.ports) ports.set(port.port, port);
+    byKey.set(key, { ...endpoint, ports: [...ports.values()] });
+  }
+  return [...byKey.values()];
+}
+
 // The live scan needs the device itself to be reachable (it's a direct method call through IoT
 // Hub) - if it's offline, `discover`/`overview` simply can't succeed, no matter how many times
 // we retry. But what's actually *configured* for this device (endpoints/services already saved
@@ -367,9 +395,12 @@ export default function OverviewContentContainer() {
   }
 
   // Configured endpoints (from the DB) are always merged in underneath whatever the live scan
-  // currently finds - `mergeEndpointsByIp` lets live data (fresher) win per IP while still
-  // keeping configured-only entries around, shown as offline.
-  const endpoints = mergeEndpointsByIp(
+  // currently finds - `mergeConfiguredEndpoints` lets live data (fresher) win per endpoint while
+  // still keeping configured-only entries around, shown as offline. Keyed by `endpoint_id` rather
+  // than `ip` here specifically, so multiple configured endpoints that happen to share an IP
+  // (e.g. several instances of the same type before each has its own real IP entered) still all
+  // show up instead of collapsing into one.
+  const endpoints = mergeConfiguredEndpoints(
     mergeEndpointsByIp(overview?.endpoints ?? [], extraEndpoints),
     offlineFallbackQuery.data?.endpoints ?? [],
   );

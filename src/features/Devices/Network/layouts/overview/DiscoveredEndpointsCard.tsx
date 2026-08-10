@@ -50,7 +50,7 @@ export default function DiscoveredEndpointsCard({
           <Accordion type="single" collapsible className="w-full">
             {endpoints.map((endpoint) => (
               <EndpointAccordionItem
-                key={endpoint.ip}
+                key={endpoint.endpoint_id ?? endpoint.ip}
                 endpoint={endpoint}
                 deviceId={deviceId}
                 onCreated={onEndpointCreated}
