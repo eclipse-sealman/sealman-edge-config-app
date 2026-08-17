@@ -103,8 +103,30 @@ export default function ScanNetworkDialog({
     const network = networkInput.trim();
     const mask = maskInput.trim();
 
+    // A port/IP typed into its input but not yet committed via "+"/Enter would otherwise be
+    // silently dropped from the scan - commit it here too, same validation as `addPort`/`addIp`.
+    let finalPorts = ports;
+    if (portInput.trim() !== "") {
+      const port = Number(portInput);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        toast.error("Enter a valid port (1-65535)");
+        return;
+      }
+      finalPorts = ports.includes(port) ? ports : [...ports, port];
+    }
+
+    let finalIps = ips;
+    if (ipInput.trim() !== "") {
+      const ip = ipInput.trim();
+      if (!IPV4_PATTERN.test(ip)) {
+        toast.error("Enter a valid IPv4 address");
+        return;
+      }
+      finalIps = ips.includes(ip) ? ips : [...ips, ip];
+    }
+
     if (!network && !mask) {
-      onConfirm(null, ports, ips);
+      onConfirm(null, finalPorts, finalIps);
       onOpenChange(false);
       return;
     }
@@ -119,7 +141,7 @@ export default function ScanNetworkDialog({
       return;
     }
 
-    onConfirm({ networkDefinition: network, subnetMask: maskNum }, ports, ips);
+    onConfirm({ networkDefinition: network, subnetMask: maskNum }, finalPorts, finalIps);
     onOpenChange(false);
   };
 

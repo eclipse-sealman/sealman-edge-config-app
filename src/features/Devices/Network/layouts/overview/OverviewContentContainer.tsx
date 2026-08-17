@@ -98,49 +98,17 @@ function mergeConfiguredEndpoints(primary: MappedEndpoint[], configured: MappedE
 }
 
 // The live scan needs the device itself to be reachable (it's a direct method call through IoT
-// Hub) - if it's offline, `discover`/`overview` simply can't succeed, no matter how many times
-// we retry. But what's actually *configured* for this device (endpoints/services already saved
-// to the database) is a plain backend read, independent of the device's own connectivity - so
-// it's still available and worth showing, just with everything marked "offline" since we have no
-// live confirmation of its current state.
+// Hub) - if it's offline, `discover`/`overview` simply can't succeed, no matter how many times we
+// retry. But what's actually *configured* for this device (endpoints/services already saved to
+// the database) is a plain backend read, independent of the device's own connectivity - so it's
+// still available and worth showing, at its last known persisted status/timestamp (from
+// `device_host_status`/`device_port_status`), rather than everything going blank. Note this is
+// exactly that - the *last known* state, not necessarily the current one - it can lag behind
+// reality whenever the live scan can't run at all (e.g. the device has been unreachable via IoT
+// Hub for a while), since nothing updates these persisted statuses without a live scan.
 async function buildOfflineFallbackOverview(deviceId: string): Promise<NetworkOverview> {
-  const { data: endpoints } = await client.GET("/endpoints", { params: { query: { device_id: deviceId } } });
-
-  const mappedEndpoints: MappedEndpoint[] = await Promise.all(
-    (endpoints ?? []).map(async (endpoint) => {
-      const { data: services } = await client.GET("/services", {
-        params: { query: { endpoint_id: endpoint.endpoint_id } },
-      });
-
-      const ports: MappedPort[] = (services ?? []).map((service) => ({
-        port: Number(service.service_data.port?.value ?? 0),
-        status: "offline",
-        source: "configured",
-        service_id: service.service_id,
-        type_id: service.type_id,
-        type_label: service.type_label,
-        type_description: service.type_description,
-        service_data: service.service_data,
-      }));
-
-      return {
-        ip: String(endpoint.endpoint_data.ip?.value ?? "unknown"),
-        status: "offline",
-        source: "configured",
-        endpoint_id: endpoint.endpoint_id,
-        type_id: endpoint.type_id,
-        type_label: endpoint.type_label,
-        type_description: endpoint.type_description,
-        endpoint_data: endpoint.endpoint_data,
-        ports,
-      };
-    }),
-  );
-
-  return {
-    scanDefinition: { networkDefinition: "0.0.0.0", subnetMask: 32, ports: [] },
-    endpoints: mappedEndpoints,
-  };
+  const { data } = await client.GET("/{device}/network/last-known", { params: { path: { device: deviceId } } });
+  return data ?? { scanDefinition: { networkDefinition: "0.0.0.0", subnetMask: 32, ports: [] }, endpoints: [] };
 }
 
 export default function OverviewContentContainer() {
@@ -174,6 +142,19 @@ export default function OverviewContentContainer() {
   const [rangeMaskInput, setRangeMaskInput] = useState("");
   const [detailsEndpointId, setDetailsEndpointId] = useState<string | null>(null);
   const [detailsServiceId, setDetailsServiceId] = useState<string | null>(null);
+
+  // Prefill the Scan Network dialog's range inputs with the persisted baseline range once it's
+  // loaded, so a page refresh doesn't leave them blank - but only the first time it becomes
+  // available, so this doesn't clobber whatever the user has since typed or read from the device.
+  // Set during render (React's supported pattern for adjusting state from other state) rather
+  // than in an effect, since this is a one-shot derivation, not a subscription to an external
+  // system.
+  const [hasPrefilledRange, setHasPrefilledRange] = useState(false);
+  if (!hasPrefilledRange && scanRange?.networkDefinition && scanRange.subnetMask != null) {
+    setHasPrefilledRange(true);
+    setRangeNetworkInput(scanRange.networkDefinition);
+    setRangeMaskInput(String(scanRange.subnetMask));
+  }
 
   async function runDiscoverAndOverview(
     ranges: ScanNetworkRange[],
@@ -277,7 +258,7 @@ export default function OverviewContentContainer() {
       const ranges = extraRange ? [extraRange] : [];
       return runDiscoverAndOverview(ranges, excludeIpsCoveredByRanges(extraIps, ranges), allPorts);
     },
-    enabled: Boolean(deviceId) && (extraRange !== null || extraIps.length > 0),
+    enabled: Boolean(deviceId) && (extraRange !== null || extraIps.length > 0 || extraPorts.length > 0),
   });
   const extraEndpoints = extraScanQuery.data?.endpoints ?? [];
 

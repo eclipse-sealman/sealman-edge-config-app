@@ -143,7 +143,13 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                         </GuardedButton>
                       )}
                       {port.browser_kind && (
-                        <Button variant="outline" size="sm" onClick={() => setBrowsingPort(port)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={port.status !== "online"}
+                          title={port.status !== "online" ? "Only available while the service is online" : undefined}
+                          onClick={() => setBrowsingPort(port)}
+                        >
                           Browse
                         </Button>
                       )}
