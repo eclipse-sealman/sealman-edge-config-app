@@ -21,7 +21,7 @@ export default function SecurityInformation() {
     <div>
       <Heading processing={false} color={HeadingColor.Gray}>
         <InformationCircleIcon className="w-7 h-7 mr-1" />
-        Security
+        Device Security
       </Heading>
       <DictionaryList dictionary={tableData} processing={false} error={""} />
     </div>

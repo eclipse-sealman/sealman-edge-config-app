@@ -1273,7 +1273,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Device Route */
+        get: operations["get_device_route_devices__device_id__get"];
         /** Create Device Route */
         put: operations["create_device_route_devices__device_id__put"];
         post?: never;
@@ -1633,6 +1634,53 @@ export interface components {
              * @enum {string}
              */
             sems: "Connected" | "Disconnected" | "Unknown";
+        };
+        /** DeviceDetailConnectionStatus */
+        DeviceDetailConnectionStatus: {
+            /**
+             * Devicestatus
+             * @enum {string}
+             */
+            deviceStatus: "Connected" | "Disconnected" | "Unknown";
+            /** Iotedgeruntime */
+            iotEdgeRuntime: string;
+            /** Iothub */
+            iotHub: string;
+            /** Sems */
+            sems: string;
+            /** Vpn */
+            vpn: string;
+        };
+        /** DeviceDetailResponse */
+        DeviceDetailResponse: {
+            /** Deviceid */
+            deviceId: string;
+            connectionStatus: components["schemas"]["DeviceDetailConnectionStatus"];
+            /** Devicemetadata */
+            deviceMetadata: {
+                [key: string]: components["schemas"]["DeviceMetadataEntry"];
+            };
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Hardwareversion */
+            hardwareVersion?: string | null;
+            /** Firmwareversion */
+            firmwareVersion?: string | null;
+            /** Updatefirmware */
+            updateFirmware?: boolean | null;
+            /** Lastseenat */
+            lastSeenAt?: string | null;
+            /** Template */
+            template?: string | null;
+            /**
+             * Cellular
+             * @default false
+             */
+            cellular: boolean;
+            /** Createdat */
+            createdAt?: string | null;
+            /** Updatedat */
+            updatedAt?: string | null;
         };
         /** DeviceMetadataEntry */
         DeviceMetadataEntry: {
@@ -6817,6 +6865,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_device_route_devices__device_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -1,24 +1,22 @@
-import { useParams } from "react-router-dom";
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
 import { Heading, HeadingColor } from "../../../components/Typography/Heading";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import DictionaryList, { DictionaryListEntries } from "../../../components/Table/DictionaryList";
-import { edgeConfigApiHooks } from "../../../api/edgeConfig/edgeConfigApiHooks";
+import { components } from "@/generated/edge-administration/types";
+import { ApiError } from "@/generated/edge-administration/api";
 
+type DeviceDetailResponse = components["schemas"]["DeviceDetailResponse"];
 
-export default function SmartEmsInfo() {
-  const { deviceId } = useParams();
-  if (!deviceId) throw new Error("Device Id not defined")
+export interface SmartEmsInfoProps {
+  data?: DeviceDetailResponse;
+  lastSeenAt?: string | null;
+  isPending: boolean;
+  isFetching: boolean;
+  isError: boolean;
+  error?: ApiError | null;
+}
 
-  const { isPending, isError, data: smartEmsData, error, isFetching } = edgeConfigApiHooks.useGetSmartEmsInfo(deviceId);
-
-  let cellular: boolean = false
-    smartEmsData?.variables.forEach(function(obj){
-      if (obj.toString === "cellular"){
-          cellular = true
-      }
-    })
-
+export default function SmartEmsInfo({ data, lastSeenAt, isPending, isFetching, isError, error }: SmartEmsInfoProps) {
   let tableData: DictionaryListEntries = {
     "Smart-EMS Status": "",
     "Last Seen At": "",
@@ -27,29 +25,25 @@ export default function SmartEmsInfo() {
     "Firmware Version": "",
     "Template": "",
     "Cellular": "",
-  }
+  };
 
-
-
-  if (smartEmsData)
-
+  if (data)
     tableData = {
-      "Smart-EMS Status": <Badge color={smartEmsData.enabled ? BadgeColor.Green : BadgeColor.Red}>{smartEmsData.enabled ? "Enabled" : "Disabled"}</Badge>,
-      "Last Seen At": <Badge>{new Date(smartEmsData.lastSeenAt).toLocaleString()}</Badge>,
-      "Hardware Version": <Badge>{smartEmsData.hardwareVersion}</Badge>,
-      "FW Update Scheduled": <Badge color={smartEmsData.updateFirmware ? BadgeColor.Purple : BadgeColor.Blue}>{smartEmsData.updateFirmware ? "True" : "False"}</Badge>,
-      "Firmware Version":  <Badge>{smartEmsData.firmwareVersion}</Badge>,
-      "Template": <Badge>{smartEmsData.template.toString}</Badge>,
-      "Cellular":<div> <Badge>{cellular? "True" : "False"}</Badge> </div>,
-    }
+      "Smart-EMS Status": <Badge color={data.enabled ? BadgeColor.Green : BadgeColor.Red}>{data.enabled ? "Enabled" : "Disabled"}</Badge>,
+      "Last Seen At": <Badge>{lastSeenAt ? new Date(lastSeenAt).toLocaleString() : "Unknown"}</Badge>,
+      "Hardware Version": <Badge>{data.hardwareVersion}</Badge>,
+      "FW Update Scheduled": <Badge color={data.updateFirmware ? BadgeColor.Purple : BadgeColor.Blue}>{data.updateFirmware ? "True" : "False"}</Badge>,
+      "Firmware Version": <Badge>{data.firmwareVersion}</Badge>,
+      "Template": <Badge>{data.template}</Badge>,
+      "Cellular": <div> <Badge>{data.cellular ? "True" : "False"}</Badge> </div>,
+    };
 
-  const errorMessage = isError ? `${error.message}` : undefined
+  const errorMessage = isError ? `${error?.message}` : undefined;
 
   return (
     <div>
-      <Heading processing={isFetching} color={HeadingColor.Gray}><InformationCircleIcon className="w-7 h-7 mr-1" />SMART EMS Information</Heading>
-      <DictionaryList dictionary={tableData} processing={isPending} error={errorMessage}/>
-
+      <Heading processing={isFetching} color={HeadingColor.Gray}><InformationCircleIcon className="w-7 h-7 mr-1" />Device Information</Heading>
+      <DictionaryList dictionary={tableData} processing={isPending} error={errorMessage} />
     </div>
   )
 }
