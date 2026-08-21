@@ -97,11 +97,11 @@ export default function DeviceDetail() {
             </NavLink>
           ))}
         </div>
-        <div className="relative z-10 bg-white rounded-sm p-2 relative grow min-h-0 flex flex-col gap-2">
+        <div className="relative z-10 bg-white rounded-sm p-2 relative flex-1 min-h-0 flex flex-col gap-2">
           <div className="shrink-0">
             <DeviceCard />
           </div>
-          <div className="grow min-h-0">
+          <div className="flex-1 min-h-0">
             <Routes>
               {tabs.map((tab) => (
                 <Route path={tab.href} key={tab.href} element={tab.element} />

@@ -18,7 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Plus, X } from "lucide-react"
 import type { components } from "@/generated/edge-administration/types"
 
-type ServiceConfig = components["schemas"]["routers__compose_deployments__schemas__ServiceConfig"]
+type ServiceConfig = components["schemas"]["ServiceConfig"]
 
 interface PortRow { external: string; internal: string; protocol: "tcp" | "udp" }
 interface VolumeRow { external: string; internal: string }

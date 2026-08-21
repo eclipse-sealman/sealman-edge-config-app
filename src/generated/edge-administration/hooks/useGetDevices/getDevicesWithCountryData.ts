@@ -1,19 +1,16 @@
 import clm from "country-locale-map";
-import { components } from "@/generated/edge-administration/types";
-import { DeviceWithCountryData, DeviceWithTypedMetadata } from "./useGetDevices.types";
+import { DeviceData } from "@/api/edgeConfig/edgeConfigApiHooks";
+import { DeviceWithCountryData } from "./useGetDevices.types";
 
-export const getDevicesWithCountryData = (
-  devices: components["schemas"]["DeviceStatusWithConnection"][]
-): DeviceWithCountryData[] => {
+export const getDevicesWithCountryData = (devices: DeviceData[]): DeviceWithCountryData[] => {
   const outputList: DeviceWithCountryData[] = [];
 
-  const typedDevices = devices as DeviceWithTypedMetadata[];
-  typedDevices.forEach((device) => {
+  devices.forEach((device) => {
     const deviceWithCountryData: DeviceWithCountryData = {
       ...device,
     };
-    if (device.deviceMetadata?.countryCode?.value) {
-      const countryCode = device.deviceMetadata.countryCode.value;
+    const countryCode = device.deviceMetadata?.countryCode?.value as string | undefined;
+    if (countryCode) {
       const country = countryCode.length === 3 ? clm.getCountryByAlpha3(countryCode) : clm.getCountryByAlpha2(countryCode);
       if (!country) {
         outputList.push(deviceWithCountryData);
@@ -23,15 +20,6 @@ export const getDevicesWithCountryData = (
       deviceWithCountryData.countryName = country.name;
       deviceWithCountryData.countryRegion = country.region;
       deviceWithCountryData.continent = country.continent;
-
-      if (device.deviceMetadata?.geoLocation?.value) {
-        const latitude = Number(device.deviceMetadata.geoLocation.value.split(",")[0]);
-        const longitude = Number(device.deviceMetadata.geoLocation.value.split(",")[1]);
-
-        if (isNaN(latitude) || isNaN(longitude)) {
-          deviceWithCountryData.geoLocation = undefined;
-        }
-      }
     }
     outputList.push(deviceWithCountryData);
   });

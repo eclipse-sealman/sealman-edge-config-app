@@ -21,6 +21,7 @@ export default function EndpointList() {
 
   const displayTopology = useDisplayTopologyStore((s) => s.displayTopology);
   const displayEdgeDevice = useNetworkPageStore((s) => s.displayEdgeDevice);
+  const displayOverview = useNetworkPageStore((s) => s.displayOverview);
 
   const scannedEndpoints = scanResults ?? [];
 
@@ -76,7 +77,7 @@ export default function EndpointList() {
               <EndpointStatus value={v.status} />
             </div>
             <p
-              className={`px-2 flex min-h-[36px] rounded-md items-center ${isEndpointSelected(v.ip) && !displayTopology && !displayEdgeDevice ? "text-white bg-vibrant-blue/95" : ""}`}
+              className={`px-2 flex min-h-[36px] rounded-md items-center ${isEndpointSelected(v.ip) && !displayTopology && !displayEdgeDevice && !displayOverview ? "text-white bg-vibrant-blue/95" : ""}`}
             >
               {getDescriptionOrNameByIp(v.ip) ?? v.ip}
             </p>

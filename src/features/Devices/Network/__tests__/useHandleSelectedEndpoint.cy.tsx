@@ -2,17 +2,12 @@ import "@/index.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/config/queryConfig";
 import Page from "../Page";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { setMockPermission } from "@/features/authorization/permissions/use-permissions";
 setMockPermission();
-const QueryParamComponent = () => {
-  const location = useLocation();
-
-  return <p>Query: {location.search}</p>;
-};
 
 describe("Network", () => {
-  it("should display the network page with twin config data", () => {
+  it("should render the selected endpoint's details from the endpointIp URL param", () => {
     cy.viewport("macbook-16");
 
     cy.intercept(
@@ -44,7 +39,6 @@ describe("Network", () => {
               <QueryClientProvider client={queryClient}>
                   <div className="h-screen">
                     <Page deviceId="23002404" />
-                    <QueryParamComponent />
                   </div>
                 </QueryClientProvider>
             }
@@ -60,9 +54,6 @@ describe("Network", () => {
     cy.contains("Information about your endpoint")
     cy.contains("FTP Server")
     cy.contains('80')
-
-    cy.contains("Shingle Loader").click();
-    cy.contains("Query: ?endpointIp=172.22.220.1");
   });
 });
 

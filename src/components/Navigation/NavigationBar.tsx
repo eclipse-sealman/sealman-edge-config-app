@@ -118,7 +118,7 @@ export default function NavigationBar() {
                       <MenuItem>
                         {({ close }) => (
                           <NavLink
-                            to="/settings/network"
+                            to="/settings/platform-types"
                             onClick={close}
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           >

@@ -10,7 +10,12 @@ interface props {
 }
 
 export default function usePostDeviceNetworkDiscover() {
-  const mutation = edgeApi.useMutation("post", "/{device}/network/discover")
+  // Runs on a background poll (every few seconds) as well as manual scans - it must not trigger
+  // the app-wide invalidateQueries() in queryConfig.ts, or every unrelated query on the page
+  // (devices, auth, twin config, topology...) refetches on every tick.
+  const mutation = edgeApi.useMutation("post", "/{device}/network/discover", {
+    meta: { skipGlobalInvalidate: true },
+  })
 
   const mutateAsync = ({deviceId, body}: props ) => mutation.mutateAsync({
     body,

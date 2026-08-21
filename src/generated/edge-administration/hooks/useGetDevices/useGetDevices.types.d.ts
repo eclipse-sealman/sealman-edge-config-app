@@ -1,6 +1,6 @@
-import { components } from "@/generated/edge-administration/types";
+import { DeviceData } from "@/api/edgeConfig/edgeConfigApiHooks";
 
-export type DeviceWithCountryData = components["schemas"]["DeviceStatus"] & {
+export type DeviceWithCountryData = DeviceData & {
   countryCodeAlpha2?: string;
   countryName?: string;
   countryRegion?: string;
@@ -20,8 +20,3 @@ export type DeviceMetadata = {
   businessUnit?: DeviceMetadataValue;
   [key: string]: DeviceMetadataValue | undefined; // for additional props
 };
-
-export interface DeviceWithTypedMetadata extends Omit<components["schemas"]["DeviceStatusWithConnection"], "deviceMetadata"> {
-  deviceMetadata: DeviceMetadata;
-}
-

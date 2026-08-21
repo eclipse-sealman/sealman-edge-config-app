@@ -10,29 +10,45 @@ describe("networkMeta", () => {
      * we intercept the HTTP calls it makes.
      * This is the SAME pattern used in:
      * - network-with-data.cy.tsx
-     * - network-setup.cy.tsx
      */
 
     cy.intercept(
       {
         method: "GET",
-        url: /\.*\/types/,
+        url: /\/endpoint-types/,
       },
       [
-        { name: "PLC", description: "Machine", defaultIP: "172.22.220.1" },
+        {
+          type_id: "plc",
+          label: "PLC",
+          description: "Machine",
+          fields: {
+            ip_address: { type: "string", label: "IP Address", required: true, default: "172.22.220.1", changeable: true },
+          },
+          mapping: { ip_address: "ip" },
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
       ]
     ).as("getEndpointTypes");
 
     cy.intercept(
       {
         method: "GET",
-        url: /\.*\/services/,
+        url: /\/service-types/,
       },
       [
         {
-          defaultPort: "21",
-          deviceEndpointServiceName: "FTP Server",
+          type_id: "ftp",
+          label: "FTP Server",
           description: "FTP Server",
+          fields: {
+            port: { type: "integer", label: "Port", required: true, default: 21, changeable: true },
+          },
+          mapping: { port: "port" },
+          browser_kind: null,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
         },
       ]
     ).as("getServicePorts");

@@ -12,6 +12,8 @@ export const PERMISSION_KEYS = {
   DEVICE_PASSWORD_WRITE: "device.password.write",
   DEVICE_READ: "device.read",
   DEVICE_METADATA_WRITE: "device.metadata.write",
+  DEVICE_ENDPOINT_READ: "device.endpoint.read",
+  DEVICE_ENDPOINT_WRITE: "device.endpoint.write",
 } as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[keyof typeof PERMISSION_KEYS];

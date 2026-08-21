@@ -8,7 +8,6 @@ export function DeviceCards({
   table,
   globalFilter,
   data,
-  clearTableFilter,
 }: DeviceCardsProps) {
   const navigate = useNavigate();
   const { deviceId } = useParams();
@@ -45,7 +44,6 @@ export function DeviceCards({
           className="pb-2"
           totalRows={data.length}
           filteredRows={table.getRowModel().rows.length}
-          clearTableFilter={clearTableFilter}
         />
 
         <DebouncedInput

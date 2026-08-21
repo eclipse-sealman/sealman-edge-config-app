@@ -46,6 +46,10 @@ describe("Network", () => {
     cy.wait("@interceptGetTwinConfig");
     cy.wait("@interceptGetTopology");
 
+    // The endpoint list/search sidebar only shows alongside the Topology tab now - Endpoints &
+    // Services (the default tab) has its own, separate view of this data.
+    cy.contains("Topology").click();
+
     cy.contains("Shingle Loader");
     cy.contains("Alternative Name");
     cy.contains("172.22.220.2").click();

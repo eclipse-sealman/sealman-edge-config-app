@@ -15,6 +15,8 @@ type TeamDetailsResponse = components["schemas"]["TeamDetailsResponse"];
 
 export interface DeviceData {
   deviceId: string;
+  typeId: string;
+  countryCode?: string;
   deviceMetadata: {
     [key: string]: {
       value: unknown;
@@ -202,6 +204,34 @@ const useDeviceTemplates = () => {
   };
 };
 
+const useDeviceTemplateVariables = () => {
+  const variablesQuery = useQuery({
+    queryKey: ["deviceTemplateVariables"],
+    queryFn: () => edgeConfigApi.getDeviceTemplateVariables(),
+  });
+
+  const setVariableMutation = useMutation({
+    mutationFn: ({ name, value }: { name: string; value: string }) =>
+      edgeConfigApi.setDeviceTemplateVariable(name, value),
+    onSuccess: (variables) => {
+      queryClient.setQueryData(["deviceTemplateVariables"], variables);
+    },
+  });
+
+  const deleteVariableMutation = useMutation({
+    mutationFn: (name: string) => edgeConfigApi.deleteDeviceTemplateVariable(name),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["deviceTemplateVariables"] });
+    },
+  });
+
+  return {
+    variablesQuery,
+    setVariableMutation,
+    deleteVariableMutation,
+  };
+};
+
 const useGetScopes = () =>
   useQuery<ScopeResponse[], AxiosError>({
     queryKey: ["authScopes"],
@@ -384,6 +414,7 @@ export const edgeConfigApiHooks = {
   usePostTwinConfig,
   useGetSmartEmsConfigLan,
   useDeviceTemplates,
+  useDeviceTemplateVariables,
   useGetScopes,
   useGetScopeDetails,
   useDeleteScope,

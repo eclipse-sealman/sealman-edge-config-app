@@ -34,7 +34,7 @@ export default function DirectMethods({ moduleName }: { moduleName: string }) {
         <AccordionItem value="opcua">
           <AccordionTrigger className="text-l px-4 py-3 bg-blue-200 text-black transition-colors">OPCUA</AccordionTrigger>
             <AccordionContent className="border shadow-sm p-6 bg-white grid grid-cols space-y-2 mt-2">
-              {moduleName.includes('seal-app-opcua-client') && <ReadNodeId moduleName={moduleName} />}
+              {moduleName.includes('seal-module-opcua-client') && <ReadNodeId moduleName={moduleName} />}
           </AccordionContent>
         </AccordionItem>
         }
@@ -42,7 +42,7 @@ export default function DirectMethods({ moduleName }: { moduleName: string }) {
         <AccordionItem value="opcua-browser">
           <AccordionTrigger className="text-l px-4 py-3 bg-blue-200 text-black transition-colors">OPCUA Browser</AccordionTrigger>
             <AccordionContent className="border shadow-sm p-6 bg-white grid grid-cols space-y-2 mt-2">
-              {moduleName.includes('seal-app-opcua-client') && <OpcUaTreeBrowser moduleName={moduleName} endpoint="opc.tcp://x.x.x.x:4840"/>}
+              {moduleName.includes('seal-module-opcua-client') && <OpcUaTreeBrowser moduleName={moduleName} endpoint="opc.tcp://x.x.x.x:4840"/>}
           </AccordionContent>
         </AccordionItem>
         }

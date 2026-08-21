@@ -1,7 +1,6 @@
 import axios, { AxiosError } from "axios";
 import { NetworkScanData } from "./networkDiscover/networkDiscoverInterfaces";
 import { getAccessToken } from "@/auth";
-import { EndpointType } from "src/pages/settings/NetworkSettings";
 import { CMD_PROXY_MODULE_NAME, NETWORK_DISCOVER_MODULE_NAME } from "./moduleNames";
 
 export const edgeConfigApiInstance = axios.create({
@@ -36,15 +35,6 @@ export interface DirectMethodRequest {
   methodName: string,
   methodPayload: any
 }
-
-export interface MetadataKeyOptions {
-  prepopulate: boolean;
-  allowAddition: boolean;
-}
-
-export type MetadataKeysResponse = {
-  keys: Record<string, MetadataKeyOptions>[];
-};
 
 /*
 * This function unwraps the direct method responses, into AxiosErrors
@@ -330,12 +320,6 @@ const getEventData = async (deviceId: string = "*") => {
   return data;
 }
 
-type ServicePortPayload = {
-  deviceEndpointServiceName: string;
-  description: string | null;
-  defaultPort: string | null;
-};
-
 const getAvailableTemplates = async () => {
   const { data } = await edgeConfigApiInstance.get('/platform/devices/available-templates');
   return data;
@@ -346,38 +330,6 @@ const saveSelectedTemplates = async (templates: string[]) => {
   return data;
 }
 
-const getEndpointTypes = async () => {
-  const { data } = await edgeConfigApiInstance.get('/platform/device-endpoints/types');
-  return data;
-}
-
-const saveEndpointTypes = async (types: EndpointType[]) => {
-  const { data } = await edgeConfigApiInstance.post('/platform/device-endpoints/types', { types });
-  return data;
-}
-
-const getServicePorts = async () => {
-  const { data } = await edgeConfigApiInstance.get('/platform/device-endpoints/services');
-  return data;
-}
-
-const getMetadataKeys = async (): Promise<Record<string, MetadataKeyOptions>> => {
-  const { data } = await edgeConfigApiInstance.get<MetadataKeysResponse>('/platform/metadata/keys');
-  return (data.keys ?? []).reduce<Record<string, MetadataKeyOptions>>((acc, entry) => {
-    return { ...acc, ...entry };
-  }, {});
-};
-
-const addMetadataKey = async (key: string, options: MetadataKeyOptions): Promise<void> => {
-  await edgeConfigApiInstance.post('/platform/metadata/keys', {
-    key: { [key]: options },
-  });
-};
-
-const deleteMetadataKey = async (key: string): Promise<void> => {
-  await edgeConfigApiInstance.delete(`/platform/metadata/keys/${encodeURIComponent(key)}`);
-}
-
 const getDevicesWithMetaKey = async (key: string): Promise<string[]> => {
   const { data } = await edgeConfigApiInstance.get<{ deviceId: string }[]>('/devices', {
     params: { meta: { [key]: "" } },
@@ -385,13 +337,14 @@ const getDevicesWithMetaKey = async (key: string): Promise<string[]> => {
   return data.map((device) => device.deviceId);
 }
 
-const saveServicePorts = async (services: ServicePortPayload[]) => {
-  const { data } = await edgeConfigApiInstance.post('/platform/device-endpoints/services', { services });
-  return data;
-}
-
-const createDevice = async (deviceId: string, authType: string, meta?: Record<string, string>, registrationId?: string ) => {
-  const body: Record<string, unknown> = { authType };
+const createDevice = async (
+  deviceId: string,
+  authType: string,
+  typeId: string,
+  meta?: Record<string, unknown>,
+  registrationId?: string,
+) => {
+  const body: Record<string, unknown> = { authType, typeId };
   if (meta && Object.keys(meta).length > 0) {
     body.meta = meta;
   }
@@ -407,19 +360,18 @@ const deleteDevice = async (deviceId: string) => {
   return data;
 };
 
-const getDeviceMetaValues = async (): Promise<Record<string, string[]>> => {
-  const response = await edgeConfigApiInstance.get("/devices/meta-values");
-  return response.data;
-};
-
 const getDeviceTemplateVariables = async (): Promise<Record<string, string>> => {
-  const { data } = await edgeConfigApiInstance.get('/platform/device-template-config');
-  return data.config ;
+  const { data } = await edgeConfigApiInstance.get('/platform/device-template-variables');
+  return data.variables;
 };
 
-const updateDeviceTemplateVariables = async (config: Record<string, string>): Promise<Record<string, string>> => {
-  const { data } = await edgeConfigApiInstance.patch('/platform/device-template-config', config);
-  return data.config ;
+const setDeviceTemplateVariable = async (name: string, value: string): Promise<Record<string, string>> => {
+  const { data } = await edgeConfigApiInstance.put(`/platform/device-template-variables/${encodeURIComponent(name)}`, { value });
+  return data.variables;
+};
+
+const deleteDeviceTemplateVariable = async (name: string): Promise<void> => {
+  await edgeConfigApiInstance.delete(`/platform/device-template-variables/${encodeURIComponent(name)}`);
 };
 
 
@@ -480,17 +432,10 @@ export const edgeConfigApi = {
   getEventData,
   getAvailableTemplates,
   saveSelectedTemplates,
-  getEndpointTypes,
-  saveEndpointTypes,
-  getServicePorts,
-  saveServicePorts,
-  getMetadataKeys,
-  addMetadataKey,
-  deleteMetadataKey,
   createDevice,
   deleteDevice,
   getDevicesWithMetaKey,
-  getDeviceMetaValues,
   getDeviceTemplateVariables,
-  updateDeviceTemplateVariables
+  setDeviceTemplateVariable,
+  deleteDeviceTemplateVariable
 }

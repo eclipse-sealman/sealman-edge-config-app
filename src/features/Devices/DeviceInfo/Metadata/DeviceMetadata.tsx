@@ -14,7 +14,7 @@ import {
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import useGetDeviceMetadata from "../../../../generated/edge-administration/hooks/device_metadata/useGetDeviceMetadata";
-import type { DeviceMetadata } from "../../../../generated/edge-administration/hooks/useGetDevices/useGetDevices.types";
+import { formatMetadataValue } from "@/features/PlatformTypes/FieldValueInput";
 import DeviceMetadataEdit from "./DeviceMetadataEdit";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
 
@@ -28,41 +28,24 @@ export default function DeviceMetadata() {
   const apiError = deviceMetadata.isError
     ? (deviceMetadata.error as ApiError)
     : null;
-  const typedDeviceMetadata = deviceMetadata.data
-    ?.deviceMetadata as DeviceMetadata;
-
-  const geoValue = typedDeviceMetadata?.geoLocation?.value;
-
-  const [lat, lon] = geoValue ? geoValue.split(",").map((v) => v.trim()) : [];
-
-  const geoLabel = [lat && `Latitude: ${lat}`, lon && `Longitude: ${lon}`]
-    .filter(Boolean)
-    .join(" ");
-
-  const specialKeys = new Set(["geoLocation", "countryCode", "businessUnit"]);
-
-  const genericEntries = typedDeviceMetadata
-    ? Object.entries(typedDeviceMetadata)
-        .filter(([key]) => !specialKeys.has(key))
-        .reduce(
-          (acc, [key, val]) => ({ ...acc, [key.charAt(0).toUpperCase() + key.slice(1)]: val?.value }),
-          {} as Record<string, string | undefined>
-        )
-    : {};
+  const entries = deviceMetadata.data?.deviceMetadata ?? {};
 
   const tableData = Object.fromEntries(
-    Object.entries({
-      ...genericEntries,
-      "Country-Code": typedDeviceMetadata?.countryCode?.value,
-      "Geo-Location": geoLabel,
-      "Business Unit": typedDeviceMetadata?.businessUnit?.value,
-    }).sort(([a], [b]) => a.localeCompare(b))
+    Object.entries(entries)
+      .map(
+        ([key, entry]) =>
+          [
+            entry.field?.label ?? key,
+            formatMetadataValue(entry.value, entry.field ?? { type: "string" }),
+          ] as const,
+      )
+      .sort(([a], [b]) => a.localeCompare(b)),
   );
 
   if (isEditing) {
     return (
       <DeviceMetadataEdit
-        deviceMetadata={typedDeviceMetadata || {}}
+        deviceMetadata={entries}
         stopEditing={() => setIsEditing(false)}
       />
     );

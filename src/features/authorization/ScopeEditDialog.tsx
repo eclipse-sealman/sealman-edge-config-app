@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
-import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
+import { useEffect, useMemo, useState } from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { Button } from "@/components/ui/button";
 import { AttributeNameCombobox } from "./AttributeNameCombobox";
+import useDeviceMetadataFields, { DEFAULT_DEVICE_TYPE_ID } from "@/features/PlatformTypes/useDeviceMetadataFields";
+import useGetDevices from "@/generated/edge-administration/hooks/useGetDevices/useGetDevices";
+import { useUpdateDeviceType } from "@/generated/edge-administration/hooks/device_types/useUpdateDeviceType";
 import {
   Dialog,
   DialogContent,
@@ -104,6 +106,18 @@ function createAttributeRow(name = "", value = ""): AttributeRow {
   };
 }
 
+/** Turns a raw field key (e.g. "countryCode", "rack_number") into a human-readable label (e.g.
+ * "Country Code", "Rack Number") for the device-type field auto-created from a brand-new scope
+ * attribute name - see handleSave's newDeviceMetadataKeys handling below. */
+function prettifyMetadataKey(key: string): string {
+  const words = key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .split(" ")
+    .filter(Boolean);
+  return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+}
+
 export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeEditDialogProps) {
   const createScopeMutation = edgeConfigApiHooks.useCreateScope();
   const updateScopeMutation = edgeConfigApiHooks.useUpdateScope();
@@ -111,8 +125,38 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
   const [description, setDescription] = useState("");
   const [accessRule, setAccessRule] = useState<"ALL" | "ANY">("ALL");
   const [attributeRows, setAttributeRows] = useState<AttributeRow[]>([]);
-  const [platformMetadataKeys, setPlatformMetadataKeys] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // The "default" device type's required fields - these are enforced for every device
+  // regardless of its own type (see db/sqlalchemy/device.py:_effective_fields_for), so they're
+  // guaranteed to exist on every device's metadata, which is exactly what makes them safe
+  // candidates for a scope attribute key (a scope referencing a key that some devices don't
+  // have would just silently never match for those devices).
+  const { fields: deviceMetadataFields } = useDeviceMetadataFields();
+  const platformMetadataKeys = useMemo(
+    () => deviceMetadataFields.map(([key]) => key).sort((a, b) => a.localeCompare(b)),
+    [deviceMetadataFields],
+  );
+
+  // Reuses the same devices-with-metadata query the Devices table itself is built on (already
+  // cached/shared via React Query) to suggest values that actually occur somewhere today for a
+  // given key - the same "autoguided by what exists" idea as the key picker above, just for the
+  // value side of a row.
+  const devicesQuery = useGetDevices();
+  const metadataValuesByKey = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const device of devicesQuery.data ?? []) {
+      for (const [key, resolved] of Object.entries(device.deviceMetadata ?? {})) {
+        const value = resolved?.value;
+        if (value === null || value === undefined || value === "") continue;
+        if (!map.has(key)) map.set(key, new Set());
+        map.get(key)!.add(String(value));
+      }
+    }
+    return map;
+  }, [devicesQuery.data]);
+
+  const { updateDeviceType } = useUpdateDeviceType();
 
   const isEditMode = Boolean(scope);
   const isSaving = createScopeMutation.isPending || updateScopeMutation.isPending;
@@ -140,35 +184,6 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
 
     setError(null);
   }, [open, scope]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    let isActive = true;
-
-    const loadPlatformMetadataKeys = async () => {
-      try {
-        const metadata = await edgeConfigApi.getMetadataKeys();
-        if (!isActive) {
-          return;
-        }
-        setPlatformMetadataKeys(Object.keys(metadata).sort((a, b) => a.localeCompare(b)));
-      } catch {
-        if (!isActive) {
-          return;
-        }
-        setPlatformMetadataKeys([]);
-      }
-    };
-
-    void loadPlatformMetadataKeys();
-
-    return () => {
-      isActive = false;
-    };
-  }, [open]);
 
   const handleSave = async () => {
     setError(null);
@@ -225,6 +240,23 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
          accumulator[key] = parsedValue;
         return accumulator;
       }, {});
+
+      // A key that isn't among the known device-type field keys is brand new - register it as a
+      // (non-required, so no existing device becomes invalid) field on the default device type,
+      // so it's a real, recognized metadata key going forward rather than just a name floating
+      // in this one scope's attr dict with nothing backing it.
+      const knownKeys = new Set(platformMetadataKeys);
+      const newKeys = [...new Set(Object.keys(attr).filter((key) => !knownKeys.has(key)))];
+      if (newKeys.length > 0) {
+        await updateDeviceType({
+          typeId: DEFAULT_DEVICE_TYPE_ID,
+          body: {
+            fields: Object.fromEntries(
+              newKeys.map((key) => [key, { type: "string", label: prettifyMetadataKey(key), required: false }]),
+            ),
+          },
+        });
+      }
 
       const payload = {
         name: trimmedName,
@@ -381,21 +413,24 @@ export function ScopeEditDialog({ scope, open, onOpenChange, onCreated }: ScopeE
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="space-y-1">
-                            <Input
-                              value={row.value}
-                              onChange={(event) => {
-                                const value = event.target.value;
-                                setAttributeRows((current) =>
-                                  current.map((currentRow, currentIndex) =>
-                                    currentIndex === index ? { ...currentRow, value } : currentRow,
-                                  ),
-                                );
-                                setError(null);
-                              }}
-                              placeholder="Enter value - separate multiple with a comma"
-                            />
-                          </div>
+                          <AttributeNameCombobox
+                            value={row.value}
+                            options={[...(metadataValuesByKey.get(row.name.trim()) ?? [])].sort((a, b) =>
+                              a.localeCompare(b),
+                            )}
+                            onChange={(selectedValue) => {
+                              setAttributeRows((current) =>
+                                current.map((currentRow, currentIndex) =>
+                                  currentIndex === index
+                                    ? { ...currentRow, value: selectedValue }
+                                    : currentRow,
+                                ),
+                              );
+                              setError(null);
+                            }}
+                            placeholder="Select or type a value..."
+                            searchPlaceholder="Search values, or type to create one (comma-separate for multiple)..."
+                          />
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
