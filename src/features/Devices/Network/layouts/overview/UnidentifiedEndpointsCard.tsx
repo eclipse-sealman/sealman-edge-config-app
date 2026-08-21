@@ -35,6 +35,7 @@ export default function UnidentifiedEndpointsCard({ endpoints, deviceId, onEndpo
               deviceId={deviceId}
               onCreated={onEndpointCreated}
               onOpenDetails={() => {}}
+              onOpenServiceDetails={() => {}}
             />
           ))}
         </Accordion>

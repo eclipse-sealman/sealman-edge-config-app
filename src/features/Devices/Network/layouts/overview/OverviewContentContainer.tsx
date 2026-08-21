@@ -9,6 +9,7 @@ import usePostDeviceNetworkDiscover, { ScanResult } from "@/generated/edge-admin
 import usePostNetworkOverview, { MappedEndpoint, MappedPort, NetworkOverview } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import useGetNetworkScanPorts from "@/generated/edge-administration/hooks/network/useGetNetworkScanPorts";
 import useGetNetworkScanRange from "@/generated/edge-administration/hooks/network/useGetNetworkScanRange";
+import usePostDeviceScanPorts from "@/generated/edge-administration/hooks/network/usePostDeviceScanPorts";
 import { client } from "@/generated/edge-administration/api";
 import DiscoveredEndpointsCard from "./DiscoveredEndpointsCard";
 import UnidentifiedEndpointsCard from "./UnidentifiedEndpointsCard";
@@ -123,6 +124,7 @@ export default function OverviewContentContainer() {
   const { data: scanRange, isLoading: isLoadingRange, isError: isRangeError, refetch: refetchRange } = useGetNetworkScanRange(deviceId);
   const { mutateAsync: discoverAsync } = usePostDeviceNetworkDiscover();
   const { mutateAsync: overviewAsync } = usePostNetworkOverview();
+  const { mutateAsync: addDeviceScanPortsAsync } = usePostDeviceScanPorts();
 
   // Sticky results from the one-time custom scan (Scan Network dialog) - kept around and merged
   // into what's shown for as long as this page stays open, even though the recurring baseline
@@ -283,10 +285,26 @@ export default function OverviewContentContainer() {
     }
   };
 
-  const handleConfirmScan = (newRange: ScanNetworkRange | null, newExtraPorts: number[], newExtraIps: string[]) => {
+  const handleConfirmScan = async (newRange: ScanNetworkRange | null, newExtraPorts: number[], newExtraIps: string[]) => {
     setExtraRange(newRange);
-    setExtraPorts(newExtraPorts);
     setExtraIps(newExtraIps);
+    if (newExtraPorts.length === 0) {
+      setExtraPorts([]);
+      return;
+    }
+    // Any port added here is persisted for this device (not just this one-time scan) - once
+    // `refetchPorts` picks it up, it's part of `catalogPorts` and scanned automatically on every
+    // future cycle, so it no longer needs to be tracked as a separate "extra" port here.
+    try {
+      await addDeviceScanPortsAsync({ deviceId, body: { ports: newExtraPorts } });
+      await refetchPorts();
+      setExtraPorts([]);
+    } catch {
+      // Persisting failed - fall back to at least scanning them once, same as before this port
+      // list was persisted server-side, rather than silently dropping them.
+      toast.error("Failed to save the additional ports for this device. Scanning them once instead.");
+      setExtraPorts(newExtraPorts);
+    }
   };
 
   // Checked before the scan-pipeline's own loading/error states, since the details pages fetch
@@ -398,6 +416,7 @@ export default function OverviewContentContainer() {
         onAddEndpoint={() => setAddEndpointOpen(true)}
         onEndpointCreated={handleRefresh}
         onOpenDetails={setDetailsEndpointId}
+        onOpenServiceDetails={setDetailsServiceId}
       />
       <UnidentifiedEndpointsCard endpoints={unidentified} deviceId={deviceId} onEndpointCreated={handleRefresh} />
 
