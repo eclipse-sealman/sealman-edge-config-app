@@ -108,6 +108,7 @@ export default function ReassignEndpointDialog({
               fields={selectedType.fields}
               values={values}
               onChange={(key, value) => setValues((v) => ({ ...v, [key]: value }))}
+              lockSavedValues={false}
             />
           )}
 

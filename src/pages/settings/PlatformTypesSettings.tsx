@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import TypesManager from "@/features/PlatformTypes/TypesManager";
 import DeviceTableColumnsCard from "@/features/PlatformTypes/DeviceTableColumnsCard";
+import DefaultScanPortsCard from "@/features/PlatformTypes/DefaultScanPortsCard";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
 import { usePostDeviceType } from "@/generated/edge-administration/hooks/device_types/usePostDeviceType";
 import { useUpdateDeviceType } from "@/generated/edge-administration/hooks/device_types/useUpdateDeviceType";
@@ -120,6 +121,8 @@ export default function PlatformTypesSettings() {
             await serviceTypesQuery.refetch();
           }}
         />
+
+        <DefaultScanPortsCard />
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ interface props {
   onAddEndpoint: () => void;
   onEndpointCreated: () => void;
   onOpenDetails: (endpointId: string) => void;
+  onOpenServiceDetails: (serviceId: string) => void;
 }
 
 export default function DiscoveredEndpointsCard({
@@ -22,6 +23,7 @@ export default function DiscoveredEndpointsCard({
   onAddEndpoint,
   onEndpointCreated,
   onOpenDetails,
+  onOpenServiceDetails,
 }: props) {
   return (
     <div className="space-y-4">
@@ -50,11 +52,12 @@ export default function DiscoveredEndpointsCard({
           <Accordion type="single" collapsible className="w-full">
             {endpoints.map((endpoint) => (
               <EndpointAccordionItem
-                key={endpoint.ip}
+                key={endpoint.endpoint_id ?? endpoint.ip}
                 endpoint={endpoint}
                 deviceId={deviceId}
                 onCreated={onEndpointCreated}
                 onOpenDetails={onOpenDetails}
+                onOpenServiceDetails={onOpenServiceDetails}
               />
             ))}
           </Accordion>

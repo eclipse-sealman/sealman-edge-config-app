@@ -11,12 +11,27 @@ interface props {
   onChange: (key: string, value: unknown) => void;
   /** The field mapped to this type's "ip"/"port" role - shown read-only with the actual observed value. */
   lockedFieldKey?: string | null;
+  /** Whether a non-empty value in a `changeable: false` field reflects something already saved
+   * (and therefore genuinely immutable) rather than just a fresh, not-yet-persisted default fill.
+   * Defaults to true for the common case (viewing/editing an existing, already-created record) -
+   * pass false for a not-yet-saved record (a manual "Add" flow, or a reassignment whose fields
+   * are being re-entered from scratch), otherwise a type's own default value for a `changeable:
+   * false` field (e.g. a service type's default port) would lock the field before anything has
+   * actually been saved, making it impossible to type in a different value on first creation. */
+  lockSavedValues?: boolean;
   /** When provided, shows a delete action next to every non-required, unlocked field, letting its
    * stored value be cleared entirely rather than just edited. */
   onDelete?: (key: string) => void;
 }
 
-export default function TypeFieldsForm({ fields, values, onChange, lockedFieldKey, onDelete }: props) {
+export default function TypeFieldsForm({
+  fields,
+  values,
+  onChange,
+  lockedFieldKey,
+  lockSavedValues = true,
+  onDelete,
+}: props) {
   const entries = Object.entries(fields);
 
   if (entries.length === 0) {
@@ -27,7 +42,7 @@ export default function TypeFieldsForm({ fields, values, onChange, lockedFieldKe
     <div className="space-y-3">
       {entries.map(([key, definition]) => {
         const hasValue = values[key] !== null && values[key] !== undefined && values[key] !== "";
-        const isNonChangeable = definition.changeable === false && hasValue;
+        const isNonChangeable = lockSavedValues && definition.changeable === false && hasValue;
         const isLocked = key === lockedFieldKey || isNonChangeable;
         const canDelete = Boolean(onDelete) && !definition.required && !isLocked;
         return (

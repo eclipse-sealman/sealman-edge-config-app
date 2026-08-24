@@ -1126,6 +1126,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/{device}/network/last-known": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Network Last Known */
+        get: operations["get_network_last_known__device__network_last_known_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/{device}/network/scan-ports": {
         parameters: {
             query?: never;
@@ -1136,8 +1153,44 @@ export interface paths {
         /** Get Network Scan Ports */
         get: operations["get_network_scan_ports__device__network_scan_ports_get"];
         put?: never;
-        post?: never;
+        /** Post Network Scan Ports */
+        post: operations["post_network_scan_ports__device__network_scan_ports_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/default-scan-ports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Default Scan Ports */
+        get: operations["get_default_scan_ports_network_default_scan_ports_get"];
+        put?: never;
+        /** Post Default Scan Port */
+        post: operations["post_default_scan_port_network_default_scan_ports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/default-scan-ports/{port}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Default Scan Port */
+        delete: operations["delete_default_scan_port_network_default_scan_ports__port__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2588,6 +2641,16 @@ export interface components {
             ports: number[];
             /** Subnetmask */
             subnetMask: number;
+        };
+        /** DeviceScanPortsAdd */
+        DeviceScanPortsAdd: {
+            /** Ports */
+            ports: number[];
+        };
+        /** DefaultScanPortCreate */
+        DefaultScanPortCreate: {
+            /** Port */
+            port: number;
         };
         /** NetworkDiscoverModuleConfigV1 */
         NetworkDiscoverModuleConfigV1: {
@@ -6518,12 +6581,162 @@ export interface operations {
             };
         };
     };
+    get_network_last_known__device__network_last_known_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetworkOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_network_scan_ports__device__network_scan_ports_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_network_scan_ports__device__network_scan_ports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceScanPortsAdd"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_default_scan_ports_network_default_scan_ports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[];
+                };
+            };
+        };
+    };
+    post_default_scan_port_network_default_scan_ports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DefaultScanPortCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_default_scan_port_network_default_scan_ports__port__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                port: number;
             };
             cookie?: never;
         };

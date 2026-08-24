@@ -40,9 +40,12 @@ interface props {
 }
 
 /**
- * A one-time custom scan on top of whatever's already automatically scanned (the baseline range
- * derived from known endpoint IPs) - useful for reaching a device outside that range so it can
- * be assigned. Nothing here is persisted; it only affects the scan this dialog triggers.
+ * A custom scan on top of whatever's already automatically scanned (the baseline range derived
+ * from known endpoint IPs, plus the global/device default ports). The network range and
+ * individual endpoints below only affect this one-time scan and are never persisted - useful for
+ * reaching a device outside the known range so it can be assigned. Additional ports, however,
+ * ARE persisted for this device (see `onConfirm`'s caller) - once added, they're scanned
+ * automatically on every future cycle too, not just this one.
  */
 export default function ScanNetworkDialog({
   open,
@@ -103,8 +106,30 @@ export default function ScanNetworkDialog({
     const network = networkInput.trim();
     const mask = maskInput.trim();
 
+    // A port/IP typed into its input but not yet committed via "+"/Enter would otherwise be
+    // silently dropped from the scan - commit it here too, same validation as `addPort`/`addIp`.
+    let finalPorts = ports;
+    if (portInput.trim() !== "") {
+      const port = Number(portInput);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        toast.error("Enter a valid port (1-65535)");
+        return;
+      }
+      finalPorts = ports.includes(port) ? ports : [...ports, port];
+    }
+
+    let finalIps = ips;
+    if (ipInput.trim() !== "") {
+      const ip = ipInput.trim();
+      if (!IPV4_PATTERN.test(ip)) {
+        toast.error("Enter a valid IPv4 address");
+        return;
+      }
+      finalIps = ips.includes(ip) ? ips : [...ips, ip];
+    }
+
     if (!network && !mask) {
-      onConfirm(null, ports, ips);
+      onConfirm(null, finalPorts, finalIps);
       onOpenChange(false);
       return;
     }
@@ -119,7 +144,7 @@ export default function ScanNetworkDialog({
       return;
     }
 
-    onConfirm({ networkDefinition: network, subnetMask: maskNum }, ports, ips);
+    onConfirm({ networkDefinition: network, subnetMask: maskNum }, finalPorts, finalIps);
     onOpenChange(false);
   };
 
@@ -131,9 +156,10 @@ export default function ScanNetworkDialog({
         <DialogHeader>
           <DialogTitle>Scan Network</DialogTitle>
           <DialogDescription>
-            Run a one-time scan for a network range, extra ports, or individual IP addresses, on top of what's
-            already scanned automatically. Useful for reaching a device so you can assign it - once assigned,
-            its IP is scanned automatically going forward.
+            Run a one-time scan for a network range or individual IP addresses, on top of what's already scanned
+            automatically. Additional ports are saved permanently for this device and scanned automatically going
+            forward. Useful for reaching a device so you can assign it - once assigned, its IP is scanned
+            automatically going forward too.
           </DialogDescription>
         </DialogHeader>
 
@@ -189,7 +215,9 @@ export default function ScanNetworkDialog({
           </div>
 
           <div className="space-y-2 pt-2 border-t">
-            <label className="text-xs font-medium text-muted-foreground">Additional ports for scan</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              Additional ports for scan <span className="font-normal">(saved permanently for this device)</span>
+            </label>
             <div className="flex gap-2">
               <input
                 type="number"

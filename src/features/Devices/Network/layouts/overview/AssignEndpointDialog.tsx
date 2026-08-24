@@ -64,6 +64,11 @@ export default function AssignEndpointDialog({
     if (!selectedType || !ip) return null;
     return Object.entries(selectedType.mapping).find(([, role]) => role === "ip")?.[0] ?? null;
   }, [selectedType, ip]);
+  // Whether `values` currently reflects this endpoint's actual saved data (vs. just a fresh type's
+  // default fills for a not-yet-created endpoint) - only in that case should a `changeable: false`
+  // field (like the built-in "ip" field) be locked, otherwise a type's own default IP would lock
+  // the field before the admin has had a chance to type in a real one.
+  const isSameExistingType = existingEndpoint?.type_id === selectedType?.type_id;
 
   useEffect(() => {
     if (!open) return;
@@ -76,7 +81,6 @@ export default function AssignEndpointDialog({
       setValues({});
       return;
     }
-    const isSameExistingType = existingEndpoint?.type_id === selectedType.type_id;
     const initial: Record<string, unknown> = {};
     for (const [key, definition] of Object.entries(selectedType.fields)) {
       if (key === ipFieldKey && ip) {
@@ -88,7 +92,7 @@ export default function AssignEndpointDialog({
       }
     }
     setValues(initial);
-  }, [selectedType, ipFieldKey, ip, existingEndpoint]);
+  }, [selectedType, ipFieldKey, ip, existingEndpoint, isSameExistingType]);
 
   const handleSubmit = async () => {
     if (!selectedType) {
@@ -161,6 +165,7 @@ export default function AssignEndpointDialog({
               values={values}
               onChange={(key, value) => setValues((v) => ({ ...v, [key]: value }))}
               lockedFieldKey={ipFieldKey}
+              lockSavedValues={isSameExistingType}
             />
           )}
 
