@@ -13,25 +13,33 @@ import {
 } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import useGetDeviceMetadata from "../../../../generated/edge-administration/hooks/device_metadata/useGetDeviceMetadata";
+import { components } from "@/generated/edge-administration/types";
 import { formatMetadataValue } from "@/features/PlatformTypes/FieldValueInput";
 import DeviceMetadataEdit from "./DeviceMetadataEdit";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
 
+type DeviceMetadataEntry = components["schemas"]["DeviceMetadataEntry"];
+
 const GuardedHeadingButton = withPermissionRequiredTooltip(HeadingButton);
 
-export default function DeviceMetadata() {
+export interface DeviceMetadataProps {
+  deviceMetadata: Record<string, DeviceMetadataEntry>;
+  isFetching: boolean;
+  isError: boolean;
+  error?: ApiError | null;
+}
+
+export default function DeviceMetadata({
+  deviceMetadata,
+  isFetching,
+  isError,
+  error,
+}: DeviceMetadataProps) {
   const { deviceId } = useParams();
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const deviceMetadata = useGetDeviceMetadata(deviceId ?? "");
-
-  const apiError = deviceMetadata.isError
-    ? (deviceMetadata.error as ApiError)
-    : null;
-  const entries = deviceMetadata.data?.deviceMetadata ?? {};
 
   const tableData = Object.fromEntries(
-    Object.entries(entries)
+    Object.entries(deviceMetadata)
       .map(
         ([key, entry]) =>
           [
@@ -45,7 +53,7 @@ export default function DeviceMetadata() {
   if (isEditing) {
     return (
       <DeviceMetadataEdit
-        deviceMetadata={entries}
+        deviceMetadata={deviceMetadata}
         stopEditing={() => setIsEditing(false)}
       />
     );
@@ -53,7 +61,7 @@ export default function DeviceMetadata() {
 
   return (
     <div>
-      <Heading processing={deviceMetadata.isFetching} color={HeadingColor.Gray}>
+      <Heading processing={isFetching} color={HeadingColor.Gray}>
         <InformationCircleIcon className="w-7 h-7 mr-1" />
         Device Metadata
         <GuardedHeadingButton
@@ -65,23 +73,20 @@ export default function DeviceMetadata() {
           Edit
         </GuardedHeadingButton>
       </Heading>
-      {deviceMetadata.isError && apiError ? (
+      {isError && error ? (
         <div className="pt-4 pl-2">
           <Badge color={BadgeColor.Red}>
             ERROR:&nbsp;
-            {apiError.statusCode === 404 ? (
+            {error.statusCode === 404 ? (
               <span>Device does not have metadata</span>
             ) : (
-              <>{apiError.message}</>
+              <>{error.message}</>
             )}
           </Badge>
         </div>
       ) : null}
 
-      <DictionaryList
-        dictionary={tableData}
-        processing={deviceMetadata.isFetching}
-      />
+      <DictionaryList dictionary={tableData} processing={isFetching} />
     </div>
   );
 }

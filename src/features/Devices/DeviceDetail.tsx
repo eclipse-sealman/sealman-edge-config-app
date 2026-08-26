@@ -3,13 +3,12 @@ import {
   Route,
   Routes,
   useParams,
-  // useLocation,
 } from "react-router-dom";
 import DeviceConfig from "./DeviceConfig/DeviceConfig";
 import ModuleList from "./ModuleConfig/ModuleList";
 import SmartEmsInfo from "./DeviceInfo/SmartEmsInfo";
 import ConnectionStatus from "./DeviceInfo/ConnectionInfo";
-import { edgeConfigApiHooks } from "../../api/edgeConfig/edgeConfigApiHooks";
+import useGetDevice from "@/generated/edge-administration/hooks/devices/useGetDevice";
 import OPCUABrrowserPage from "../../pages/OPCUABrowser";
 import DeploymentInfo from "./ModuleConfig/DeploymentInfo";
 import { NetworkPage } from "./Network";
@@ -21,9 +20,8 @@ import { PERMISSION_KEYS } from "../authorization/permissions/permission-keys";
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
-  // const location = useLocation();
-  // const urlParams = new URLSearchParams(location.search);
-  // const endpoint = urlParams.get("endpoint");
+
+  const device = useGetDevice(deviceId ?? "");
 
   const tabs = [
     {
@@ -31,9 +29,26 @@ export default function DeviceDetail() {
       href: "",
       element: (
         <div className="space-y-4">
-          <ConnectionStatus />
-          <DeviceMetadata />
-          <SmartEmsInfo />
+          <ConnectionStatus
+            connectionStatus={device.data?.connectionStatus}
+            isFetching={device.isFetching}
+            isError={device.isError}
+            error={device.error as any}
+          />
+          <DeviceMetadata
+            deviceMetadata={device.data?.deviceMetadata ?? {}}
+            isFetching={device.isFetching}
+            isError={device.isError}
+            error={device.error as any}
+          />
+          <SmartEmsInfo
+            data={device.data}
+            lastSeenAt={device.data?.lastSeenAt}
+            isFetching={device.isFetching}
+            isPending={device.isPending}
+            isError={device.isError}
+            error={device.error as any}
+          />
           <SecurityInformation />
         </div>
       ),
@@ -99,7 +114,7 @@ export default function DeviceDetail() {
         </div>
         <div className="relative z-10 bg-white rounded-sm p-2 relative flex-1 min-h-0 flex flex-col gap-2">
           <div className="shrink-0">
-            <DeviceCard />
+            <DeviceCard connectionStatus={device.data?.connectionStatus} isLoading={device.isLoading} isError={device.isError} error={device.error} deviceId={deviceId} />
           </div>
           <div className="flex-1 min-h-0">
             <Routes>
@@ -107,15 +122,6 @@ export default function DeviceDetail() {
                 <Route path={tab.href} key={tab.href} element={tab.element} />
               ))}
               <Route path="opcua" element={<OPCUABrrowserPage />} />
-              {/* <Route
-                path="webvnc"
-                element={
-                  <WebVNCApp
-                    deviceId={deviceId ?? ""}
-                    sourceIp={endpoint ?? ""}
-                  />
-                }
-              ></Route> */}
             </Routes>
           </div>
         </div>
@@ -124,22 +130,27 @@ export default function DeviceDetail() {
   );
 }
 
-function DeviceCard() {
-  const { deviceId } = useParams();
-
-  const { isLoading, isError, data: connectionStatus, error } = edgeConfigApiHooks.useGetDeviceConnectionStatus(deviceId);
-
-  // show grey loading state
+function DeviceCard({
+  connectionStatus,
+  isLoading,
+  isError,
+  error,
+  deviceId,
+}: {
+  connectionStatus?: { iotEdgeRuntime: string; iotHub: string; sems: string };
+  isLoading: boolean;
+  isError: boolean;
+  error?: unknown;
+  deviceId?: string;
+}) {
   if (isLoading)
     return (
       <div className="p-2 rounded-sm ring-1 ring-inset animate-pulse ring-gray-200">
         <div className="h-[55px] bg-slate-300 rounded-sm text-center text-4xl truncate p-2">{deviceId}</div>
-        
       </div>
     );
 
   if (connectionStatus){
-    // Show green state --> iot-runtime, iot-hub and sems are online
     if (connectionStatus.iotHub === "Connected" && connectionStatus.iotEdgeRuntime === "Connected" && connectionStatus.sems === "Connected"){
       return (
         <div className={`text-center text-4xl truncate p-2 rounded-sm ring-1 ring-inset bg-green-100 ring-green-600/20`}>
@@ -147,7 +158,6 @@ function DeviceCard() {
         </div>
       );
     }
-    // Show red state --> iot-runtime, iot-hub and sems are offline
     if (connectionStatus.iotHub=="Disconnected" && connectionStatus.iotEdgeRuntime === "Disconnected" && connectionStatus.sems=="Disconnected"){
       return (
         <div className={`text-center text-4xl truncate p-2 rounded-sm ring-1 ring-inset bg-red-100 ring-red-600/20`}>
@@ -155,7 +165,6 @@ function DeviceCard() {
         </div>
       )
     }
-    // Show yellow state --> at least one of iot-runtime, iot-hub or sems is offline
     if (connectionStatus.iotHub === "Disconnected" || connectionStatus.iotEdgeRuntime === "Disconnected" || connectionStatus.sems === "Disconnected" ){
       return (
         <div className={`text-center text-4xl truncate p-2 rounded-sm ring-1 ring-inset bg-yellow-100 ring-yellow-600/20`}>
@@ -163,15 +172,11 @@ function DeviceCard() {
         </div>
       )
     }
-    
-
   }
-  // handle errors
   if (isError)
     return (
       <div>
-        Error: {error.message} {JSON.stringify(error.response?.data, null, 4)}
+        Error: {String(error)}
       </div>
     );
-
 }

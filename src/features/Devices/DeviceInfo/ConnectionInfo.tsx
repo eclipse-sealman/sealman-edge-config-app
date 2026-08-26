@@ -1,15 +1,20 @@
-import { useParams } from "react-router-dom";
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
 import { Heading, HeadingColor } from "../../../components/Typography/Heading";
 import { SignalIcon } from "@heroicons/react/24/outline";
 import DictionaryList, { DictionaryListEntries } from "../../../components/Table/DictionaryList";
-import { edgeConfigApiHooks } from "../../../api/edgeConfig/edgeConfigApiHooks";
+import { components } from "@/generated/edge-administration/types";
+import { ApiError } from "@/generated/edge-administration/api";
 
-export default function ConnectionStatus() {
-  const { deviceId } = useParams();
+type DeviceDetailConnectionStatus = components["schemas"]["DeviceDetailConnectionStatus"];
 
-  const { isPending, isError, data: connectionStatus, error, isFetching } = edgeConfigApiHooks.useGetDeviceConnectionStatus(deviceId);
+export interface ConnectionStatusProps {
+  connectionStatus?: DeviceDetailConnectionStatus;
+  isFetching: boolean;
+  isError: boolean;
+  error?: ApiError | null;
+}
 
+export default function ConnectionStatus({ connectionStatus, isFetching, isError, error }: ConnectionStatusProps) {
   let tableData: DictionaryListEntries = {
     "IoT-Edge Runtime": "",
     "IoT-Hub": "",
@@ -28,12 +33,12 @@ export default function ConnectionStatus() {
     }
   }
 
-  const errorMessage = isError ? `${error.message}` : undefined
+  const errorMessage = isError ? `${error?.message}` : undefined
 
   return (
     <div>
-      <Heading processing={isFetching} color={HeadingColor.Gray}><SignalIcon className="w-7 h-7 mr-1" />Connection Status</Heading>
-      <DictionaryList dictionary={tableData} processing={isPending} error={errorMessage}/>
+      <Heading processing={isFetching} color={HeadingColor.Gray}><SignalIcon className="w-7 h-7 mr-1" />Device Connection Status</Heading>
+      <DictionaryList dictionary={tableData} processing={isFetching} error={errorMessage}/>
     </div>
   )
 }
