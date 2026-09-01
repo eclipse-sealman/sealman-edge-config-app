@@ -374,6 +374,41 @@ const deleteDeviceTemplateVariable = async (name: string): Promise<void> => {
   await edgeConfigApiInstance.delete(`/platform/device-template-variables/${encodeURIComponent(name)}`);
 };
 
+const getExtensions = async () => {
+  const { data } = await edgeConfigApiInstance.get('/extensions');
+  return data;
+}
+
+const getExtensionDetails = async (name: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/extensions/${encodeURIComponent(name)}`);
+  return data;
+}
+
+const deregisterExtension = async (name: string) => {
+  const { data } = await edgeConfigApiInstance.delete(`/extensions/${encodeURIComponent(name)}`);
+  return data;
+}
+
+const listDeviceKeys = async (name: string) => {
+  const { data } = await edgeConfigApiInstance.get(`/extensions/${encodeURIComponent(name)}/device-keys`);
+  return data;
+}
+
+const issueDeviceKey = async (name: string, deviceId: string, moduleId?: string) => {
+  const { data } = await edgeConfigApiInstance.post(`/extensions/${encodeURIComponent(name)}/device-keys`, {
+    device_id: deviceId,
+    module_id: moduleId || undefined,
+  });
+  return data;
+}
+
+const revokeDeviceKey = async (name: string, deviceId: string) => {
+  const { data } = await edgeConfigApiInstance.delete(
+    `/extensions/${encodeURIComponent(name)}/device-keys/${encodeURIComponent(deviceId)}`,
+  );
+  return data;
+}
+
 
 export const edgeConfigApi = {
   getDevices,
@@ -437,5 +472,11 @@ export const edgeConfigApi = {
   getDevicesWithMetaKey,
   getDeviceTemplateVariables,
   setDeviceTemplateVariable,
-  deleteDeviceTemplateVariable
+  deleteDeviceTemplateVariable,
+  getExtensions,
+  getExtensionDetails,
+  deregisterExtension,
+  listDeviceKeys,
+  issueDeviceKey,
+  revokeDeviceKey,
 }

@@ -23,6 +23,9 @@ export default function NavigationBar() {
   const { hasPermission: hasAuthorizationReadPermission, isLoading: isPermissionsLoading } = usePermissions({
     permissionKey: PERMISSION_KEYS.PLATFORM_AUTHORIZATION_READ,
   });
+  const { hasPermission: hasExtensionReadPermission, isLoading: isExtensionPermissionsLoading } = usePermissions({
+    permissionKey: PERMISSION_KEYS.EXTENSION_REGISTER,
+  });
 
   const navigation: INavigation[] = useMemo(() => {
     const items: INavigation[] = [
@@ -51,8 +54,16 @@ export default function NavigationBar() {
       });
     }
 
+    if (!isExtensionPermissionsLoading && hasExtensionReadPermission) {
+      items.push({
+        name: "Extensions",
+        href: "/extensions",
+        current: true,
+      });
+    }
+
     return items;
-  }, [hasAuthorizationReadPermission, isPermissionsLoading]);
+  }, [hasAuthorizationReadPermission, isPermissionsLoading, hasExtensionReadPermission, isExtensionPermissionsLoading]);
 
   const initials = useMemo(() => {
     return auth.user?.name?.split(" ").map(n => n[0]).join("") || "";

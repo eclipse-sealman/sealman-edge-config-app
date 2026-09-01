@@ -27,6 +27,7 @@ import Roles from "./features/authorization/Roles";
 import Scopes from "./features/authorization/Scopes";
 import Users from "./features/authorization/Users";
 import UserProfile from "./pages/UserProfile";
+import Extensions from "./features/extensions/Extensions";
 
 export default function App() {
   const auth = useAuth();
@@ -73,6 +74,8 @@ export default function App() {
               <Route path="scopes" element={<Scopes />} />
               <Route path="users" element={<Users />} />
             </Route>
+
+            <Route path="extensions" element={<Extensions />} />
 
             <Route path="settings" element={<SettingsLayout />}>
               <Route path="platform-types" element={<PlatformTypesSettings />} />
