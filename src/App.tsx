@@ -38,6 +38,18 @@ export default function App() {
     }
   }, [auth, auth.isAuthenticated, auth.isLoading]);
 
+  // Do not mount routes (or their react-query hooks) until OIDC has a user.
+  // Otherwise axios/openapi middleware call getAccessToken() while sessionStorage
+  // is still empty, throw "User is not authenticated", and the UI treats the
+  // backend as unauthenticated even after login completes.
+  if (auth.isLoading || !auth.isAuthenticated) {
+    return (
+      <div className="flex h-screen items-center justify-center text-sm text-gray-500">
+        {auth.isLoading ? "Loading..." : "Redirecting to sign in..."}
+      </div>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
