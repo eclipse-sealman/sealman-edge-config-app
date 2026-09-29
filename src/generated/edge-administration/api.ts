@@ -51,12 +51,14 @@ export const authMiddleware: Middleware = {
 export class ApiError extends Error {
   statusCode: number;
   message: string;
+  details?: unknown;
 
-  constructor(message: string, statusCode: number) {
+  constructor(message: string, statusCode: number, details?: unknown) {
     super(message);
     this.message = message;
     this.name = "ApiError";
     this.statusCode = statusCode;
+    this.details = details;
 
     // This helps maintain the proper stack trace
     if ((Error as any).captureStackTrace) {
@@ -68,8 +70,10 @@ export class ApiError extends Error {
 export const errorHandlerMiddleware: Middleware = {
   async onResponse({ response }) {
     if (!response.ok) {
-      const responseBody = await response.json();
-      throw new ApiError(responseBody.message, response.status);
+      const responseBody: unknown = await response.json().catch(() => null);
+      const payload = responseBody && typeof responseBody === "object" ? responseBody as Record<string, unknown> : {};
+      const message = typeof payload.message === "string" ? payload.message : `Request failed (${response.status})`;
+      throw new ApiError(message, response.status, payload.errors);
     }
     return response;
   },

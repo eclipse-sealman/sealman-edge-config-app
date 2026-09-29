@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useGetExtension, useReplaceExtension } from "@/generated/edge-administration/hooks/useExtensions";
 import { ApplyManifestDialog } from "./ApplyManifestDialog";
 import { ExtensionFormFields } from "./ExtensionFormFields";
+import { extensionErrorMessages } from "./extensionErrors";
 import { draftFromRegistration, draftToRegistration, emptyDraft, type ExtensionFormDraft } from "./extensionFormTypes";
 import { downloadDraftAsManifest } from "./exportManifest";
 
@@ -73,7 +74,9 @@ export default function EditExtensionPage() {
       toast.success(`Extension "${name}" updated`);
       navigate("..");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to update extension");
+      const messages = extensionErrorMessages(e, "Failed to update extension");
+      setErrors(messages);
+      toast.error(messages[0]);
     }
   }
 

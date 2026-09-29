@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useRegisterExtension } from "@/generated/edge-administration/hooks/useExtensions";
 import { ExtensionFormFields } from "./ExtensionFormFields";
+import { extensionErrorMessages } from "./extensionErrors";
 import { draftFromRegistration, draftToRegistration, emptyDraft, type ExtensionFormDraft } from "./extensionFormTypes";
 import type { ExtensionRegistration } from "./types";
 
@@ -125,7 +126,9 @@ export default function RegisterExtensionPage() {
       toast.success(`Extension "${result.registration.name}" registered`);
       navigate("..");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to register extension");
+      const messages = extensionErrorMessages(e, "Failed to register extension");
+      setErrors(messages);
+      toast.error(messages[0]);
     }
   }
 
