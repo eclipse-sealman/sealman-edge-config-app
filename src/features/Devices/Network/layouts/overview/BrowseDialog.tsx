@@ -15,7 +15,7 @@ export default function BrowseDialog({ open, onOpenChange, kind, ip, port }: pro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl h-[80vh] flex flex-col">
+      <DialogContent className="flex h-[calc(100vh-12rem)] w-[95vw] max-w-[90rem] flex-col">
         <DialogHeader>
           <DialogTitle>
             {registration?.label ?? "Browse"} — {ip}:{port}

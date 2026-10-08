@@ -39,7 +39,6 @@ describe("Natconfig", () => {
     waitFor(deviceInterceptors.waitSmartEmsStatus);
 
     // Assert values from fixtures
-    cy.get("#enable-config-nat").should("not.be.checked");
     cy.get("#name-0").should("have.value", "nat-config-1");
     cy.get("#extIp-0").should("have.value", "36.3.254.253");
     cy.get("#intIp-0").should("have.value", "255.4.74.231");
@@ -51,15 +50,12 @@ describe("Natconfig", () => {
     cy.contains("Delete rule").click();
     cy.contains("Delete rule").click();
 
-    // click enable
-    cy.get("#enable-config-nat").click();
-
-    // Assert save
+    // Assert save: without rules nat is disabled implicitly
     cy.contains("Save").click();
 
     cy.wait(`@${waitPostDeviceNatConfig}`).then(({ request }) => {
       assert.deepEqual(request?.body, {
-        nat_enabled: true,
+        nat_enabled: false,
         nat_rules: [],
       });
     });

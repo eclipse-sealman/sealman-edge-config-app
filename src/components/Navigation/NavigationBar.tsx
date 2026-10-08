@@ -63,7 +63,7 @@ export default function NavigationBar() {
       {({ open }) => (
         <>
           <div className="mx-auto max-w-(--breakpoint-3xl) px-4">
-            <div className="relative flex h-16 items-center justify-between">
+            <div className="relative flex h-20 items-center justify-between">
               <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
                 <Disclosure.Button className="relative inline-flex items-center justify-center rounded-sm p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-white">
                   <span className="absolute -inset-0.5" />
@@ -75,12 +75,12 @@ export default function NavigationBar() {
                   )}
                 </Disclosure.Button>
               </div>
-              <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-                <div className="flex h-16 shrink-0 items-center overflow-hidden">
-                  {/* The image has a lot of empty margin above and below the artwork, so it is scaled up and cropped to the bar height. */}
-                  <img className="h-28 w-auto max-w-none" src={logo} alt="Sealman IoT" />
+              <div className="flex flex-1 items-center justify-center sm:justify-start">
+                <div className="flex h-20 shrink-0 items-center overflow-hidden">
+                  {/* The image has empty margin above and below the artwork, so it is slightly oversized and cropped to the bar height. */}
+                  <img className="h-22 w-auto max-w-none" src={logo} alt="Sealman IoT" />
                 </div>
-                <div className="hidden sm:ml-6 sm:block">
+                <div className="hidden sm:ml-6 sm:flex sm:items-center">
                   <div className="flex space-x-4">
                     {navigation.map((item) => (
                       <NavLink

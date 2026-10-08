@@ -2,6 +2,7 @@ import createReactQueryClient from "openapi-react-query";
 import createFetchClient, { Middleware } from "openapi-fetch";
 import type { paths } from "./types";
 import { getAccessToken } from "@/auth";
+import { LOCAL_ONLINE_SIMULATION, simulateOnline } from "@/lib/localOnlineSimulation";
 
 // oidc-client-ts's getUser() can, in rare cases (e.g. a stuck silent-renew iframe),
 // hang far longer than any request should reasonably wait - bounding it here means a
@@ -79,10 +80,26 @@ export const errorHandlerMiddleware: Middleware = {
   },
 };
 
+export const localOnlineSimulationMiddleware: Middleware = {
+  async onResponse({ response }) {
+    if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+      return response;
+    }
+    const body = await response.clone().json().catch(() => undefined);
+    if (body === undefined) return response;
+    return new Response(JSON.stringify(simulateOnline(body)), {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  },
+};
+
 export const client = createFetchClient<paths>({
   baseUrl: `${import.meta.env.VITE_API_URI}`,
 });
 
 client.use(authMiddleware, errorHandlerMiddleware);
+if (LOCAL_ONLINE_SIMULATION) client.use(localOnlineSimulationMiddleware);
 
 export const edgeApi = createReactQueryClient(client);

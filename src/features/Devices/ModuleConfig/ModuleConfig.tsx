@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { AlertCircle, AlertTriangle, Info } from "lucide-react";
 import Button from "../../../components/Input/Button";
+import { Button as UiButton } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useParams } from "react-router-dom";
 import JsonEditor from "../../../components/Input/JsonEditor";
 import { edgeConfigApiHooks } from "../../../api/edgeConfig/edgeConfigApiHooks";
@@ -33,27 +36,32 @@ export default function ModuleConfig({
     staleTime: Infinity,
   });
 
-  if (isPending) return <>Loading</>;
+  if (isPending) return <p className="text-sm text-muted-foreground">Loading twin config...</p>;
 
   if (isError) {
     return (
-      <>
-        <div className="flex my-2 gap-2">
-          <div className="grow bg-red-100 border border-red-400 p-2">
-            Could not retrieve twin config. {error.code}{" "}
-            {JSON.stringify(error.response?.data)}
-          </div>
-          <Button onClick={() => refetch()} processing={isPending}>
-            Retry
-          </Button>
+      <div className="flex h-full flex-col gap-3">
+        <Alert variant="destructive" className="shrink-0">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Could not retrieve twin config</AlertTitle>
+          <AlertDescription className="flex items-start justify-between gap-4">
+            <span className="break-all">
+              {error.code} {JSON.stringify(error.response?.data)}
+            </span>
+            <UiButton type="button" variant="outline" size="sm" onClick={() => refetch()}>
+              Retry
+            </UiButton>
+          </AlertDescription>
+        </Alert>
+        <div className="min-h-0 flex-1">
+          <JsonForm
+            moduleName={moduleName}
+            appMessage={appMessage}
+            moduleStatus={moduleStatus}
+            data={""}
+          />
         </div>
-        <JsonForm
-          moduleName={moduleName}
-          appMessage={appMessage}
-          moduleStatus={moduleStatus}
-          data={""}
-        />
-      </>
+      </div>
     );
   }
 
@@ -102,41 +110,43 @@ function JsonForm({
   };
 
   return (
-    <>
-      <div className="h-[calc(100%-8rem)] md:h-[calc(100%-5rem)]">
+    <div className="flex h-full flex-col gap-3">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-md border">
         <JsonEditor value={twinConfigForm} onChange={handleFormChange} />
       </div>
       {appMessage &&
         appMessage !== "configuration successfull" &&
         appMessage !== "configuration successful" && (
-          <div className="max-h-36 overflow-y-auto bg-red-100 border border-red-400 mt-2 p-2">
-            {appMessage}
-          </div>
+          <Alert variant="destructive" className="max-h-36 shrink-0 overflow-y-auto">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Module reported a configuration error</AlertTitle>
+            <AlertDescription className="whitespace-pre-wrap break-words">{appMessage}</AlertDescription>
+          </Alert>
         )}
       {moduleStatus === "delete_scheduled" ||
       moduleStatus === "deploy_scheduled" ? (
-        <div className="max-h-36 overflow-y-auto bg-yellow-100 border border-yellow-400 mt-2 p-2">
-          Cannot set Twin config in current Module-State
-        </div>
+        <Alert className="shrink-0 border-amber-200 bg-amber-50 text-amber-800 [&>svg]:text-amber-600">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>Cannot set Twin config in current Module-State</AlertDescription>
+        </Alert>
       ) : (
-        <div className="flex items-center">
+        <div className="flex shrink-0 items-center gap-3">
           <GuardedButton
-              deviceId={deviceId}
-              permissionKey={PERMISSION_KEYS.DEVICE_MODULE_TWIN_CONFIG_WRITE}
-              processing={usePostTwinConfig.isPending}
-              className="mt-2"
-              onClick={() => onSetTwinConfig()}
-            >
-              Set Twin Config
+            deviceId={deviceId}
+            permissionKey={PERMISSION_KEYS.DEVICE_MODULE_TWIN_CONFIG_WRITE}
+            processing={usePostTwinConfig.isPending}
+            onClick={() => onSetTwinConfig()}
+          >
+            Set Twin Config
           </GuardedButton>
 
-          <span className="ml-2">
-            ⚠️ Changes may take a few seconds to apply. If you reopen this modal
-            immediately, you might still see the old values. Please wait a
-            moment and try again.
-          </span>
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0" />
+            Changes may take a few seconds to apply. If you reopen this dialog
+            immediately, you might still see the old values.
+          </p>
         </div>
       )}
-    </>
+    </div>
   );
 }

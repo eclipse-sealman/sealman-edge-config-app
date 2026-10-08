@@ -6,9 +6,17 @@ import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { CMD_PROXY_MODULE_NAME } from "@/api/edgeConfig/moduleNames";
 import { JSONTree } from "react-json-tree";
 import { useState } from "react";
+import { Copy, Download } from "lucide-react";
+import { Button as UiButton } from "@/components/ui/button";
 import {
-  PrinterIcon,
-  ArrowDownTrayIcon,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   WrenchScrewdriverIcon,
 } from "@heroicons/react/24/outline";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
@@ -131,43 +139,37 @@ export function DeviceSemsConfigExport() {
         >
           Show active Config
         </PermissionAndModuleGuardedButton>
-      {jsonData && isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-3/4 max-w-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <WrenchScrewdriverIcon className="w-7 h-7 mr-1" />
-              <strong>
-                {configType === "sems"
-                  ? "Desired Device Configuration"
-                  : "Deployed Device Configuration"}
-              </strong>
-
-              <div className="ml-auto flex space-x-2">
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center p-2 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  <PrinterIcon className="w-5 h-5 mr-1" />
-                  Copy
-                </button>
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center p-2 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  <ArrowDownTrayIcon className="w-5 h-5 mr-1" />
-                  Download
-                </button>
-              </div>
-            </div>
-            <div className="mb-4 max-h-96 overflow-auto">
-              {jsonData && <JSONTree data={jsonData} theme={theme} />}
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={() => setIsModalOpen(false)}>Close</Button>
-            </div>
+      <Dialog open={isModalOpen && !!jsonData} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader className="pr-6">
+            <DialogTitle className="flex items-center gap-2">
+              <WrenchScrewdriverIcon className="h-5 w-5" />
+              {configType === "sems"
+                ? "Desired Device Configuration"
+                : "Deployed Device Configuration"}
+            </DialogTitle>
+            <DialogDescription>
+              {configType === "sems"
+                ? "The configuration the Smart-EMS is going to receive."
+                : "The configuration currently active on the device."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto rounded-md border">
+            {jsonData && <JSONTree data={jsonData} theme={theme} />}
           </div>
-        </div>
-      )}
+          <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
+            <div className="flex gap-2">
+              <UiButton variant="outline" size="sm" onClick={handleCopy}>
+                <Copy /> Copy
+              </UiButton>
+              <UiButton variant="outline" size="sm" onClick={handleDownload}>
+                <Download /> Download
+              </UiButton>
+            </div>
+            <UiButton onClick={() => setIsModalOpen(false)}>Close</UiButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

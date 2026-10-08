@@ -15,6 +15,18 @@ const SETTINGS_TABS: SettingsTab[] = [
     path: "templates",
   },
   {
+    label: "Azure IoT",
+    path: "azure-iot",
+  },
+  {
+    label: "Container Registry",
+    path: "container-registry",
+  },
+  {
+    label: "Sealman EMS",
+    path: "sealman-ems",
+  },
+  {
     label: "Extensions",
     path: "extensions",
   },

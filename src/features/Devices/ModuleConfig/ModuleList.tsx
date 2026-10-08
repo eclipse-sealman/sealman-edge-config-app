@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
-import { ChevronRightIcon, LinkIcon } from "@heroicons/react/24/outline";
-import Modal, { ModalState } from "../../../components/Modal/Modal";
-import { Tab } from "@headlessui/react";
+import { LinkIcon } from "@heroicons/react/24/outline";
+import SubTabs from "@/components/Navigation/SubTabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import ModuleLogs from "./ModuleLogs";
 import ModuleConfig from "./ModuleConfig";
 import DirectMethods from "./DirectMethods";
@@ -23,10 +29,8 @@ import { CubeIcon } from "@heroicons/react/24/outline";
 
 
 export default function ModuleList() {
-  const [modalState, setModalState] = useState<ModalState>({
-    isOpen: false,
-    children: <></>
-  });
+  const [selectedModule, setSelectedModule] = useState<ModuleData | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { deviceId } = useParams();
   const { data: modules } = edgeConfigApiHooks.useGetModules(deviceId);
 
@@ -55,11 +59,10 @@ export default function ModuleList() {
   if (isError) return <p className="text-sm text-destructive">Error: {statusError.message}</p>
 
   const moduleRows = moduleData.map((module, index) => (
-    <TR className="cursor-pointer" onClick={() => setModalState({
-      children: <ModuleModal module={module} />,
-      title: <div className="flex items-center">{deviceId}<ChevronRightIcon className="w-4 h-4" /> {module.moduleName}</div>,
-      isOpen: true
-    })} key={index}>
+    <TR className="cursor-pointer" onClick={() => {
+      setSelectedModule(module);
+      setDialogOpen(true);
+    }} key={index}>
       <TD>
         <Badge color={module.connectionState === "Connected" ? BadgeColor.Green : BadgeColor.Red}>
           {module.connectionState === "Connected" ? <LinkIcon className="w-3 h-3" /> : ""}
@@ -185,40 +188,46 @@ export default function ModuleList() {
           <TBody>{moduleRows}</TBody>
         </Table>
       </div>
-      <Modal modalState={modalState} setModalState={setModalState}></Modal>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="flex h-[calc(100vh-12rem)] max-w-6xl flex-col gap-0 p-0">
+          {selectedModule && (
+            <>
+              <DialogHeader className="border-b px-6 py-4 pr-12">
+                <DialogTitle>{selectedModule.moduleName}</DialogTitle>
+                <DialogDescription>
+                  Module on device {deviceId}. Edit its twin configuration, invoke methods or inspect logs.
+                </DialogDescription>
+              </DialogHeader>
+              <ModuleModal key={selectedModule.moduleId} module={selectedModule} />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
+const MODULE_TABS = [
+  { id: "config", label: "Module Configuration" },
+  { id: "methods", label: "Methods" },
+  { id: "logs", label: "Logs" },
+] as const;
+
+type ModuleTabId = (typeof MODULE_TABS)[number]["id"];
+
 function ModuleModal({ module }: { module: ModuleData }) {
+  const [activeTab, setActiveTab] = useState<ModuleTabId>("config");
+
   return (
-    <Tab.Group className="h-full">
-      <div className="h-full">
-        <Tab.List>
-          <div className="grid grid-cols-3 p-2 bg-vibrant-blue text-white rounded-sm">
-            <Tab className={({ selected }) => `rounded-sm ${selected ? 'bg-blue-500 text-white' : ''}`}>
-              Module Configuration
-            </Tab>
-            <Tab className={({ selected }) => `rounded-sm ${selected ? 'bg-blue-500 text-white' : ''}`}>
-              Methods
-            </Tab>
-            <Tab className={({ selected }) => `rounded-sm ${selected ? 'bg-blue-500 text-white' : ''}`}>
-              Logs
-            </Tab>
-          </div>
-        </Tab.List>
-        <Tab.Panels as="div" className="h-full overflow-y-auto">
-          <Tab.Panel className="h-full ">
-            <ModuleConfig moduleName={module.moduleId} appMessage={module.appMessage} moduleStatus={module.status} />
-          </Tab.Panel>
-          <Tab.Panel className="h-full ">
-            <DirectMethods moduleName={module.moduleId} />
-          </Tab.Panel>
-          <Tab.Panel className="h-full ">
-            <ModuleLogs moduleName={module.moduleId} />
-          </Tab.Panel>
-        </Tab.Panels>
+    <div className="flex min-h-0 flex-1 flex-col px-6 pt-3 pb-6">
+      <SubTabs tabs={MODULE_TABS} active={activeTab} onChange={setActiveTab} />
+      <div className="min-h-0 flex-1 pt-4">
+        {activeTab === "config" && (
+          <ModuleConfig moduleName={module.moduleId} appMessage={module.appMessage} moduleStatus={module.status} />
+        )}
+        {activeTab === "methods" && <DirectMethods moduleName={module.moduleId} />}
+        {activeTab === "logs" && <ModuleLogs moduleName={module.moduleId} />}
       </div>
-    </Tab.Group>
+    </div>
   );
 }

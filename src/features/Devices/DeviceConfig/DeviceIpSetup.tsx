@@ -1,5 +1,5 @@
 import { AxiosError } from "axios";
-import React, { useState } from "react";
+import React, { Fragment, useState } from "react";
 import { useParams } from "react-router-dom";
 import { InputLabel } from '../../../components/Input/InputLabel';
 import { Input } from "@/components/ui/input";
@@ -217,41 +217,31 @@ function InterfaceForm({ interfaceForm, interfaceName, handleChange, readableInt
         onChange={handleToggleChange}
       />
 
-      <InputLabel>IP</InputLabel>
-      <Input
-        type="text"
-        name="ip"
-        value={interfaceForm.interfaceConfig[interfaceName].ip}
-        onChange={handleFormChange}
-        disabled={interfaceForm.interfaceConfig[interfaceName].dhcp}
-      />
-
-      <InputLabel>Subnet</InputLabel>
-      <Input
-        type="text"
-        name="subnet"
-        value={interfaceForm.interfaceConfig[interfaceName].subnet}
-        onChange={handleFormChange}
-        disabled={interfaceForm.interfaceConfig[interfaceName].dhcp}
-      />
-
-      <InputLabel>Gateway</InputLabel>
-      <Input
-        type="text"
-        name="gw"
-        value={interfaceForm.interfaceConfig[interfaceName].gw}
-        onChange={handleFormChange}
-        disabled={interfaceForm.interfaceConfig[interfaceName].dhcp}
-      />
-
-      <InputLabel>DNS</InputLabel>
-      <Input
-        type="text"
-        name="dns"
-        value={interfaceForm.interfaceConfig[interfaceName].dns}
-        onChange={handleFormChange}
-        disabled={interfaceForm.interfaceConfig[interfaceName].dhcp}
-      />
+      {(
+        [
+          ["ip", "IP"],
+          ["subnet", "Subnet"],
+          ["gw", "Gateway"],
+          ["dns", "DNS"],
+        ] as const
+      ).map(([name, label]) => {
+        const dhcp = interfaceForm.interfaceConfig[interfaceName].dhcp;
+        return (
+          <Fragment key={name}>
+            <InputLabel>{label}</InputLabel>
+            {/* With DHCP the stored values are kept untouched, only their display is replaced. */}
+            <Input
+              type="text"
+              name={name}
+              value={dhcp ? "" : (interfaceForm.interfaceConfig[interfaceName][name] ?? "")}
+              placeholder={dhcp ? "auto" : undefined}
+              onChange={handleFormChange}
+              disabled={dhcp}
+              className={dhcp ? "bg-muted" : undefined}
+            />
+          </Fragment>
+        );
+      })}
       {isLoadingModal && (
         <div className="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white p-4 rounded shadow-lg">

@@ -5,9 +5,9 @@ import { ToastContainer } from "react-toastify";
 import { queryClient } from "./config/queryConfig";
 import Dashboard from "./pages/Dashboard";
 
-import SidebarLayout from "./layouts/SidebarLayout";
 import DeviceDetail from "./features/Devices/DeviceDetail";
-import Deployments from "./features/deployments/Deployments";
+// import Deployments from "./features/deployments/Deployments";
+import ComingSoon from "./pages/ComingSoon";
 import ErrorFallback from "./pages/ErrorFallback";
 import PageNotFound from "./pages/PageNotFound";
 import Version from "./pages/Version";
@@ -16,6 +16,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import SettingsLayout from "./pages/settings/SettingsLayout";
 import PlatformTypesSettings from "./pages/settings/PlatformTypesSettings";
 import TemplatesSettings from "./pages/settings/TemplatesSettings";
+import {
+  AzureIotSettings,
+  ContainerRegistrySettings,
+  SealmanEmsSettings,
+} from "./pages/settings/ManagedVariablesSettings";
 import ExtensionsSettings from "./features/Extensions/ExtensionsSettings";
 import ExtensionDetail from "./features/Extensions/ExtensionDetail";
 import RegisterExtensionPage from "./features/Extensions/RegisterExtensionPage";
@@ -23,8 +28,8 @@ import EditExtensionPage from "./features/Extensions/EditExtensionPage";
 import { useAuth } from "./auth";
 import { useEffect } from "react";
 import { NewUserCheck } from "./components/NewUserCheck";
-import DeploymentDetails from "./features/deployments/DeploymentDetails";
-import ServiceDetails from "./features/deployments/ServiceDetails";
+// import DeploymentDetails from "./features/deployments/DeploymentDetails";
+// import ServiceDetails from "./features/deployments/ServiceDetails";
 import Authorization from "./features/authorization/Authorization";
 import Teams from "./features/authorization/Teams";
 import Roles from "./features/authorization/Roles";
@@ -69,11 +74,11 @@ export default function App() {
                   </div>
                 }
               />
-              <Route path=":deviceId/*" element={<SidebarLayout sidebar={<DeviceList />} />}>
-                <Route path="*" element={<DeviceDetail />} />
-              </Route>
+              <Route path=":deviceId/*" element={<DeviceDetail />} />
             </Route>
 
+            <Route path="deployments/*" element={<ComingSoon />} />
+            {/* Deployments hidden until release
             <Route path="deployments" element={<Outlet />}>
               <Route index element={<Deployments />} />
               <Route path=":deploymentId" element={<Outlet />}>
@@ -81,6 +86,7 @@ export default function App() {
                 <Route path="services/:serviceId" element={<ServiceDetails />} />
               </Route>
             </Route>
+            */}
 
             <Route path="authorization" element={<Authorization />}>
               <Route index element={<Navigate to="teams" replace />} />
@@ -93,6 +99,9 @@ export default function App() {
             <Route path="settings" element={<SettingsLayout />}>
               <Route path="platform-types" element={<PlatformTypesSettings />} />
               <Route path="templates" element={<TemplatesSettings />} />
+              <Route path="azure-iot" element={<AzureIotSettings />} />
+              <Route path="container-registry" element={<ContainerRegistrySettings />} />
+              <Route path="sealman-ems" element={<SealmanEmsSettings />} />
               <Route path="extensions" element={<Outlet />}>
                 <Route index element={<ExtensionsSettings />} />
                 <Route path="new" element={<RegisterExtensionPage />} />

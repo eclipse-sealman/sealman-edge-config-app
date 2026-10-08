@@ -2,10 +2,18 @@ import axios, { AxiosError } from "axios";
 import { NetworkScanData } from "./networkDiscover/networkDiscoverInterfaces";
 import { getAccessToken } from "@/auth";
 import { CMD_PROXY_MODULE_NAME, NETWORK_DISCOVER_MODULE_NAME } from "./moduleNames";
+import { LOCAL_ONLINE_SIMULATION, simulateOnline } from "@/lib/localOnlineSimulation";
 
 export const edgeConfigApiInstance = axios.create({
   baseURL: `${import.meta.env.VITE_API_URI}`,
 });
+
+if (LOCAL_ONLINE_SIMULATION) {
+  edgeConfigApiInstance.interceptors.response.use((response) => {
+    response.data = simulateOnline(response.data);
+    return response;
+  });
+}
 
 
 edgeConfigApiInstance.interceptors.request.use(async function (config: any) {

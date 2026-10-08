@@ -40,6 +40,7 @@ Copy `env.local.example` to `.env.local` and fill in the values.
 | `VITE_WEBVNC_URI` | No | Base URL of the WebVNC API. Required for the WebVNC feature. |
 | `VITE_WEBVNC_API_KEY` | No | API key for the WebVNC API. |
 | `VITE_SEMS_API_URL` | Yes | Base URL of the Smart EMS API. |
+| `VITE_LOCAL_ONLINE_SIMULATION` | No | Set to `true` to display all device and module connection states as `Connected`. For local development only. |
 
 ### Authentication
 

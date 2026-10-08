@@ -5,18 +5,20 @@ import {
   useParams,
 } from "react-router-dom";
 import DeviceConfig from "./DeviceConfig/DeviceConfig";
-import ModuleList from "./ModuleConfig/ModuleList";
+import ApplicationsTab from "./ModuleConfig/ApplicationsTab";
 import SmartEmsInfo from "./DeviceInfo/SmartEmsInfo";
 import ConnectionStatus from "./DeviceInfo/ConnectionInfo";
 import useGetDevice from "@/generated/edge-administration/hooks/devices/useGetDevice";
 import OPCUABrrowserPage from "../../pages/OPCUABrowser";
-import DeploymentInfo from "./ModuleConfig/DeploymentInfo";
 import { NetworkPage } from "./Network";
-import SecurityInformation from "./DeviceInfo/Security/SecurityInformation";
 import { usePermissions } from "../authorization/permissions/use-permissions";
 import { NoPermissionsPanel } from "../authorization/permissions/NoPermissionsPanel";
 import DeviceMetadata from "./DeviceInfo/Metadata/DeviceMetadata";
 import { PERMISSION_KEYS } from "../authorization/permissions/permission-keys";
+import { Boxes, Info, Network, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
+import DeviceHeader from "./DeviceHeader";
+import VpnPage from "./Vpn/VpnPage";
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
@@ -27,6 +29,7 @@ export default function DeviceDetail() {
     {
       title: "Info",
       href: "",
+      icon: Info,
       element: (
         <div className="space-y-6">
           <ConnectionStatus
@@ -49,29 +52,32 @@ export default function DeviceDetail() {
             isError={device.isError}
             error={device.error as any}
           />
-          <SecurityInformation />
         </div>
       ),
     },
     {
       title: "Device Config",
       href: "device-config",
+      icon: SlidersHorizontal,
       element: <DeviceConfig />,
     },
     {
-      title: "Module Config",
+      title: "Applications",
       href: "module-config",
-      element: (
-        <div className="space-y-6">
-          <DeploymentInfo />
-          <ModuleList />
-        </div>
-      ),
+      icon: Boxes,
+      element: <ApplicationsTab />,
     },
     {
       title: "Endpoints",
       href: "network",
+      icon: Network,
       element: <NetworkPage deviceId={ deviceId ?? "no device ID in the path"} />,
+    },
+    {
+      title: "VPN",
+      href: "vpn",
+      icon: ShieldCheck,
+      element: <VpnPage deviceId={deviceId ?? "no device ID in the path"} />,
     }
   ];
 
@@ -90,93 +96,42 @@ export default function DeviceDetail() {
   }
 
   return (
-      <div className="space-y-2 h-full overflow-hidden overflow-y-auto flex flex-col">
-        <div className="sticky top-0 flex space-x-1 rounded-sm bg-vibrant-blue p-2 z-20">
+    <div className="flex h-full flex-col gap-3 overflow-hidden p-3">
+      <DeviceHeader
+        deviceId={deviceId}
+        connectionStatus={device.data?.connectionStatus}
+        isLoading={device.isLoading}
+        isError={device.isError}
+        error={device.error}
+      />
+      <div className="flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
+        <nav className="flex shrink-0 gap-1 self-start overflow-x-auto rounded-lg border bg-white p-2 max-md:w-full md:w-56 md:flex-col">
           {tabs.map((tab) => (
             <NavLink
               to={tab.href ? `/devices/${deviceId}/${tab.href}` : `/devices/${deviceId}`}
               end
               key={tab.href}
-              className={({
-                isActive,
-              }: {
-                isActive: boolean;
-              }) => `w-full rounded-sm p-2.5 font-medium ring-night-blue text-center ring-white/60 ring-offset-1 ring-offset-blue-400 focus:outline-hidden focus:ring-1
-              ${
-                isActive
-                  ? "bg-blue-50 text-vibrant-blue"
-                  : "text-blue-100 hover:bg-white/25 hover:text-white"
-              }`}
+              className={({ isActive }: { isActive: boolean }) =>
+                cn(
+                  "flex items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  isActive ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-100",
+                )
+              }
             >
+              <tab.icon className="h-4 w-4 shrink-0" />
               {tab.title}
             </NavLink>
           ))}
-        </div>
-        <div className="relative z-10 bg-white rounded-sm p-2 relative flex-1 min-h-0 flex flex-col gap-2">
-          <div className="shrink-0">
-            <DeviceCard connectionStatus={device.data?.connectionStatus} isLoading={device.isLoading} isError={device.isError} error={device.error} deviceId={deviceId} />
-          </div>
-          <div className="flex-1 min-h-0">
-            <Routes>
-              {tabs.map((tab) => (
-                <Route path={tab.href} key={tab.href} element={tab.element} />
-              ))}
-              <Route path="opcua" element={<OPCUABrrowserPage />} />
-            </Routes>
-          </div>
+        </nav>
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded-lg border bg-white p-3">
+          <Routes>
+            {tabs.map((tab) => (
+              <Route path={tab.href} key={tab.href} element={tab.element} />
+            ))}
+            <Route path="opcua" element={<OPCUABrrowserPage />} />
+          </Routes>
         </div>
       </div>
-
+    </div>
   );
-}
-
-function DeviceCard({
-  connectionStatus,
-  isLoading,
-  isError,
-  error,
-  deviceId,
-}: {
-  connectionStatus?: { iotEdgeRuntime: string; iotHub: string; sems: string };
-  isLoading: boolean;
-  isError: boolean;
-  error?: unknown;
-  deviceId?: string;
-}) {
-  if (isLoading)
-    return (
-      <div className="p-2 rounded-sm ring-1 ring-inset animate-pulse ring-gray-200">
-        <div className="h-[55px] bg-slate-300 rounded-sm text-center text-4xl truncate p-2">{deviceId}</div>
-      </div>
-    );
-
-  if (connectionStatus){
-    if (connectionStatus.iotHub === "Connected" && connectionStatus.iotEdgeRuntime === "Connected" && connectionStatus.sems === "Connected"){
-      return (
-        <div className={`text-center text-4xl truncate p-2 rounded-sm ring-1 ring-inset bg-green-100 ring-green-600/20`}>
-          {deviceId}
-        </div>
-      );
-    }
-    if (connectionStatus.iotHub=="Disconnected" && connectionStatus.iotEdgeRuntime === "Disconnected" && connectionStatus.sems=="Disconnected"){
-      return (
-        <div className={`text-center text-4xl truncate p-2 rounded-sm ring-1 ring-inset bg-red-100 ring-red-600/20`}>
-          {deviceId}
-        </div>
-      )
-    }
-    if (connectionStatus.iotHub === "Disconnected" || connectionStatus.iotEdgeRuntime === "Disconnected" || connectionStatus.sems === "Disconnected" ){
-      return (
-        <div className={`text-center text-4xl truncate p-2 rounded-sm ring-1 ring-inset bg-yellow-100 ring-yellow-600/20`}>
-          {deviceId}
-        </div>
-      )
-    }
-  }
-  if (isError)
-    return (
-      <div>
-        Error: {String(error)}
-      </div>
-    );
 }

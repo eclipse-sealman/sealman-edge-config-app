@@ -57,6 +57,28 @@
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-logo-pulse: logo-pulse 2s ease-in-out infinite;
+  --animate-bar-slide: bar-slide 1.4s ease-in-out infinite;
+
+  @keyframes logo-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.65;
+      transform: scale(0.97);
+    }
+  }
+  @keyframes bar-slide {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(250%);
+    }
+  }
 
   @keyframes accordion-down {
     from {

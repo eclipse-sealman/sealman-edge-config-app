@@ -401,7 +401,7 @@ export const OpcUaTreeBrowser: React.FC<{ endpoint: string }> = ({ endpoint }) =
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="lg:w-1/2">
           <SectionTitle title="Address Space" description="Select a node to read its value." />
-          <div className="p-2 max-h-[600px] overflow-auto border rounded-lg bg-background">
+          <div className="p-2 max-h-[70vh] min-h-64 overflow-auto border rounded-lg bg-background">
             {!initialized ? (
               <div className="p-2 text-sm text-muted-foreground">No connection made yet</div>
             ) : (

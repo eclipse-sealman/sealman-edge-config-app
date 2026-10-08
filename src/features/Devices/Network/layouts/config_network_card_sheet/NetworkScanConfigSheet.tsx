@@ -15,7 +15,7 @@ export default function NetworkScanConfigSheet({ trigger }: props) {
       <SheetTrigger asChild>
         <span>{trigger}</span>
       </SheetTrigger>
-      <SheetContent className="w-full sm:w-[500px] max-w-(--breakpoint-lg)! overflow-y-scroll mt-[64px]">
+      <SheetContent className="w-full sm:w-[500px] max-w-(--breakpoint-lg)! overflow-y-scroll mt-[80px]">
           <SheetHeader className="text-start">
             <SheetTitle>Network scan configuration</SheetTitle>
             <SheetDescription>

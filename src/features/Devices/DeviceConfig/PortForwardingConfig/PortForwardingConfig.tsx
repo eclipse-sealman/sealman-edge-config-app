@@ -11,7 +11,7 @@ export default function PortForwardingConfig({ children }: { children?: React.Re
   return (
     <div>
       <Heading description="Forward ports of the Smart-EMS to devices in its networks.">
-        <WrenchScrewdriverIcon className="w-5 h-5" />Port Forwarding Configuration</Heading>
+        <WrenchScrewdriverIcon className="w-5 h-5" />Port Forwarding</Heading>
 
       <div className="bg-card border rounded-lg p-4 space-y-4">
         {/* Rules */}

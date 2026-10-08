@@ -4,9 +4,10 @@ import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { useState } from 'react';
-import Badge from "@/components/Typography/Badge";
+import Badge, { BadgeColor } from "@/components/Typography/Badge";
 import Select from "react-select";
-import { InputLabel } from "@/components/Input/InputLabel";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { OpcUaTreeBrowser } from "@/features/OPCUABrowser/OPCUATreeBrowser";
 import {
   Accordion,
@@ -19,30 +20,34 @@ import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission
 
 const GuardedButton = withPermissionRequiredTooltip(Button);
 
+const itemClass = "rounded-lg border bg-background px-4";
+const triggerClass = "py-3 hover:no-underline";
+const contentClass = "grid gap-3 border-t pt-4";
+
 export default function DirectMethods({ moduleName }: { moduleName: string }) {
 
   return (
-    <div className="grid grid-cols space-y-2 mt-2">
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="module-restart">
-          <AccordionTrigger className="text-l px-4 py-3 bg-blue-200 text-black transition-colors">RESTART</AccordionTrigger>
-            <AccordionContent className="border shadow-sm p-6 bg-white grid grid-cols space-y-2 mt-2">
-              <RestartModule moduleName={moduleName} />
-            </AccordionContent>
+    <div className="h-full overflow-y-auto">
+      <Accordion type="single" collapsible className="w-full space-y-2">
+        <AccordionItem value="module-restart" className={itemClass}>
+          <AccordionTrigger className={triggerClass}>Restart</AccordionTrigger>
+          <AccordionContent className={contentClass}>
+            <RestartModule moduleName={moduleName} />
+          </AccordionContent>
         </AccordionItem>
         {moduleName.includes("opcua") &&
-        <AccordionItem value="opcua">
-          <AccordionTrigger className="text-l px-4 py-3 bg-blue-200 text-black transition-colors">OPCUA</AccordionTrigger>
-            <AccordionContent className="border shadow-sm p-6 bg-white grid grid-cols space-y-2 mt-2">
-              {moduleName.includes('seal-module-opcua-client') && <ReadNodeId moduleName={moduleName} />}
+        <AccordionItem value="opcua" className={itemClass}>
+          <AccordionTrigger className={triggerClass}>OPC UA</AccordionTrigger>
+          <AccordionContent className={contentClass}>
+            {moduleName.includes('seal-module-opcua-client') && <ReadNodeId moduleName={moduleName} />}
           </AccordionContent>
         </AccordionItem>
         }
         {moduleName.includes("opcua") &&
-        <AccordionItem value="opcua-browser">
-          <AccordionTrigger className="text-l px-4 py-3 bg-blue-200 text-black transition-colors">OPCUA Browser</AccordionTrigger>
-            <AccordionContent className="border shadow-sm p-6 bg-white grid grid-cols space-y-2 mt-2">
-              {moduleName.includes('seal-module-opcua-client') && <OpcUaTreeBrowser endpoint="opc.tcp://x.x.x.x:4840"/>}
+        <AccordionItem value="opcua-browser" className={itemClass}>
+          <AccordionTrigger className={triggerClass}>OPC UA Browser</AccordionTrigger>
+          <AccordionContent className={contentClass}>
+            {moduleName.includes('seal-module-opcua-client') && <OpcUaTreeBrowser endpoint="opc.tcp://x.x.x.x:4840"/>}
           </AccordionContent>
         </AccordionItem>
         }
@@ -178,41 +183,42 @@ function ReadNodeId({ moduleName }: { moduleName: string }) {
   });
 
   const badgeColorStatusCode =
-    isPending ? "bg-yellow-500" : statusCode === 200 ? "bg-green-500" : statusCode ? "bg-red-500" : "bg-gray-300";
+    isPending ? BadgeColor.Yellow : statusCode === 200 ? BadgeColor.Green : statusCode ? BadgeColor.Red : BadgeColor.Gray;
 
-  const badgeColorOpcuaStatusCode = 
-    isPending ? "bg-yellow-500" : opcuaStatusCode === 0 ? "bg-green-500" : opcuaStatusCode ? "bg-red-500" : "bg-gray-300";
+  const badgeColorOpcuaStatusCode =
+    isPending ? BadgeColor.Yellow : opcuaStatusCode === 0 ? BadgeColor.Green : opcuaStatusCode ? BadgeColor.Red : BadgeColor.Gray;
 
   return(
-    <div className="flex flex-col gap-4 max-w-2xl">
+    <div className="flex max-w-2xl flex-col gap-4">
       {/* Endpoint Input */}
       <div>
-        <InputLabel>
-          <input
-            className={`border rounded px-2 py-1 w-full ${!endpointValid ? "border-red-500" : ""}`}
-            value={endpoint}
-            onChange={(e) => {
-              const v = e.target.value;
-              setEndpoint(v);
-              setEndpointValid(validateEndpoint(v));
-            }}
-            placeholder="opc.tcp://x.x.x.x:port"
-          />
-        </InputLabel>
+        <label htmlFor="opcua-endpoint" className="mb-1 block text-sm font-medium">Endpoint</label>
+        <Input
+          id="opcua-endpoint"
+          className={!endpointValid ? "border-destructive" : ""}
+          value={endpoint}
+          onChange={(e) => {
+            const v = e.target.value;
+            setEndpoint(v);
+            setEndpointValid(validateEndpoint(v));
+          }}
+          placeholder="opc.tcp://x.x.x.x:port"
+        />
         {!endpointValid && (
-          <p className="text-red-600 text-sm mt-1">Must be in format: opc.tcp://x.x.x.x:port</p>
+          <p className="mt-1 text-sm text-destructive">Must be in format: opc.tcp://x.x.x.x:port</p>
         )}
       </div>
 
       {/* NodeId Input */}
-      <InputLabel>
-        <input
-          className="border rounded px-2 py-1 w-full"
+      <div>
+        <label htmlFor="opcua-node-id" className="mb-1 block text-sm font-medium">Node ID</label>
+        <Input
+          id="opcua-node-id"
           value={nodeId}
           onChange={(e) => setNodeId(e.target.value)}
           placeholder="Enter node ID..."
         />
-      </InputLabel>
+      </div>
 
       {/* Credentials-Type */}
       <div>
@@ -231,41 +237,43 @@ function ReadNodeId({ moduleName }: { moduleName: string }) {
       {/* Credentials Felder abhängig vom Typ */}
       {credentialsType === "UserName" && (
         <div className="grid grid-cols-2 gap-4">
-          <InputLabel>
-            <input
-              className="border rounded px-2 py-1 w-full"
+          <div>
+            <label htmlFor="opcua-username" className="mb-1 block text-sm font-medium">UserName</label>
+            <Input
+              id="opcua-username"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="UserName"
             />
-          </InputLabel>
-          <InputLabel>
-            <input
-              className="border rounded px-2 py-1 w-full"
+          </div>
+          <div>
+            <label htmlFor="opcua-password" className="mb-1 block text-sm font-medium">Password</label>
+            <Input
+              id="opcua-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
             />
-          </InputLabel>
+          </div>
         </div>
       )}
 
       {credentialsType === "Certificate" && (
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">Certificate (PEM)</label>
-            <textarea
-              className="border rounded p-2 text-sm font-mono"
+            <label className="mb-1 text-sm font-medium">Certificate (PEM)</label>
+            <Textarea
+              className="font-mono"
               rows={6}
               value={certificate}
               onChange={(e) => setCertificate(e.target.value)}
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">Private Key (PEM)</label>
-            <textarea
-              className="border rounded p-2 text-sm font-mono"
+            <label className="mb-1 text-sm font-medium">Private Key (PEM)</label>
+            <Textarea
+              className="font-mono"
               rows={6}
               value={privateKey}
               onChange={(e) => setPrivateKey(e.target.value)}
@@ -324,8 +332,8 @@ function ReadNodeId({ moduleName }: { moduleName: string }) {
 
         {/* Edge-API Status */}
         <div className="flex items-center gap-2">
-          <span className="font-medium">Edge-API:</span>
-          <Badge className={`text-white ${badgeColorStatusCode}`}>
+          <span className="text-sm font-medium">Edge-API:</span>
+          <Badge color={badgeColorStatusCode}>
             {isPending
               ? "Loading..."
               : statusCode != null
@@ -336,8 +344,8 @@ function ReadNodeId({ moduleName }: { moduleName: string }) {
 
         {/* OPC-UA Status */}
         <div className="flex items-center gap-2">
-          <span className="font-medium">OPC-UA:</span>
-          <Badge className={`text-white ${badgeColorOpcuaStatusCode}`}>
+          <span className="text-sm font-medium">OPC-UA:</span>
+          <Badge color={badgeColorOpcuaStatusCode}>
             {isPending
               ? "Loading..."
               : opcuaStatusCode != null
@@ -350,10 +358,10 @@ function ReadNodeId({ moduleName }: { moduleName: string }) {
       </div>
 
       {/* Result JSON */}
-      <pre className="bg-gray-100 rounded p-3 text-sm font-mono whitespace-pre-wrap">
+      <pre className="whitespace-pre-wrap rounded-md border bg-muted p-3 font-mono text-sm">
         {formattedResult || "// Response will appear here...\n\n\n\n\n\n\n\n\n"}
       </pre>
-        </div>
+    </div>
   )
 }
 

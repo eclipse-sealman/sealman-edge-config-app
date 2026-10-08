@@ -56,19 +56,40 @@ describe("Device NAT Config custom hook", () => {
     expect(result.current.natConfig?.nat_rules![2]).toMatchObject({extIp: "1", intIp: "2", name: "my_new_rule_name"})
   })
 
-  // TODO: could have been a suite with an array of expected: [true, false] but I didn't manage to make it work for an obscure reason
-  it("should toggle the nat enable flag", async () => {
-     const { result } = renderHook(() => useDeviceNatConfigContext("deviceId"))
+  it("should enable nat implicitly when posting at least one rule", () => {
+    useGetDeviceNatConfigMocked.mockReturnValue({data: {nat_enabled: false, nat_rules: []}})
+    const { result } = renderHook(() => useDeviceNatConfigContext("deviceId"))
 
-     act(() => {
-       result.current.toggleNat()
-     })
-     expect(result.current.natConfig?.nat_enabled).toBe(true)
+    act(() => {
+      result.current.addNatRule({extIp: "1", intIp: "2", name: "rule"})
+    })
+    act(() => {
+      result.current.postConfig()
+    })
 
-     act(() => {
-       result.current.toggleNat()
-     })
-     expect(result.current.natConfig?.nat_enabled).toBe(false)
+    expect(postDeviceNatConfigMocked).toHaveBeenCalledWith({
+      deviceId: "deviceId",
+      body: { nat_enabled: true, nat_rules: [{extIp: "1", intIp: "2", name: "rule"}] }
+    })
+    useGetDeviceNatConfigMocked.mockRestore()
+  })
+
+  it("should disable nat implicitly when posting without rules", () => {
+    useGetDeviceNatConfigMocked.mockReturnValue({data: {nat_enabled: true, nat_rules: [{extIp: "1", intIp: "2", name: "rule"}]}})
+    const { result } = renderHook(() => useDeviceNatConfigContext("deviceId"))
+
+    act(() => {
+      result.current.deleteRule(0)
+    })
+    act(() => {
+      result.current.postConfig()
+    })
+
+    expect(postDeviceNatConfigMocked).toHaveBeenCalledWith({
+      deviceId: "deviceId",
+      body: { nat_enabled: false, nat_rules: [] }
+    })
+    useGetDeviceNatConfigMocked.mockRestore()
   })
 
   it("should update a specific rule", () => {

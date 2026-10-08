@@ -98,36 +98,6 @@ describe("Device NAT Config Provider", () => {
     expect(await findByText("new_rule_name"))
   })
 
-  it("should toggle the nat enable flag", async () => {
-    const user = userEvent.setup()
-    useGetDeviceNatConfigMocked.mockReturnValueOnce({data: {nat_enabled: false, nat_rules: []}})
-    const MyTestComponent = () => {
-
-      const { toggleNat, natConfig } = useContext(DeviceNatConfigRulesContext)
-
-      const handleClick = () => {
-        toggleNat()
-      }
-
-      return (
-        <>
-          <button onClick={handleClick}>ACTION</button>
-          {natConfig?.nat_enabled ? "ENABLED" : "DISABLED"}
-        </>
-      )
-    }
-
-    const { getByText } = render(
-      <DeviceNatConfigRulesProvider deviceId="testId">
-        <MyTestComponent />
-      </DeviceNatConfigRulesProvider>
-    )
-
-    getByText("DISABLED")
-    await user.click(getByText("ACTION"))
-    getByText("ENABLED")
-  })
-
   it("should update a specific rule",async () => {
     const user = userEvent.setup()
     // TODO: Initial value doesn't need to be specified and tested for

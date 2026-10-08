@@ -3,7 +3,9 @@ import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import React from "react";
 import Button from "../../../components/Input/Button";
 import { useParams } from "react-router-dom";
-import { Input } from "../../../components/Input/FormElements";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import JsonEditor from "../../../components/Input/JsonEditor";
@@ -24,7 +26,7 @@ export default function ModuleLogs({ moduleName }: { moduleName: string }) {
   const [lineNumber, setLineNumber] = useState(25);
   const { deviceId } = useParams();
 
-  const { data, isPending, isError, error, refetch } = useQuery<
+  const { data, isPending, isFetching, isError, error, refetch } = useQuery<
     LogData,
     AxiosError
   >({
@@ -64,26 +66,38 @@ export default function ModuleLogs({ moduleName }: { moduleName: string }) {
     return <NoPermissionsPanel>{noPermissionsMessage}</NoPermissionsPanel>;
   }
 
-  if (isPending) return <div>Loading...</div>;
+  if (isPending) return <p className="text-sm text-muted-foreground">Loading logs...</p>;
 
-  if (isError) return <div>Error: {error.message}</div>;
+  if (isError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>Error: {error.message}</AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
-    <>
-      <div className="h-[calc(100%-8rem)] md:h-[calc(100%-5rem)]">
+    <div className="flex h-full flex-col gap-3">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-md border">
         <JsonEditor value={data.payload[0]?.payload} readOnly={true} />
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex shrink-0 items-center gap-3">
+        <label htmlFor="lineNumber" className="text-sm font-medium">
+          Lines
+        </label>
         <Input
+          id="lineNumber"
           type="number"
           name="lineNumber"
+          className="w-28"
           value={lineNumber}
           onChange={handleFormChange}
         />
-        <Button onClick={() => refetch()} processing={isPending}>
+        <Button onClick={() => refetch()} processing={isFetching}>
           Get Module Logs
         </Button>
       </div>
-    </>
+    </div>
   );
 }
