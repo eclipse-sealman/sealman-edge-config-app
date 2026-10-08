@@ -374,6 +374,17 @@ const deleteDeviceTemplateVariable = async (name: string): Promise<void> => {
   await edgeConfigApiInstance.delete(`/platform/device-template-variables/${encodeURIComponent(name)}`);
 };
 
+// OPC UA extension routes; the direct method payload is returned as the response body, errors as HTTP errors.
+const opcuaBrowseNode = async (deviceId: string, payload: any) => {
+  const { data } = await edgeConfigApiInstance.post(`/opcua/${encodeURIComponent(deviceId)}/browseNode`, payload);
+  return data;
+};
+
+const opcuaReadNode = async (deviceId: string, payload: any) => {
+  const { data } = await edgeConfigApiInstance.post(`/opcua/${encodeURIComponent(deviceId)}/readNode`, payload);
+  return data;
+};
+
 
 export const edgeConfigApi = {
   getDevices,
@@ -390,6 +401,8 @@ export const edgeConfigApi = {
   getTwinConfig,
   postTwinConfig,
   invokeDirectMethod,
+  opcuaBrowseNode,
+  opcuaReadNode,
   getDeployments,
   getDeploymentStatus,
   getConnectionStatus,

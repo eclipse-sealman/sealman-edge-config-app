@@ -42,40 +42,24 @@ interface ConnectionInfo {
 
 async function browseNode(
   deviceId: string,
-  moduleName: string,
   nodeId: string,
   conn: ConnectionInfo
 ): Promise<ReferenceNode[]> {
-  const payload = {
-    methodName: "browseNode",
-    methodPayload: {
-      ...conn,
-      nodeId,
-    },
-  };
-  const result = await edgeConfigApi.invokeDirectMethod(deviceId, moduleName, payload);
-  if (result?.status === 200 && result?.payload?.statusCode?.value === 0) {
-    return result.payload.references as ReferenceNode[];
+  const result = await edgeConfigApi.opcuaBrowseNode(deviceId, { ...conn, nodeId });
+  if (result?.statusCode?.value === 0) {
+    return result.references as ReferenceNode[];
   }
   return [];
 }
 
 async function readNode(
   deviceId: string,
-  moduleName: string,
   nodeId: string,
   conn: ConnectionInfo
 ): Promise<ReadResult | null> {
-  const payload = {
-    methodName: "readNode",
-    methodPayload: {
-      ...conn,
-      nodeId,
-    },
-  };
-  const result = await edgeConfigApi.invokeDirectMethod(deviceId, moduleName, payload);
-  if (result?.status === 200 && result?.payload?.statusCode?.value === 0) {
-    return result.payload as ReadResult;
+  const result = await edgeConfigApi.opcuaReadNode(deviceId, { ...conn, nodeId });
+  if (result?.statusCode?.value === 0) {
+    return result as ReadResult;
   }
   return null;
 }
@@ -83,7 +67,6 @@ async function readNode(
 interface TreeNodeProps {
   node: ReferenceNode;
   deviceId: string;
-  moduleName: string;
   conn: ConnectionInfo;
   onReadResult: (node: ReferenceNode, value: ReadResult | null) => void;
 }
@@ -91,7 +74,6 @@ interface TreeNodeProps {
 const TreeNode: React.FC<TreeNodeProps & { browsingLock: boolean; setBrowsingLock: (v: boolean) => void; }> = ({
   node,
   deviceId,
-  moduleName,
   conn,
   onReadResult,
   browsingLock,
@@ -109,11 +91,11 @@ const TreeNode: React.FC<TreeNodeProps & { browsingLock: boolean; setBrowsingLoc
     setBrowsingLock(true);
 
     try {
-      const value = await readNode(deviceId, moduleName, node.nodeId, conn);
+      const value = await readNode(deviceId, node.nodeId, conn);
       onReadResult(node, value);
 
       if (!expanded && (node.nodeClass === "Object" || node.nodeClass === "Variable")) {
-        const refs = await browseNode(deviceId, moduleName, node.nodeId, conn);
+        const refs = await browseNode(deviceId, node.nodeId, conn);
         setChildren(refs);
       }
       setExpanded(!expanded);
@@ -154,7 +136,6 @@ const TreeNode: React.FC<TreeNodeProps & { browsingLock: boolean; setBrowsingLoc
               key={child.nodeId}
               node={child}
               deviceId={deviceId}
-              moduleName={moduleName}
               conn={conn}
               onReadResult={onReadResult}
               browsingLock={browsingLock}
@@ -168,7 +149,7 @@ const TreeNode: React.FC<TreeNodeProps & { browsingLock: boolean; setBrowsingLoc
 };
 
 
-export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }> = ({ moduleName, endpoint }) => {
+export const OpcUaTreeBrowser: React.FC<{ endpoint: string }> = ({ endpoint }) => {
   const { deviceId } = useParams<{ deviceId: string }>();
   const [rootNodes, setRootNodes] = useState<ReferenceNode[]>([]);
   const [initialized, setInitialized] = useState(false);
@@ -216,7 +197,7 @@ export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }
     if (!deviceId) return;
     setIsConnecting(true);
     try {
-      const refs = await browseNode(deviceId, moduleName, "ns=0;i=84", buildConn());
+      const refs = await browseNode(deviceId, "ns=0;i=84", buildConn());
       setRootNodes(refs);
       setInitialized(true);
       setIsConnected(true)
@@ -247,7 +228,7 @@ export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }
   if (!deviceId || !selectedNode) return;
   setIsReadingNode(true);
   try {
-    const result = await readNode(deviceId, moduleName, selectedNode.nodeId, buildConn());
+    const result = await readNode(deviceId, selectedNode.nodeId, buildConn());
     setReadResult(result);
   }
   catch {
@@ -384,7 +365,6 @@ export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }
                 key={node.nodeId}
                 node={node}
                 deviceId={deviceId!}
-                moduleName={moduleName}
                 conn={buildConn()}
                 onReadResult={handleReadResult}
                 browsingLock={browsingLock}
