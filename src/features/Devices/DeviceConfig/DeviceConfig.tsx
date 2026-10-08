@@ -15,20 +15,35 @@ import { useParams } from "react-router-dom";
 export default function DeviceConfig() {
   const { deviceId } = useParams<{ deviceId: any }>();
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <SmartEmsStatus />
-      <Heading><CommandLineIcon className="w-7 h-7 mr-1" />Configuration Commands</Heading>
-      <div className="flex flex-row space-x-2">
-        <DeviceSemsConfigExport />
-        <DeviceSemsCheck />
+
+      <div>
+        <Heading description="Export the Smart-EMS configuration or activate a pending config update.">
+          <CommandLineIcon className="w-5 h-5" />Configuration Commands
+        </Heading>
+        <div className="bg-card border rounded-lg p-4 flex flex-row flex-wrap gap-2">
+          <DeviceSemsConfigExport />
+          <DeviceSemsCheck />
+        </div>
       </div>
-      <Heading><WrenchScrewdriverIcon className="w-7 h-7 mr-1" />Interface Configuration</Heading>
-      <DeviceIpSetup />
-      <Cellular />
+
+      <div>
+        <Heading description="Network interfaces of the Smart-EMS.">
+          <WrenchScrewdriverIcon className="w-5 h-5" />Interface Configuration
+        </Heading>
+        <div className="bg-card border rounded-lg p-4 space-y-4 [&>*:empty]:hidden">
+          <DeviceIpSetup />
+          <Cellular />
+        </div>
+      </div>
+
       <DeviceNatConfigProvided />
+
       <PortForwardingConfigProvider deviceId={deviceId}>
-        <PortForwardingConfig />
-        <SavePortForwardingConfig deviceId={deviceId} />
+        <PortForwardingConfig>
+          <SavePortForwardingConfig deviceId={deviceId} />
+        </PortForwardingConfig>
       </PortForwardingConfigProvider>
     </div>
   );

@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { AxiosError } from "axios";
 import DictionaryList from "../../../components/Table/DictionaryList";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface SmartEMSStatus {
   configUpdateScheduled: boolean
@@ -57,12 +58,12 @@ export default function SmartEmsStatus() {
 
     commandTable = filteredEdgeCommands.map((command, index) => {
       return (
-        <div className="grid grid-cols-4" key={index}>
-          <div>{command.cmdName}</div>
-          <div><Badge color={(command.status === 'success' || command.status === 'pending') ? BadgeColor.Green : BadgeColor.Red}>{command.status}</Badge></div>
-          <div>{new Date(command.created).toLocaleString()}</div>
-          <div>{new Date(command.updated).toLocaleString()}</div>
-        </div>
+        <TableRow key={index}>
+          <TableCell>{command.cmdName}</TableCell>
+          <TableCell><Badge color={(command.status === 'success' || command.status === 'pending') ? BadgeColor.Green : BadgeColor.Red}>{command.status}</Badge></TableCell>
+          <TableCell>{new Date(command.created).toLocaleString()}</TableCell>
+          <TableCell>{new Date(command.updated).toLocaleString()}</TableCell>
+        </TableRow>
       )
     })
   }
@@ -72,20 +73,24 @@ export default function SmartEmsStatus() {
   return (
     <>
       <div>
-        <Heading processing={isFetching}><InformationCircleIcon className="w-7 h-7 mr-1" />Configuration Information</Heading>
+        <Heading processing={isFetching} description="Current configuration state of the Smart-EMS."><InformationCircleIcon className="w-5 h-5" />Configuration Information</Heading>
         <DictionaryList dictionary={tableData} processing={isPending} error={errorMessage}/>
       </div>
 
       <div>
-        <Heading><QueueListIcon className="w-7 h-7 mr-1" />Command History</Heading>
-        <div>
-          <div className="grid grid-cols-4">
-            <div className="font-medium">Command Name</div>
-            <div className="font-medium">Command Status</div>
-            <div className="font-medium">Created</div>
-            <div className="font-medium">Updated</div>
-          </div>
-          {commandTable}
+        <Heading description="Commands recently sent to the Smart-EMS."><QueueListIcon className="w-5 h-5" />Command History</Heading>
+        <div className="border rounded-lg overflow-hidden bg-background">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Command Name</TableHead>
+                <TableHead>Command Status</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>{commandTable}</TableBody>
+          </Table>
         </div>
       </div>
     </>

@@ -3,7 +3,6 @@ import Badge, { BadgeColor } from "@/components/Typography/Badge";
 import {
   Heading,
   HeadingButton,
-  HeadingColor,
 } from "@/components/Typography/Heading";
 import { ApiError } from "@/generated/edge-administration/api";
 import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
@@ -61,17 +60,22 @@ export default function DeviceMetadata({
 
   return (
     <div>
-      <Heading processing={isFetching} color={HeadingColor.Gray}>
-        <InformationCircleIcon className="w-7 h-7 mr-1" />
+      <Heading
+        processing={isFetching}
+        description="Custom fields captured for this device."
+        actions={
+          <GuardedHeadingButton
+            permissionKey={PERMISSION_KEYS.DEVICE_METADATA_WRITE}
+            deviceId={deviceId}
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            <PencilSquareIcon className="w-4 h-4" />
+            Edit
+          </GuardedHeadingButton>
+        }
+      >
+        <InformationCircleIcon className="w-5 h-5" />
         Device Metadata
-        <GuardedHeadingButton
-          permissionKey={PERMISSION_KEYS.DEVICE_METADATA_WRITE}
-          deviceId={deviceId}
-          onClick={() => setIsEditing(!isEditing)}
-        >
-          <PencilSquareIcon className="w-6 h-6 ml-5 cursor-pointer" />
-          Edit
-        </GuardedHeadingButton>
       </Heading>
       {isError && error ? (
         <div className="pt-4 pl-2">

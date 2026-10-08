@@ -5,7 +5,7 @@ import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 import SignOutButton from "../Auth/SignOutButton";
 
-import logo from "../../assets/sealman_logo.png";
+import logo from "../../assets/sealman_iot_logo.png";
 import { Fragment, useMemo } from "react";
 
 import { useAuth } from "@/auth";
@@ -77,7 +77,7 @@ export default function NavigationBar() {
               </div>
               <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
                 <div className="flex shrink-0 items-center">
-                  <img className="h-8 w-auto" src={logo} alt="Sealman" />
+                  <img className="h-12 w-auto" src={logo} alt="Sealman IoT" />
                 </div>
                 <div className="hidden sm:ml-6 sm:block">
                   <div className="flex space-x-4">

@@ -1,5 +1,5 @@
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
-import { Heading, HeadingColor } from "../../../components/Typography/Heading";
+import { Heading } from "../../../components/Typography/Heading";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import DictionaryList, { DictionaryListEntries } from "../../../components/Table/DictionaryList";
 import { components } from "@/generated/edge-administration/types";
@@ -42,7 +42,7 @@ export default function SmartEmsInfo({ data, lastSeenAt, isPending, isFetching, 
 
   return (
     <div>
-      <Heading processing={isFetching} color={HeadingColor.Gray}><InformationCircleIcon className="w-7 h-7 mr-1" />Device Information</Heading>
+      <Heading processing={isFetching} description="Hardware, firmware and template of the Smart-EMS."><InformationCircleIcon className="w-5 h-5" />Device Information</Heading>
       <DictionaryList dictionary={tableData} processing={isPending} error={errorMessage} />
     </div>
   )

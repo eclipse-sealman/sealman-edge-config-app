@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Badge, { BadgeColor } from "@/components/Typography/Badge";
 import DictionaryList from "@/components/Table/DictionaryList";
-import { Heading, HeadingButton, HeadingColor } from "@/components/Typography/Heading";
+import { Heading, HeadingButton } from "@/components/Typography/Heading";
 import { InformationCircleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -149,17 +149,24 @@ export default function DeviceMetadataEdit({ deviceMetadata, stopEditing }: Devi
 
   return (
     <div>
-      <Heading processing={patchDeviceMetadataMutation.isPending} color={HeadingColor.Gray}>
-        <InformationCircleIcon className="w-7 h-7 mr-1" />
+      <Heading
+        processing={patchDeviceMetadataMutation.isPending}
+        description="Custom fields captured for this device."
+        actions={
+          <>
+            <HeadingButton onClick={onSubmit}>
+              <PencilSquareIcon className="w-4 h-4" />
+              Save
+            </HeadingButton>
+            <HeadingButton onClick={() => stopEditing()}>
+              <XMarkIcon className="w-4 h-4" />
+              Cancel
+            </HeadingButton>
+          </>
+        }
+      >
+        <InformationCircleIcon className="w-5 h-5" />
         Device Metadata
-        <HeadingButton onClick={onSubmit}>
-          <PencilSquareIcon className="w-6 h-6 ml-5" />
-          Save
-        </HeadingButton>
-        <HeadingButton onClick={() => stopEditing()}>
-          <XMarkIcon className="w-6 h-6 ml-5" />
-          Cancel
-        </HeadingButton>
       </Heading>
 
       {error && (

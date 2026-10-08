@@ -2,7 +2,7 @@ import { AxiosError } from "axios";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { InputLabel } from '../../../components/Input/InputLabel';
-import { Input, Select} from "../../../components/Input/FormElements";
+import { Input } from "@/components/ui/input";
 import { WifiIcon } from "@heroicons/react/24/outline";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { useQuery } from "@tanstack/react-query";
@@ -91,14 +91,15 @@ export function Cellular() {
             <div className="flex flex-col gap-2">
               <div className="flex font-medium"><><WifiIcon className="w-6 mr-1" />Cellular</></div>
               <InputLabel>State</InputLabel>
-              <Select
+              <select
                 name="state"
                 value={formData.state}
                 onChange={handleChange}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
               >
                 <option value="on">on</option>
                 <option value="off">off</option>
-              </Select>
+              </select>
               <InputLabel>APN</InputLabel>
               <Input
                 type="text"

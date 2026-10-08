@@ -1,5 +1,5 @@
 import Button from "@/components/Input/Button";
-import { Input } from "@/components/Input/FormElements";
+import { Input } from "@/components/ui/input";
 import usePostDeviceRequestPassword from "@/generated/edge-administration/hooks/usePostDeviceRequestPassword";
 import { useState } from "react";
 

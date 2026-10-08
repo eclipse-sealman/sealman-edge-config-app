@@ -1,5 +1,5 @@
 import DictionaryList, { DictionaryListEntries } from "@/components/Table/DictionaryList";
-import { Heading, HeadingColor } from "@/components/Typography/Heading";
+import { Heading } from "@/components/Typography/Heading";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import RequestPassword from "./RequestPassword";
 import { useParams } from "react-router-dom";
@@ -19,8 +19,8 @@ export default function SecurityInformation() {
 
   return (
     <div>
-      <Heading processing={false} color={HeadingColor.Gray}>
-        <InformationCircleIcon className="w-7 h-7 mr-1" />
+      <Heading processing={false} description="Access credentials of this device.">
+        <InformationCircleIcon className="w-5 h-5" />
         Device Security
       </Heading>
       <DictionaryList dictionary={tableData} processing={false} error={""} />

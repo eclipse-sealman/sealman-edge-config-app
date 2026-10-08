@@ -7,13 +7,10 @@ import ToggleNat from "./ToggelNat";
 export default function DeviceNatConfig() {
 
   return (
-    <>
-      <NatConfigHeader>
-        <ToggleNat />
-        <NatRules />
-        <SaveNat />
-      </NatConfigHeader>
-      <div className="mb-8"/>
-    </>
+    <NatConfigHeader>
+      <ToggleNat />
+      <NatRules />
+      <SaveNat />
+    </NatConfigHeader>
   )
 }

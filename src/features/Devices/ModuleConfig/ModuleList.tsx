@@ -10,7 +10,16 @@ import DirectMethods from "./DirectMethods";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { useQuery } from "@tanstack/react-query";
 import { edgeConfigApiHooks, ModuleData } from "../../../api/edgeConfig/edgeConfigApiHooks";
-import { Table, THead, TH, TBody, TR, TD } from "../../../components/Table/TableComponents";
+import { Heading } from "../../../components/Typography/Heading";
+import {
+  Table,
+  TableHeader as THead,
+  TableHead as TH,
+  TableBody as TBody,
+  TableRow as TR,
+  TableCell as TD,
+} from "@/components/ui/table";
+import { CubeIcon } from "@heroicons/react/24/outline";
 
 
 export default function ModuleList() {
@@ -21,7 +30,7 @@ export default function ModuleList() {
   const { deviceId } = useParams();
   const { data: modules } = edgeConfigApiHooks.useGetModules(deviceId);
 
-  const { isPending, isError, data: moduleData, error: statusError} = useQuery<ModuleData[], Error, ModuleData[]>({
+  const { isPending, isError, isFetching, data: moduleData, error: statusError} = useQuery<ModuleData[], Error, ModuleData[]>({
     queryKey: ['getConfigStatus', deviceId, modules],
     queryFn: async () => {
       const moduleNames = modules?.map((module) => module.moduleId);
@@ -42,11 +51,11 @@ export default function ModuleList() {
     refetchInterval: 5000,
   });
 
-  if (isPending) return <div>Loading...</div>
-  if (isError) return <div>Error: {statusError.message}</div>
+  if (isPending) return <p className="text-sm text-muted-foreground">Loading modules...</p>
+  if (isError) return <p className="text-sm text-destructive">Error: {statusError.message}</p>
 
   const moduleRows = moduleData.map((module, index) => (
-    <TR onClick={() => setModalState({
+    <TR className="cursor-pointer" onClick={() => setModalState({
       children: <ModuleModal module={module} />,
       title: <div className="flex items-center">{deviceId}<ChevronRightIcon className="w-4 h-4" /> {module.moduleName}</div>,
       isOpen: true
@@ -120,7 +129,7 @@ export default function ModuleList() {
           }
         })()}
       </TD>
-      <TD className="flex items-center">
+      <TD className="font-medium">
         {module.moduleName}
       </TD>
       <TD>
@@ -155,21 +164,27 @@ export default function ModuleList() {
 
   return (
     <>
-      <Table>
-        <THead>
-          <TR>
-            <TH>API</TH>
-            <TH>Module Status</TH>
-            <TH>Config Sync</TH>
-            <TH>Config Status</TH>
-            <TH>Module Name</TH>
-            <TH>Stack</TH>
-            <TH>Type</TH>
-            <TH>Version</TH>
-          </TR>
-        </THead>
-        <TBody>{moduleRows}</TBody>
-      </Table>
+      <Heading processing={isFetching} description="Modules deployed on this device. Select a module to view its configuration, methods and logs.">
+        <CubeIcon className="w-5 h-5" />
+        Modules
+      </Heading>
+      <div className="border rounded-lg overflow-hidden bg-background">
+        <Table>
+          <THead>
+            <TR>
+              <TH>API</TH>
+              <TH>Module Status</TH>
+              <TH>Config Sync</TH>
+              <TH>Config Status</TH>
+              <TH>Module Name</TH>
+              <TH>Stack</TH>
+              <TH>Type</TH>
+              <TH>Version</TH>
+            </TR>
+          </THead>
+          <TBody>{moduleRows}</TBody>
+        </Table>
+      </div>
       <Modal modalState={modalState} setModalState={setModalState}></Modal>
     </>
   );

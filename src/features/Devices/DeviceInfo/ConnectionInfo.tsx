@@ -1,5 +1,5 @@
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
-import { Heading, HeadingColor } from "../../../components/Typography/Heading";
+import { Heading } from "../../../components/Typography/Heading";
 import { SignalIcon } from "@heroicons/react/24/outline";
 import DictionaryList, { DictionaryListEntries } from "../../../components/Table/DictionaryList";
 import { components } from "@/generated/edge-administration/types";
@@ -37,7 +37,7 @@ export default function ConnectionStatus({ connectionStatus, isFetching, isError
 
   return (
     <div>
-      <Heading processing={isFetching} color={HeadingColor.Gray}><SignalIcon className="w-7 h-7 mr-1" />Device Connection Status</Heading>
+      <Heading processing={isFetching} description="Connectivity of the IoT Edge runtime, IoT Hub and Smart-EMS."><SignalIcon className="w-5 h-5" />Device Connection Status</Heading>
       <DictionaryList dictionary={tableData} processing={isFetching} error={errorMessage}/>
     </div>
   )

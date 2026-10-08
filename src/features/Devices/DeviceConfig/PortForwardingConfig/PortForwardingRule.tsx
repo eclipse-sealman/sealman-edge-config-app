@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 import { PortForwardingContext } from "./context";
-import { Input } from "@/components/Input/FormElements";
+import { Input } from "@/components/ui/input";
 import type { PortForwardingRule as Rule } from "./types";
 import { isValidIP } from "@/lib/validateIP";
 import { TrashIcon } from "@heroicons/react/24/outline";
@@ -58,7 +58,7 @@ const isInvalidDestAddr = !!rule.destAddr && !isValidIP(String(rule.destAddr).tr
  <div className="flex flex-col">
         <label className="text-xs font-medium mb-1">Interface</label>
         <select
-          className="border rounded px-5"
+          className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
           value={rule.interface ?? ""}
           onChange={(e) =>
             onChange("interface", e.target.value as Rule["interface"])

@@ -2,9 +2,36 @@ import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
 import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { useState } from 'react';
-import Select from "react-select";
 import { Loader2 } from "lucide-react";
 import { ChevronRight, ChevronDown, Folder, File } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+
+const selectClass =
+  "h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+
+function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <label className="text-sm font-medium text-muted-foreground">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({ title, description, actions }: { title: string; description?: string; actions?: React.ReactNode }) {
+  return (
+    <div className="mb-3 flex items-start justify-between gap-4">
+      <div>
+        <h3 className="text-lg font-semibold leading-none tracking-tight">{title}</h3>
+        {description && <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>}
+      </div>
+      {actions}
+    </div>
+  );
+}
 
 interface BrowseName {
   namespaceIndex: number;
@@ -110,7 +137,7 @@ const TreeNode: React.FC<TreeNodeProps & { browsingLock: boolean; setBrowsingLoc
   return (
     <div className="pl-4">
       <div
-        className={`flex items-center cursor-pointer hover:bg-gray-100 rounded p-1 ${
+        className={`flex items-center cursor-pointer hover:bg-muted/40 rounded-md p-1.5 text-sm ${
           browsingLock && !loading ? "opacity-50 cursor-not-allowed" : ""
         }`}
         onClick={handleClick}
@@ -121,16 +148,16 @@ const TreeNode: React.FC<TreeNodeProps & { browsingLock: boolean; setBrowsingLoc
           <span className="w-4" />
         )}
         {node.nodeClass === "Object" ? (
-          <Folder className="ml-1 mr-2 text-blue-500" size={16} />
+          <Folder className="ml-1 mr-2 text-primary" size={16} />
         ) : (
-          <File className="ml-1 mr-2 text-gray-500" size={16} />
+          <File className="ml-1 mr-2 text-muted-foreground" size={16} />
         )}
         <span>{node.displayName?.text || node.browseName?.name}</span>
-        {loading && <Loader2 className="ml-2 animate-spin text-gray-400" size={16} />}
+        {loading && <Loader2 className="ml-2 animate-spin text-muted-foreground" size={16} />}
       </div>
 
       {expanded && (
-        <div className="pl-4 border-l border-gray-200 ml-2">
+        <div className="pl-4 border-l ml-2">
           {children.map((child) => (
             <TreeNode
               key={child.nodeId}
@@ -242,195 +269,195 @@ export const OpcUaTreeBrowser: React.FC<{ endpoint: string }> = ({ endpoint }) =
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="p-4 border rounded">
-        <h3 className="font-semibold mb-2">Connection Setting</h3>
-
-        <div className="grid grid-cols-2 gap-3">
-          <input
-            className="border rounded px-2 py-1"
-            placeholder="Endpoint"
-            value={conn.endpoint}
-            onChange={(e) => setConn({ ...conn, endpoint: e.target.value })}
-            disabled={isConnected}
-          />
-          <Select
-            value={{ value: credentialsType, label: credentialsType }}
-            onChange={(opt: any) => setCredentialsType(opt.value)}
-            options={[
-              { value: "Anonymous", label: "Anonymous" },
-              { value: "UserName", label: "UserName" },
-              { value: "Certificate", label: "Certificate" },
-            ]}
-            isDisabled={isConnected}
-          />
-
-          {credentialsType === "UserName" && (
-            <>
-              <input
-                className="border rounded px-2 py-1"
-                placeholder="Username"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
+      <div>
+        <SectionTitle
+          title="Connection Settings"
+          description="Connect to an OPC UA server through this device and browse its address space."
+        />
+        <div className="bg-card border rounded-lg p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Endpoint">
+              <Input
+                placeholder="opc.tcp://i.p.v.4:4840"
+                value={conn.endpoint}
+                onChange={(e) => setConn({ ...conn, endpoint: e.target.value })}
                 disabled={isConnected}
               />
-              <input
-                className="border rounded px-2 py-1"
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+            </Field>
+            <Field label="Credentials">
+              <select
+                className={selectClass}
+                value={credentialsType}
+                onChange={(e) => setCredentialsType(e.target.value as typeof credentialsType)}
                 disabled={isConnected}
-              />
-            </>
-          )}
+              >
+                <option value="Anonymous">Anonymous</option>
+                <option value="UserName">UserName</option>
+                <option value="Certificate">Certificate</option>
+              </select>
+            </Field>
 
-          {credentialsType === "Certificate" && (
-            <div className="col-span-2 grid grid-cols-2 gap-4">
-              <textarea
-                className="border rounded p-2 text-sm font-mono"
-                rows={6}
-                placeholder="PEM Certificate"
-                value={certificate}
-                onChange={(e) => setCertificate(e.target.value)}
+            {credentialsType === "UserName" && (
+              <>
+                <Field label="Username">
+                  <Input
+                    placeholder="Username"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    disabled={isConnected}
+                  />
+                </Field>
+                <Field label="Password">
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isConnected}
+                  />
+                </Field>
+              </>
+            )}
+
+            {credentialsType === "Certificate" && (
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Certificate">
+                  <Textarea
+                    className="font-mono"
+                    rows={6}
+                    placeholder="PEM Certificate"
+                    value={certificate}
+                    onChange={(e) => setCertificate(e.target.value)}
+                    disabled={isConnected}
+                  />
+                </Field>
+                <Field label="Private Key">
+                  <Textarea
+                    className="font-mono"
+                    rows={6}
+                    placeholder="PEM Private Key"
+                    value={privateKey}
+                    onChange={(e) => setPrivateKey(e.target.value)}
+                    disabled={isConnected}
+                  />
+                </Field>
+              </div>
+            )}
+
+            <Field label="Message Security Mode">
+              <select
+                className={selectClass}
+                value={conn.messageSecurityMode}
+                onChange={(e) => setConn({ ...conn, messageSecurityMode: e.target.value })}
                 disabled={isConnected}
-              />
-              <textarea
-                className="border rounded p-2 text-sm font-mono"
-                rows={6}
-                placeholder="PEM Private Key"
-                value={privateKey}
-                onChange={(e) => setPrivateKey(e.target.value)}
+              >
+                {["None", "Sign", "SignAndEncrypt"].map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Security Policy">
+              <select
+                className={selectClass}
+                value={conn.securityPolicy}
+                onChange={(e) => setConn({ ...conn, securityPolicy: e.target.value })}
                 disabled={isConnected}
-              />
-            </div>
-          )}
+              >
+                {[
+                  "None",
+                  "Basic128",
+                  "Basic192",
+                  "Basic256Rsa15",
+                  "Basic256Sha256",
+                  "Aes128_Sha256_RsaOaep",
+                  "Aes256_Sha256_RsaPss",
+                  "PubSub_Aes128_CTR",
+                  "PubSub_Aes256_CTR",
+                  "Basic128Rsa15",
+                  "Basic256",
+                ].map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
 
-          <Select
-            value={{ value: conn.messageSecurityMode, label: conn.messageSecurityMode }}
-            onChange={(opt: any) => setConn({ ...conn, messageSecurityMode: opt.value })}
-            options={[
-              { value: "None", label: "None" },
-              { value: "Sign", label: "Sign" },
-              { value: "SignAndEncrypt", label: "SignAndEncrypt" },
-            ]}
-            isDisabled={isConnected}
-          />
-
-          <Select
-            value={{ value: conn.securityPolicy, label: conn.securityPolicy }}
-            onChange={(opt: any) => setConn({ ...conn, securityPolicy: opt.value })}
-            options={[
-              "None",
-              "Basic128",
-              "Basic192",
-              "Basic256Rsa15",
-              "Basic256Sha256",
-              "Aes128_Sha256_RsaOaep",
-              "Aes256_Sha256_RsaPss",
-              "PubSub_Aes128_CTR",
-              "PubSub_Aes256_CTR",
-              "Basic128Rsa15",
-              "Basic256",
-            ].map((p) => ({ value: p, label: p }))}
-            isDisabled={isConnected}
-          />
-        </div>
-
-        <button
+          <Button
+            variant={isConnected ? "destructive" : "default"}
             onClick={isConnected ? handleDisconnect : loadRoot}
-            className={`mt-3 px-3 py-1 rounded shadow flex items-center justify-center disabled:opacity-50 ${
-                isConnected ? "bg-red-500 text-white hover:bg-red-600" : "bg-blue-500 text-white hover:bg-blue-600"
-            }`}
-            >
-                {isConnecting ? (
-            <>
-            <Loader2 className="animate-spin mr-2" size={16} />
-                {isConnected ? "Disconnecting…" : "Connecting…"}
-            </>
-        ) : isConnected ? (
-            "Disconnect"
-        ) : (
-            "Connect & Browse"
-        )}
-        </button>
+            disabled={isConnecting}
+          >
+            {isConnecting && <Loader2 className="animate-spin" />}
+            {isConnecting
+              ? (isConnected ? "Disconnecting…" : "Connecting…")
+              : isConnected
+                ? "Disconnect"
+                : "Connect & Browse"}
+          </Button>
+        </div>
       </div>
 
-      <div className="flex gap-6">
-        <div className="p-4 w-1/2 max-h-[600px] overflow-auto border rounded">
-          {!initialized ? (
-            <div className="text-gray-500">No connection made yet</div>
-          ) : (
-            rootNodes.map((node) => (
-              <TreeNode
-                key={node.nodeId}
-                node={node}
-                deviceId={deviceId!}
-                conn={buildConn()}
-                onReadResult={handleReadResult}
-                browsingLock={browsingLock}
-                setBrowsingLock={setBrowsingLock}
-              />
-            ))
-          )}
-        </div>
-
-        <div className="p-4 w-1/2 border rounded bg-gray-50">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold">Node Details</h3>
-            {selectedNode && selectedNode.nodeClass === "Variable" && (
-              <button
-                onClick={handleRefresh}
-                className="mt-3 px-3 py-1 bg-blue-500 text-white rounded shadow-sm flex items-center justify-center disabled:opacity-50"
-              >
-                {isReadingNode && <Loader2 className="animate-spin mr-2" size={16} />}
-                <span className={`${isReadingNode ? "invisible" : ""}`}>Refresh</span>
-              </button>
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="lg:w-1/2">
+          <SectionTitle title="Address Space" description="Select a node to read its value." />
+          <div className="p-2 max-h-[600px] overflow-auto border rounded-lg bg-background">
+            {!initialized ? (
+              <div className="p-2 text-sm text-muted-foreground">No connection made yet</div>
+            ) : (
+              rootNodes.map((node) => (
+                <TreeNode
+                  key={node.nodeId}
+                  node={node}
+                  deviceId={deviceId!}
+                  conn={buildConn()}
+                  onReadResult={handleReadResult}
+                  browsingLock={browsingLock}
+                  setBrowsingLock={setBrowsingLock}
+                />
+              ))
             )}
           </div>
-          {selectedNode && readResult ? (
-            readResult.statusCode.value === 0 ? (
-              <table className="w-full text-sm border">
-                <tbody>
-                  <tr>
-                    <td className="font-medium border px-2 py-1">Node</td>
-                    <td className="border px-2 py-1">
-                      {selectedNode.displayName?.text || selectedNode.browseName?.name}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium border px-2 py-1">NodeId</td>
-                    <td className="border px-2 py-1">{selectedNode.nodeId}</td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium border px-2 py-1">DataType</td>
-                    <td className="border px-2 py-1">{readResult.value.dataType}</td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium border px-2 py-1">ArrayType</td>
-                    <td className="border px-2 py-1">{readResult.value.arrayType}</td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium border px-2 py-1">Value</td>
-                    <td className="border px-2 py-1 whitespace-pre-wrap">
-                      {JSON.stringify(readResult.value.value, null, 2)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium border px-2 py-1">SourceTimestamp</td>
-                    <td className="border px-2 py-1">{readResult.sourceTimestamp}</td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium border px-2 py-1">ServerTimestamp</td>
-                    <td className="border px-2 py-1">{readResult.serverTimestamp}</td>
-                  </tr>
-                </tbody>
-              </table>
+        </div>
+
+        <div className="lg:w-1/2">
+          <SectionTitle
+            title="Node Details"
+            actions={
+              selectedNode && selectedNode.nodeClass === "Variable" ? (
+                <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isReadingNode}>
+                  {isReadingNode && <Loader2 className="animate-spin" />}
+                  Refresh
+                </Button>
+              ) : undefined
+            }
+          />
+          <div className="border rounded-lg overflow-hidden bg-background">
+            {selectedNode && readResult ? (
+              readResult.statusCode.value === 0 ? (
+                <ul className="divide-y">
+                  {[
+                    ["Node", selectedNode.displayName?.text || selectedNode.browseName?.name],
+                    ["NodeId", selectedNode.nodeId],
+                    ["DataType", readResult.value.dataType],
+                    ["ArrayType", readResult.value.arrayType],
+                    ["Value", JSON.stringify(readResult.value.value, null, 2)],
+                    ["SourceTimestamp", readResult.sourceTimestamp],
+                    ["ServerTimestamp", readResult.serverTimestamp],
+                  ].map(([label, value]) => (
+                    <li key={label} className="grid grid-cols-3 items-start gap-4 px-4 py-3 text-sm">
+                      <div className="font-medium text-muted-foreground">{label}</div>
+                      <div className="col-span-2 whitespace-pre-wrap break-all">{value}</div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="p-4 text-sm text-destructive">OPC UA StatusCode: {readResult.statusCode.value}</div>
+              )
             ) : (
-              <div className="text-red-600">OPC UA StatusCode: {readResult.statusCode.value}</div>
-            )
-          ) : (
-            <div className="text-gray-500">No Node selected yet</div>
-          )}
+              <div className="p-4 text-sm text-muted-foreground">No Node selected yet</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

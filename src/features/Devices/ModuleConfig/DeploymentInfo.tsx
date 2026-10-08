@@ -78,6 +78,7 @@ export default function DeploymentInfo() {
     tableData = {
       "Base Deployment": isEditing ? (
         <select
+          className="h-8 rounded-md border bg-background px-2 text-sm"
           value={selectedDeploymentId}
           onChange={(e) => setSelectedDeploymentId(e.target.value)}
         >
@@ -114,19 +115,19 @@ export default function DeploymentInfo() {
   const errorMessage = isError ? `${error.message}` : undefined;
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Heading processing={isFetching}>
-          <InformationCircleIcon className="w-7 h-7 mr-1" />
-          Module Deployment
-          {isEditing ? (
+    <div>
+      <Heading
+        processing={isFetching}
+        description="Base deployment applied to this device."
+        actions={
+          isEditing ? (
             <>
               <HeadingButton onClick={() => putDeploymentMutation.mutate(selectedDeploymentId)}>
-                <PencilSquareIcon className="w-7 h-7 ml-2 cursor-pointer" />
+                <PencilSquareIcon className="w-4 h-4" />
                 Save
               </HeadingButton>
               <HeadingButton onClick={() => setIsEditing(false)}>
-                <XMarkIcon className="w-7 h-7 ml-2 cursor-pointer" />
+                <XMarkIcon className="w-4 h-4" />
                 Cancel
               </HeadingButton>
             </>
@@ -144,17 +145,20 @@ export default function DeploymentInfo() {
                 setIsEditing(true);
               }}
             >
-              <PencilSquareIcon className="w-7 h-7 ml-2 cursor-pointer" />
+              <PencilSquareIcon className="w-4 h-4" />
               Edit
             </GuardedHeadingButton>
-          )}
-        </Heading>
-        <DictionaryList
-          dictionary={tableData}
-          processing={isPending}
-          error={errorMessage}
-        />
-      </div>
+          )
+        }
+      >
+        <InformationCircleIcon className="w-5 h-5" />
+        Module Deployment
+      </Heading>
+      <DictionaryList
+        dictionary={tableData}
+        processing={isPending}
+        error={errorMessage}
+      />
     </div>
   );
 }

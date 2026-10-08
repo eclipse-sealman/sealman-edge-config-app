@@ -1,20 +1,20 @@
 import React, { ButtonHTMLAttributes, DetailedHTMLProps } from "react";
 
 export enum ButtonColor {
-  Gray = "bg-gray-200 text-gray-600 focus:border-gray-700 enabled:hover:bg-gray-300",
-  Red = "bg-red-200 text-red-700 focus:border-red-700 enabled:hover:bg-red-300",
-  Yellow = "bg-yellow-200 text-yellow-800 focus:border-yellow-700 enabled:hover:bg-yellow-300",
-  Green = "bg-green-200 text-green-700 focus:border-green-700 enabled:hover:bg-green-300",
-  Blue = "bg-blue-200 text-gray-800 focus:border-vibrant-blue enabled:hover:bg-blue-300 disabled:text-gray-500",
-  Indigo = "bg-indigo-200 text-indigo-700 focus:border-indigo-700 enabled:hover:bg-indigo-300",
-  Purple = "bg-purple-200 text-purple-700 focus:border-purple-700 enabled:hover:bg-purple-300",
-  Pink = "bg-pink-200 text-pink-700 focus:border-pink-700 enabled:hover:bg-pink-300"
+  Gray = "bg-secondary text-secondary-foreground enabled:hover:bg-secondary/80",
+  Red = "bg-destructive text-destructive-foreground enabled:hover:bg-destructive/90",
+  Yellow = "bg-yellow-200 text-yellow-800 enabled:hover:bg-yellow-300",
+  Green = "bg-green-200 text-green-700 enabled:hover:bg-green-300",
+  Blue = "bg-primary text-primary-foreground enabled:hover:bg-primary/90",
+  Indigo = "bg-indigo-200 text-indigo-700 enabled:hover:bg-indigo-300",
+  Purple = "bg-purple-200 text-purple-700 enabled:hover:bg-purple-300",
+  Pink = "bg-pink-200 text-pink-700 enabled:hover:bg-pink-300"
 }
 
 export enum ButtonSize {
-  Medium = "text-base px-2 py-2",
-  Small = "text-sm px-1 py-1",
-  Tiny = "text-xs px-0.5 py-0.5"
+  Medium = "h-9 px-4 text-sm",
+  Small = "h-8 px-3 text-sm",
+  Tiny = "h-6 px-2 text-xs"
 }
 
 interface ButtonProps extends DetailedHTMLProps<ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> {
@@ -30,8 +30,8 @@ export default function Button({ children, color, size, className, processing, d
   return (
     <button {...props}
       disabled={processing || disabled}
-      className={`inline-flex items-center whitespace-nowrap rounded-sm tracking-widest
-        empty:hidden font-medium transition ease-in-out duration-150 uppercase focus:outline-hidden
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded-md shadow-xs
+        empty:hidden font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50
         ${size || ButtonSize.Medium} ${color || ButtonColor.Blue} ${className}`}
     >
       <svg aria-hidden="true" className={`invisible w-4 h-4 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600`} viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">

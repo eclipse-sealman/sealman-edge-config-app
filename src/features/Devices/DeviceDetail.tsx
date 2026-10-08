@@ -28,7 +28,7 @@ export default function DeviceDetail() {
       title: "Info",
       href: "",
       element: (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <ConnectionStatus
             connectionStatus={device.data?.connectionStatus}
             isFetching={device.isFetching}
@@ -62,14 +62,14 @@ export default function DeviceDetail() {
       title: "Module Config",
       href: "module-config",
       element: (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <DeploymentInfo />
           <ModuleList />
         </div>
       ),
     },
     {
-      title: "Network",
+      title: "Endpoints",
       href: "network",
       element: <NetworkPage deviceId={ deviceId ?? "no device ID in the path"} />,
     }

@@ -2,14 +2,13 @@ import { AxiosError } from "axios";
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { InputLabel } from '../../../components/Input/InputLabel';
-import { Input } from "../../../components/Input/FormElements";
+import { Input } from "@/components/ui/input";
 import { CpuChipIcon, GlobeAltIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
 import Button from "../../../components/Input/Button";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { Heading } from "../../../components/Typography/Heading";
-import { HeadingColor } from "../../../components/Typography/Heading";
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
 import { edgeConfigApiHooks } from "../../../api/edgeConfig/edgeConfigApiHooks";
 import { CMD_PROXY_MODULE_NAME } from "@/api/edgeConfig/moduleNames";
@@ -116,8 +115,8 @@ function InterfacesForm({ interfaceData }: { interfaceData: InterfaceData }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <InterfaceForm
           interfaceName="lan2"
           readableInterfaceName={<><GlobeAltIcon className="w-6 mr-1" />Lan-2 Internet</>}
@@ -281,8 +280,8 @@ function InterfaceForm({ interfaceForm, interfaceName, handleChange, readableInt
         <div className="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white p-2 rounded shadow-lg inline-block">
             <div className="inline-block">
-              <Heading color={HeadingColor.Gray}>
-                <InformationCircleIcon className="w-7 h-7 mr-1" />
+              <Heading>
+                <InformationCircleIcon className="w-5 h-5" />
                 Current Network of {interfaceName.toUpperCase()}
               </Heading>
             </div>
