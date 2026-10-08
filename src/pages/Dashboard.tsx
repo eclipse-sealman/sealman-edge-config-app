@@ -6,11 +6,6 @@ import { Popup } from "react-leaflet";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import L from "leaflet";
-import { edgeConfigApi } from "../api/edgeConfig/edgeConfigApi";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
-import Badge from "../components/Typography/Badge";
-import { BadgeColor } from "../components/Typography/Badge";
 import DevicesHeader, {
   DeviceOnlineFilterStatus,
 } from "../features/Devices/DevicesHeader";
@@ -19,6 +14,7 @@ import DevicesByCountry, {
 } from "../features/Devices/DevicesByCountry";
 import { useEffect, useState } from "react";
 import FilterDetails from "../features/Devices/FilterDetails";
+import DeviceMapCard from "../features/Devices/DeviceMapCard";
 import useGetDevices from "@/generated/edge-administration/hooks/useGetDevices/useGetDevices";
 
 const greenIcon = new L.Icon({
@@ -80,7 +76,6 @@ interface DeviceMarker {
   name: string;
   status: string;
   customer?: string;
-  description?: string;
 }
 
 const deviceShouldBeDisplayed = (
@@ -121,7 +116,6 @@ const deviceShouldBeDisplayed = (
 };
 
 export default function Dashboard() {
-  const navigate = useNavigate();
   const easEdgeDevices = useGetDevices();
 
   const [deviceOnlineFilter, setDeviceOnlineFilter] = useState(
@@ -187,8 +181,6 @@ export default function Dashboard() {
               status: device.iotEdgeRuntime,
               customer:
                 typeof customerValue === "string" ? customerValue : undefined,
-              // The type for value from the API isn't string, but in practice it should always be a string or undefined, so we check the type before assigning to avoid runtime errors
-              description: typeof device.deviceMetadata.description?.value === "string" ? device.deviceMetadata.description?.value : undefined,
             });
           }
         }
@@ -259,78 +251,18 @@ export default function Dashboard() {
             icon={item.status === "Connected" ? greenIcon : blueIcon}
             position={[item.lat, item.lon]}
           >
-            <Popup>
-              <p onClick={() => navigate(`/devices/${item.name}`)}>
-                Device-ID: {item.name}
-                <br />
-                Description: {item.description}
-                <br />
-                Customer: {item.customer}
-              </p>
-              <ConnectionStatusMini deviceId={item.name}></ConnectionStatusMini>
+            <Popup
+              minWidth={256}
+              className="[&_.leaflet-popup-content-wrapper]:rounded-lg [&_.leaflet-popup-content]:m-3!"
+            >
+              <DeviceMapCard
+                deviceId={item.name}
+                customer={item.customer}
+              />
             </Popup>
           </Marker>
         ))}
       </MapContainer>
     </>
-  );
-}
-
-interface ConnectionStatusData {
-  iotEdgeRuntime: string;
-  iotHub: string;
-  sems: string;
-  vpn: string;
-}
-
-export function ConnectionStatusMini({ deviceId }: { deviceId: string }) {
-  const { isLoading, isError, data, error } = useQuery<
-    ConnectionStatusData,
-    Error
-  >({
-    queryKey: ["getConnectionStatus", deviceId],
-    queryFn: () => edgeConfigApi.getConnectionStatus(deviceId),
-  });
-
-  if (isLoading)
-    return (
-      <div className="p-2 rounded-sm ring-1 ring-inset animate-pulse ring-gray-200">
-        <div className="h-[40px] bg-slate-300 rounded-sm" />
-      </div>
-    );
-
-  if (isError) return <div>Error {error.message}</div>;
-
-  if (!data) return null;
-
-  return (
-    <div>
-      <Badge
-        color={
-          data.iotEdgeRuntime === "Connected"
-            ? BadgeColor.Green
-            : BadgeColor.Red
-        }
-      >
-        Runtime
-      </Badge>
-      <Badge
-        color={data.iotHub === "Connected" ? BadgeColor.Green : BadgeColor.Red}
-      >
-        IoTHub
-      </Badge>
-      <Badge
-        color={data.sems === "Connected" ? BadgeColor.Green : BadgeColor.Red}
-      >
-        SmartEMS
-      </Badge>
-      {data.vpn !== undefined && (
-        <Badge
-          color={data.vpn === "Connected" ? BadgeColor.Green : BadgeColor.Red}
-        >
-          VPN
-        </Badge>
-      )}
-    </div>
   );
 }

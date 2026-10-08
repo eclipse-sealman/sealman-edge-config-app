@@ -1,18 +1,19 @@
 import createSelectors from "@/utils/zustandSelectors";
 import { ColumnFiltersState } from "@tanstack/react-table";
 import { create } from "zustand";
+import type { SearchFilter } from "./search/deviceSearch";
 
 interface DeviceStore {
-  globalFilter: string;
-  setGlobalFilter: (filterValue: string) => void;
+  searchFilters: SearchFilter[];
+  setSearchFilters: (filters: SearchFilter[]) => void;
 
   columnFilters: ColumnFiltersState;
   setColumnFilters: (columnFilters: ColumnFiltersState) => void;
 }
 
 const useDeviceStore = create<DeviceStore>()((set) => ({
-  globalFilter: "",
-  setGlobalFilter: (filterValue: string) => set({ globalFilter: filterValue }),
+  searchFilters: [],
+  setSearchFilters: (filters: SearchFilter[]) => set({ searchFilters: filters }),
   columnFilters: [],
   setColumnFilters: (columnFilters: ColumnFiltersState) => set({ columnFilters: columnFilters }),
 }));

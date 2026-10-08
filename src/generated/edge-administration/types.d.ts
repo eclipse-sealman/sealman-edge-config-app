@@ -7571,7 +7571,14 @@ export interface operations {
     };
     get_devices_route_devices_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Also return each device's endpoints in an `endpoints` list */
+                include_endpoints?: boolean;
+                /** @description Maximum number of devices to return */
+                limit?: number | null;
+                /** @description Number of devices to skip */
+                offset?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

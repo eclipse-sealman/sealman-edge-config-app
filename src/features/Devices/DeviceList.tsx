@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Badge, { BadgeColor } from "../../components/Typography/Badge";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   Table,
-  TBody,
-  THead,
-  TH,
-  TD,
-  TR,
-} from "../../components/Table/TableComponents";
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   createColumnHelper,
   flexRender,
@@ -22,16 +25,21 @@ import {
 } from "@tanstack/react-table";
 import { DeviceData } from "../../api/edgeConfig/edgeConfigApiHooks";
 import DevicesHeader, { DeviceOnlineFilterStatus } from "./DevicesHeader";
-import DebouncedInput from "../../components/Input/DebouncedInput";
 import FilterDetails from "./FilterDetails";
 import useDeviceStore from "./deviceStore";
-import useGetDevices from "@/generated/edge-administration/hooks/useGetDevices/useGetDevices";
+import useGetDevicesWithEndpoints from "@/generated/edge-administration/hooks/useGetDevices/useGetDevicesWithEndpoints";
+import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
+import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes";
 import useDeviceMetadataFields from "@/features/PlatformTypes/useDeviceMetadataFields";
 import { formatMetadataValue } from "@/features/PlatformTypes/FieldValueInput";
 import useDeviceTableColumnsStore, { defaultFieldVisible } from "@/features/PlatformTypes/deviceTableColumnsStore";
-import { DeviceDataDisplay, DeviceListProps } from "./Devices.types";
+import { DeviceDataDisplay, DeviceEndpointsInfo, DeviceListProps } from "./Devices.types";
 import { DeviceCards } from "./DeviceCards";
 import DeviceManageDialog, { DeleteDeviceDialog } from "./DeviceManageDialog";
+import DeviceSearchBar from "./search/DeviceSearchBar";
+import DeviceEndpointsPanel from "./search/DeviceEndpointsPanel";
+import EndpointCountBadge from "./search/EndpointCountBadge";
+import { applySearch, buildSearchIndex, groupEndpointsByDevice } from "./search/deviceSearch";
 
 function formatDataForTable(data: DeviceData[] | undefined): DeviceDataDisplay[] {
   if (!data) return [];
@@ -69,12 +77,21 @@ const baseColumns: ColumnDef<DeviceDataDisplay, any>[] = [
   }),
   columnHelper.accessor("deviceId", {
     header: () => "Device-ID",
+    cell: (info) => (
+      <Link
+        to={`/devices/${encodeURIComponent(info.getValue())}`}
+        onClick={(e) => e.stopPropagation()}
+        className="font-medium hover:underline"
+      >
+        {info.getValue()}
+      </Link>
+    ),
   }),
 ];
 
 export default function DeviceList() {
-  const globalFilter = useDeviceStore.use.globalFilter();
-  const setGlobalFilter = useDeviceStore.use.setGlobalFilter();
+  const searchFilters = useDeviceStore.use.searchFilters();
+  const setSearchFilters = useDeviceStore.use.setSearchFilters();
 
   const columnFilters = useDeviceStore.use.columnFilters();
   const setColumnFiltersStore = useDeviceStore.use.setColumnFilters();
@@ -86,23 +103,68 @@ export default function DeviceList() {
     );
   };
 
-  useEffect(() => {
-    setGlobalFilter("");
-    setColumnFiltersStore([]);
-  }, []);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpanded = (deviceId: string) =>
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (!next.delete(deviceId)) next.add(deviceId);
+      return next;
+    });
 
-  const { isLoading, isError, data, error } = useGetDevices();
+  const { isLoading, isError, data, error, isLoadingMore } = useGetDevicesWithEndpoints();
+  const deviceTypesQuery = useGetDeviceTypes();
+  const endpointTypesQuery = useGetEndpointTypes();
   const { fields: metadataFields } = useDeviceMetadataFields();
   const columnVisibilityOverrides = useDeviceTableColumnsStore((s) => s.overrides);
 
-  const tableData = useMemo<DeviceDataDisplay[]>(
+  const allDevices = useMemo<DeviceDataDisplay[]>(
     () => formatDataForTable(data as DeviceData[]),
     [data],
   );
 
+  const endpointsByDevice = useMemo(
+    () => groupEndpointsByDevice(data ?? []),
+    [data],
+  );
+
+  // The API leaves `endpoints` out entirely when the user may not read endpoints.
+  const endpointsUnavailable = !!data?.length && data.every((device) => device.endpoints === undefined);
+
+  const deviceLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    for (const deviceType of deviceTypesQuery.data ?? []) {
+      for (const [key, field] of Object.entries(deviceType.fields)) {
+        labels[key] ??= field.label;
+      }
+    }
+    return labels;
+  }, [deviceTypesQuery.data]);
+
+  const searchIndex = useMemo(
+    () => buildSearchIndex(allDevices, endpointsByDevice, deviceLabels, endpointTypesQuery.data ?? []),
+    [allDevices, endpointsByDevice, deviceLabels, endpointTypesQuery.data],
+  );
+
+  const { devices: tableData, matchingEndpoints } = useMemo(
+    () => applySearch(allDevices, endpointsByDevice, searchFilters),
+    [allDevices, endpointsByDevice, searchFilters],
+  );
+
+  const endpointsInfo = useMemo<DeviceEndpointsInfo>(
+    () => ({
+      isLoading: false,
+      isError: endpointsUnavailable,
+      errorMessage: endpointsUnavailable ? "you are not allowed to read endpoints" : undefined,
+      byDevice: endpointsByDevice,
+      matching: matchingEndpoints,
+      hasEndpointFilters: searchFilters.some((filter) => filter.scope === "endpoint"),
+    }),
+    [endpointsUnavailable, endpointsByDevice, matchingEndpoints, searchFilters],
+  );
+
   // Metadata columns are just the customizable display in the table - which fields show up
-  // there is controlled by Settings → Platform Types → Devices Table Columns. Search itself is
-  // scoped separately, below, to every metadata key a device has (see metadataSearchIndexColumn).
+  // there is controlled by Settings → Platform Types → Devices Table Columns. Search itself
+  // covers every metadata key a device has, see search/deviceSearch.ts.
   const columns = useMemo<ColumnDef<DeviceDataDisplay, any>[]>(() => {
     const metadataColumns = metadataFields.map(([key, field]) =>
       columnHelper.accessor((row) => formatMetadataValue(row.deviceMetadata[key]?.value, field), {
@@ -110,23 +172,11 @@ export default function DeviceList() {
         header: () => field.label,
       }),
     );
-    // Hidden column whose value is every metadata value a device has, joined into one search
-    // blob - not just the fields configured as table columns above - so the search bar reaches
-    // fields that aren't shown (or aren't even part of the default type's required fields).
-    const metadataSearchIndexColumn = columnHelper.accessor(
-      (row) =>
-        Object.values(row.deviceMetadata ?? {})
-          .map((entry) => entry?.value)
-          .filter((value) => value !== null && value !== undefined && value !== "")
-          .map(String)
-          .join(" "),
-      { id: "metadataSearchIndex", header: () => null },
-    );
-    return [...baseColumns, ...metadataColumns, metadataSearchIndexColumn];
+    return [...baseColumns, ...metadataColumns];
   }, [metadataFields]);
 
   const columnVisibility = useMemo(() => {
-    const visibility: Record<string, boolean> = { iotEdgeRuntime: false, metadataSearchIndex: false };
+    const visibility: Record<string, boolean> = { iotEdgeRuntime: false };
     for (const [key] of metadataFields) {
       visibility[`meta:${key}`] = columnVisibilityOverrides[key] ?? defaultFieldVisible(key);
     }
@@ -138,7 +188,6 @@ export default function DeviceList() {
     columns,
     state: {
       columnFilters,
-      globalFilter,
       columnVisibility,
     },
     defaultColumn: {
@@ -147,24 +196,14 @@ export default function DeviceList() {
       maxSize: 500,
     },
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    globalFilterFn: "includesString",
-    // Search device IDs plus the full metadata index (every key a device has, regardless of
-    // whether it's shown as a column) - not the per-field meta:* columns or Status/Edge Runtime.
-    getColumnCanGlobalFilter: (column) => column.id === "deviceId" || column.id === "metadataSearchIndex",
   });
 
-   useEffect(() => {
-    table.resetColumnFilters();
-    table.resetGlobalFilter();
-0;  }, []);
-
   const calculateDeviceOnlineFilter = () => {
-    if (columnFilters.length === 1 && columnFilters[0].id === "onlineStatus") {
-      return columnFilters[0].value === "online"
+    if (columnFilters.length === 1 && columnFilters[0].id === "iotEdgeRuntime") {
+      return columnFilters[0].value === "Connected"
         ? DeviceOnlineFilterStatus.Online
         : DeviceOnlineFilterStatus.Offline;
     } else {
@@ -178,7 +217,6 @@ export default function DeviceList() {
   const filterByStatusFromHeader = (
     deviceOnlineFilterStatus: DeviceOnlineFilterStatus,
   ) => {
-    setGlobalFilter("");
     if (deviceOnlineFilterStatus === DeviceOnlineFilterStatus.All) {
       setColumnFilters([]);
     } else {
@@ -199,107 +237,151 @@ export default function DeviceList() {
   if (isError)
     return <div>Error: {(error as { message: string }).message}</div>;
 
+  const searchBar = (
+    <DeviceSearchBar index={searchIndex} filters={searchFilters} onChange={setSearchFilters} />
+  );
+
   return (
     <div className="@container w-full">
-      <div className="hidden @2xl:block">
-        <div className="sticky top-0 h-10 z-10 bg-slate-200 flex flex-row b">
-          <div className="flex-0 flex flex-row items-center py-2 px-2">
-            <DebouncedInput
-              type="text"
-              name="filter"
-              value={globalFilter}
-              onChange={(value) => table.setGlobalFilter(value as string)}
-              placeholder="Search device ID or metadata"
-              className="text-sm text-black -my-1 p-1 w-72"
+      <div className="hidden @2xl:block space-y-3 p-3">
+        <div className="flex flex-row flex-wrap items-center gap-3">
+          <div className="min-w-72 flex-1">{searchBar}</div>
+          <DevicesHeader
+            deviceOnlineFilter={deviceOnlineFilter}
+            setDeviceOnlineFilter={filterByStatusFromHeader}
+          />
+          {data && (
+            <FilterDetails
+              totalRows={data.length}
+              filteredRows={table.getRowModel().rows.length}
+              className="items-center"
             />
-          </div>
-          <div className="flex-0 flex flex-row items-center gap-2">
-            <DevicesHeader
-              deviceOnlineFilter={deviceOnlineFilter}
-              setDeviceOnlineFilter={filterByStatusFromHeader}
-            />
-            {data && (
-              <FilterDetails
-                totalRows={data.length}
-                filteredRows={table.getRowModel().rows.length}
-                className="items-center"
-              />
-            )}
-          </div>
-          <div className="flex-1 flex flex-row justify-end py-2 px-2 gap-4 items-center">
-            <div className="flex-0 self-center">
-              <DeviceManageDialog />
-            </div>
-          </div>
+          )}
+          {isLoadingMore && <span className="text-xs text-muted-foreground">Loading more devices...</span>}
+          <DeviceManageDialog />
         </div>
-        <DeviceTable table={table} />
+        <DeviceTable
+          table={table}
+          endpoints={endpointsInfo}
+          expandedIds={expandedIds}
+          onToggleExpanded={toggleExpanded}
+        />
       </div>
       <div className="block @2xl:hidden">
         <DeviceCards
           table={table}
-          globalFilter={globalFilter}
-          data={tableData}
+          data={allDevices}
+          searchBar={searchBar}
+          endpoints={endpointsInfo}
+          expandedIds={expandedIds}
+          onToggleExpanded={toggleExpanded}
         />
       </div>
     </div>
   );
 }
 
-function DeviceTable({ table }: DeviceListProps) {
+function DeviceTable({ table, endpoints, expandedIds, onToggleExpanded }: DeviceListProps) {
   const navigate = useNavigate();
   const { deviceId: activeDeviceId } = useParams();
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   return (
     <>
-      <div className="rounded-sm">
+      <div className="rounded-lg border bg-background overflow-hidden">
         <Table>
-          <THead className="top-10">
+          <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TR key={headerGroup.id}>
+              <TableRow key={headerGroup.id}>
+                <TableHead className="w-8" />
                 {headerGroup.headers.map((header) => (
-                  <TH key={header.id} style={{ width: `${header.getSize()}px` }}>
+                  <TableHead key={header.id}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
                           header.getContext(),
                         )}
-                  </TH>
+                  </TableHead>
                 ))}
-                <TH style={{ width: "60px" }} />
-              </TR>
+                <TableHead>Endpoints</TableHead>
+                <TableHead className="w-40" />
+              </TableRow>
             ))}
-          </THead>
-          <TBody>
-            {table.getRowModel().rows.map((row) => (
-              <TR
-                key={row.id}
-                className={`group ${activeDeviceId === row.original.deviceId ? "" : "hover:bg-gray-100"}`}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TD
-                    key={cell.id}
-                    onClick={() => navigate(`/devices/${row.original.deviceId}`)}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.map((row) => {
+              const id = row.original.deviceId;
+              const isExpanded = expandedIds.has(id);
+              const cells = row.getVisibleCells();
+              const total = endpoints.byDevice.get(id)?.length ?? 0;
+              return (
+                <Fragment key={row.id}>
+                  <TableRow
+                    aria-expanded={isExpanded}
+                    className={cn("cursor-pointer", activeDeviceId === id && "bg-muted")}
+                    onClick={() => onToggleExpanded(id)}
                   >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TD>
-                ))}
-                <TD>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteTargetId(row.original.deviceId);
-                    }}
-                    className="text-xs px-2 py-1 text-red-600 border border-red-200 rounded hover:bg-red-50"
-                    title="Delete device"
-                  >
-                    Delete
-                  </button>
-                </TD>
-              </TR>
-            ))}
-          </TBody>
+                    <TableCell className="w-8 text-muted-foreground">
+                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </TableCell>
+                    {cells.map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      <EndpointCountBadge deviceId={id} endpoints={endpoints} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/devices/${encodeURIComponent(id)}`);
+                          }}
+                        >
+                          Open
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          title="Delete device"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTargetId(id);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {isExpanded && (
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableCell colSpan={cells.length + 3} className="px-4 py-3">
+                        <DeviceEndpointsPanel
+                          deviceId={id}
+                          endpoints={
+                            endpoints.hasEndpointFilters
+                              ? (endpoints.matching.get(id) ?? [])
+                              : (endpoints.byDevice.get(id) ?? [])
+                          }
+                          total={total}
+                          isLoading={endpoints.isLoading}
+                          isError={endpoints.isError}
+                          errorMessage={endpoints.errorMessage}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
+              );
+            })}
+          </TableBody>
         </Table>
       </div>
 

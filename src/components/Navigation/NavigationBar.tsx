@@ -76,8 +76,9 @@ export default function NavigationBar() {
                 </Disclosure.Button>
               </div>
               <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-                <div className="flex shrink-0 items-center">
-                  <img className="h-12 w-auto" src={logo} alt="Sealman IoT" />
+                <div className="flex h-16 shrink-0 items-center overflow-hidden">
+                  {/* The image has a lot of empty margin above and below the artwork, so it is scaled up and cropped to the bar height. */}
+                  <img className="h-28 w-auto max-w-none" src={logo} alt="Sealman IoT" />
                 </div>
                 <div className="hidden sm:ml-6 sm:block">
                   <div className="flex space-x-4">
