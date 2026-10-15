@@ -652,10 +652,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Opcua Client Twin Config */
+        /**
+         * Get Opcua Client Twin Config
+         * @deprecated
+         * @description Deprecated fixed-module alias of the generic configuration contract. Uses only this module's active configuration schema, or the generic fallback when inactive. An enabled extension's unavailable claim returns 503 before storage access; it never falls back.
+         */
         get: operations["get_opcua_client_twin_config__device__twin_config_seal_module_opcua_client_get"];
         put?: never;
-        /** Post Module Twin Config Opcua */
+        /**
+         * Post Module Twin Config Opcua
+         * @deprecated
+         * @description Deprecated fixed-module alias of the generic configuration contract. Uses only this module's active configuration schema, or the generic fallback when inactive. An enabled extension's unavailable claim returns 503 before storage access; it never falls back.
+         */
         post: operations["post_module_twin_config_opcua__device__twin_config_seal_module_opcua_client_post"];
         delete?: never;
         options?: never;
@@ -670,11 +678,40 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Net Discover Twin Config */
+        /**
+         * Get Net Discover Twin Config
+         * @deprecated
+         * @description Deprecated fixed-module alias of the generic configuration contract. Uses only this module's active configuration schema, or the generic fallback when inactive. An enabled extension's unavailable claim returns 503 before storage access; it never falls back.
+         */
         get: operations["get_net_discover_twin_config__device__twin_config_seal_app_net_discover_get"];
         put?: never;
-        /** Post Module Twin Config Discover */
+        /**
+         * Post Module Twin Config Discover
+         * @deprecated
+         * @description Deprecated fixed-module alias of the generic configuration contract. Uses only this module's active configuration schema, or the generic fallback when inactive. An enabled extension's unavailable claim returns 503 before storage access; it never falls back.
+         */
         post: operations["post_module_twin_config_discover__device__twin_config_seal_app_net_discover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/twin/config/{module}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Module Twin Config */
+        get: operations["get_module_twin_config__device__twin_config__module__get"];
+        put?: never;
+        /**
+         * Post Module Twin Config
+         * @description Validates the exact module's current configuration schema at runtime. Without an active schema, only JSON objects are accepted. Supplied JSON is persisted without normalization.
+         */
+        post: operations["post_module_twin_config__device__twin_config__module__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -692,23 +729,6 @@ export interface paths {
         put?: never;
         /** Post Module Config Status */
         post: operations["post_module_config_status__device__config_status_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{device}/twin/config/{module}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Module Twin Config */
-        get: operations["get_module_twin_config__device__twin_config__module__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1367,7 +1387,7 @@ export interface paths {
         put?: never;
         /**
          * Register a new extension
-         * @description Persists an extension's manifest with enabled=false. A freshly-registered extension is inert - no routes are mounted until it is enabled.
+         * @description Persists an extension's manifest with enabled=false. A freshly-registered extension is disabled by default; no routes are mounted until it is enabled.
          */
         post: operations["register_extension_extensions_post"];
         delete?: never;
@@ -1407,7 +1427,7 @@ export interface paths {
         get: operations["get_extension_extensions__name__get"];
         /**
          * Replace an extension's manifest
-         * @description Replaces the entire manifest in one database transaction; never changes `enabled`. If the extension is currently enabled, its routes are rebuilt and swapped in after that commit; if they cannot be built, the extension is disabled. Refuses (409) to drop an action still granted to a role - clean up role grants first (DELETE, by contrast, strips grants).
+         * @description Replaces the entire manifest in one database transaction; never changes `enabled`. If the extension is currently enabled, its routes are rebuilt and swapped in after that commit; if they cannot be built, the extension is disabled. Refuses (409) to drop an action still
          */
         put: operations["replace_extension_extensions__name__put"];
         post?: never;
@@ -1472,7 +1492,7 @@ export interface paths {
         put?: never;
         /**
          * Check an extension's upstream health now
-         * @description Runs a fresh health check of every one of this extension's upstreams and persists the result. A plain GET never triggers a check on its own - it only ever returns whatever was last persisted here. Gated by extension.read, not extension.register: this refreshes a status the settings page shows, it does not change the manifest.
+         * @description Runs a fresh health check of every one of this extension's upstreams and persists the result. A plain GET never triggers a check on its own, it only ever returns whatever was last persisted here. Gated by extension.read, not extension.register: this refreshes a status the settings page shows, it does not change the manifest.
          */
         post: operations["check_extension_health_extensions__name__health_check_post"];
         delete?: never;
@@ -1492,7 +1512,7 @@ export interface paths {
         put?: never;
         /**
          * Rotate an extension's internal key
-         * @description Issues a fresh X-Internal-Key and invalidates the previous one immediately. The raw key is only ever returned here - never re-readable via GET.
+         * @description Issues a fresh X-Internal-Key and invalidates the previous one immediately. The raw key is only ever returned here. Never re-readable via GET.
          */
         post: operations["rotate_internal_key_extensions__name__internal_key_rotate_post"];
         delete?: never;
@@ -1529,22 +1549,6 @@ export interface components {
             /** Active Deployment */
             active_deployment: string | null;
         };
-        /** AnonymousCredentialsSchema */
-        AnonymousCredentialsSchema: {
-            /**
-             * Type
-             * @constant
-             */
-            type: "Anonymous";
-        };
-        /** ApplicationData */
-        "ApplicationData-Input": {
-            [key: string]: string | components["schemas"]["ApplicationData-Input"];
-        };
-        /** ApplicationData */
-        "ApplicationData-Output": {
-            [key: string]: string | components["schemas"]["ApplicationData-Output"];
-        };
         /** ApplyDefaultTemplateResult */
         ApplyDefaultTemplateResult: {
             /** Deviceid */
@@ -1579,80 +1583,6 @@ export interface components {
          * @enum {string}
          */
         CellularState: "on" | "off";
-        /** CertificateCredentialsSchema */
-        CertificateCredentialsSchema: {
-            /**
-             * Type
-             * @constant
-             */
-            type: "Certificate";
-            /** Privatekey */
-            privateKey: string;
-            /** Certificate */
-            certificate: string;
-        };
-        /** ClientConfigurationSchema */
-        "ClientConfigurationSchema-Input": {
-            /** Endpoint */
-            endpoint: string;
-            /**
-             * Securitypolicy
-             * @default None
-             * @enum {string}
-             */
-            securityPolicy: "Invalid" | "None" | "Basic128" | "Basic192" | "Basic192Rsa15" | "Basic256Rsa15" | "Basic256Sha256" | "Aes128_Sha256_RsaOaep" | "Aes256_Sha256_RsaPss" | "Aes128Sha256RsaOaep" | "Aes256Sha256RsaPss" | "PubSub_Aes128_CTR" | "PubSub_Aes256_CTR" | "Basic128Rsa15" | "Basic256";
-            /**
-             * Messagesecuritymode
-             * @default None
-             * @enum {string}
-             */
-            messageSecurityMode: "Invalid" | "None" | "Sign" | "SignAndEncrypt";
-            /** Clientcertificate */
-            clientCertificate?: string | null;
-            /** Clientprivatekey */
-            clientPrivateKey?: string | null;
-            /** Servercertificate */
-            serverCertificate?: string | null;
-            /** Rootcertificates */
-            rootCertificates?: string[] | null;
-            /** Rootcrls */
-            rootCrls?: string[] | null;
-            /** Sessions */
-            sessions: {
-                [key: string]: components["schemas"]["SessionConfigurationSchema-Input"];
-            };
-        };
-        /** ClientConfigurationSchema */
-        "ClientConfigurationSchema-Output": {
-            /** Endpoint */
-            endpoint: string;
-            /**
-             * Securitypolicy
-             * @default None
-             * @enum {string}
-             */
-            securityPolicy: "Invalid" | "None" | "Basic128" | "Basic192" | "Basic192Rsa15" | "Basic256Rsa15" | "Basic256Sha256" | "Aes128_Sha256_RsaOaep" | "Aes256_Sha256_RsaPss" | "Aes128Sha256RsaOaep" | "Aes256Sha256RsaPss" | "PubSub_Aes128_CTR" | "PubSub_Aes256_CTR" | "Basic128Rsa15" | "Basic256";
-            /**
-             * Messagesecuritymode
-             * @default None
-             * @enum {string}
-             */
-            messageSecurityMode: "Invalid" | "None" | "Sign" | "SignAndEncrypt";
-            /** Clientcertificate */
-            clientCertificate?: string | null;
-            /** Clientprivatekey */
-            clientPrivateKey?: string | null;
-            /** Servercertificate */
-            serverCertificate?: string | null;
-            /** Rootcertificates */
-            rootCertificates?: string[] | null;
-            /** Rootcrls */
-            rootCrls?: string[] | null;
-            /** Sessions */
-            sessions: {
-                [key: string]: components["schemas"]["SessionConfigurationSchema-Output"];
-            };
-        };
         /** ComposeRequest */
         ComposeRequest: {
             /** Description */
@@ -2055,35 +1985,6 @@ export interface components {
             /** Updated */
             updated: string;
         };
-        /** EdgeHubOutputConfiguration */
-        "EdgeHubOutputConfiguration-Input": {
-            /**
-             * Messageformat
-             * @constant
-             */
-            messageFormat: "csi:1.0";
-            applicationData?: components["schemas"]["ApplicationData-Input"] | null;
-        };
-        /** EdgeHubOutputConfiguration */
-        "EdgeHubOutputConfiguration-Output": {
-            /**
-             * Messageformat
-             * @constant
-             */
-            messageFormat: "csi:1.0";
-            applicationData?: components["schemas"]["ApplicationData-Output"] | null;
-        };
-        /** Endpoint */
-        Endpoint: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-            /** Servicenames */
-            serviceNames: {
-                [key: string]: string;
-            };
-        };
         /** EndpointCreate */
         EndpointCreate: {
             /** Type Id */
@@ -2223,6 +2124,10 @@ export interface components {
             actions?: components["schemas"]["ActionSpec"][];
             /** Routes */
             routes: components["schemas"]["RouteDetail"][];
+            /** Module Schemas */
+            module_schemas?: {
+                [key: string]: components["schemas"]["ModuleSchemaSpec"];
+            };
             /**
              * Enabled
              * @default false
@@ -2260,6 +2165,10 @@ export interface components {
             actions?: components["schemas"]["ActionSpec"][];
             /** Routes */
             routes: components["schemas"]["RouteSpec"][];
+            /** Module Schemas */
+            module_schemas?: {
+                [key: string]: components["schemas"]["ModuleSchemaSpec"];
+            };
         };
         /** FWShow */
         FWShow: {
@@ -2472,8 +2381,6 @@ export interface components {
         GetModuleTwinIdentityResponse: components["schemas"]["ModuleTwin"] | null;
         /** GetModuleTwinResponse */
         GetModuleTwinResponse: components["schemas"]["ModuleTwin"] | null;
-        /** GetNetDiscoverModuleConfigV1 */
-        GetNetDiscoverModuleConfigV1: components["schemas"]["NetworkDiscoverModuleConfigV1"] | null;
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2821,6 +2728,19 @@ export interface components {
             /** Modules */
             modules: string[];
         };
+        /**
+         * ModuleSchemaSpec
+         * @description Module configuration and optional reported-response contracts, each a local
+         *     `#/components/schemas/...` reference in the OpenAPI document of `upstream`.
+         */
+        ModuleSchemaSpec: {
+            /** Upstream */
+            upstream: string;
+            /** Schema Ref */
+            schema_ref: string;
+            /** Reported Schema Ref */
+            reported_schema_ref?: string | null;
+        };
         /** ModuleStatus */
         ModuleStatus: {
             /** Modulename */
@@ -2853,39 +2773,6 @@ export interface components {
         /** ModuleTwin */
         ModuleTwin: {
             [key: string]: unknown;
-        };
-        /** MonitoredItemConfiguration */
-        MonitoredItemConfiguration: {
-            /** Nodeid */
-            nodeId: string;
-            /** Discardoldest */
-            discardOldest?: boolean | null;
-            /** Queuesize */
-            queueSize?: number | null;
-            /** Samplinginterval */
-            samplingInterval?: number | null;
-        };
-        /** MqttOutputConfiguration */
-        "MqttOutputConfiguration-Input": {
-            /** Topic */
-            topic: string;
-            /**
-             * Messageformat
-             * @constant
-             */
-            messageFormat: "csi:1.0";
-            applicationData?: components["schemas"]["ApplicationData-Input"] | null;
-        };
-        /** MqttOutputConfiguration */
-        "MqttOutputConfiguration-Output": {
-            /** Topic */
-            topic: string;
-            /**
-             * Messageformat
-             * @constant
-             */
-            messageFormat: "csi:1.0";
-            applicationData?: components["schemas"]["ApplicationData-Output"] | null;
         };
         /** NMShow */
         NMShow: {
@@ -2979,16 +2866,6 @@ export interface components {
             /** Subnetmask */
             subnetMask: number;
         };
-        /** NetworkDiscoverModuleConfigV1 */
-        NetworkDiscoverModuleConfigV1: {
-            /** Scheduledcron */
-            scheduledCron: string;
-            scanDefinition: components["schemas"]["ScanDefinition"];
-            /** Endpointnames */
-            endpointNames: {
-                [key: string]: components["schemas"]["Endpoint"];
-            };
-        };
         /** NetworkOverview */
         NetworkOverview: {
             scanDefinition: components["schemas"]["NetworkDiscover"];
@@ -3018,34 +2895,6 @@ export interface components {
             /** Scanresults */
             scanResults: components["schemas"]["EndpointStatus"][];
             scanDefinition: components["schemas"]["NetworkDiscover"];
-        };
-        /** OpcuaClientModuleConfigV1 */
-        "OpcuaClientModuleConfigV1-Input": {
-            /**
-             * Schemaversion
-             * @constant
-             */
-            schemaVersion: "1.0";
-            /** Mqttendpoint */
-            mqttEndpoint?: string | null;
-            /** Clients */
-            clients: {
-                [key: string]: components["schemas"]["ClientConfigurationSchema-Input"];
-            };
-        };
-        /** OpcuaClientModuleConfigV1 */
-        "OpcuaClientModuleConfigV1-Output": {
-            /**
-             * Schemaversion
-             * @constant
-             */
-            schemaVersion: "1.0";
-            /** Mqttendpoint */
-            mqttEndpoint?: string | null;
-            /** Clients */
-            clients: {
-                [key: string]: components["schemas"]["ClientConfigurationSchema-Output"];
-            };
         };
         /** PermissionItem */
         PermissionItem: {
@@ -3240,6 +3089,11 @@ export interface components {
              */
             body_ref: boolean;
             /**
+             * Response Ref
+             * @default false
+             */
+            response_ref: boolean;
+            /**
              * Visibility
              * @default public
              * @enum {string}
@@ -3313,6 +3167,11 @@ export interface components {
              */
             body_ref: boolean;
             /**
+             * Response Ref
+             * @default false
+             */
+            response_ref: boolean;
+            /**
              * Visibility
              * @default public
              * @enum {string}
@@ -3349,18 +3208,6 @@ export interface components {
         SavedPreset: {
             inet: components["schemas"]["Inet"];
             ip: components["schemas"]["Ip"];
-        };
-        /** ScanDefinition */
-        ScanDefinition: {
-            /**
-             * Networkdefinition
-             * Format: ipv4
-             */
-            networkDefinition: string;
-            /** Subnetmask */
-            subnetMask: number;
-            /** Ports */
-            ports: number[];
         };
         /** ScopeCreateRequest */
         ScopeCreateRequest: {
@@ -3664,32 +3511,6 @@ export interface components {
                 [key: string]: unknown | null;
             };
         };
-        /** SessionConfigurationSchema */
-        "SessionConfigurationSchema-Input": {
-            /** Credentials */
-            credentials: components["schemas"]["AnonymousCredentialsSchema"] | components["schemas"]["UserNameCredentialsSchema"] | components["schemas"]["CertificateCredentialsSchema"];
-            /** Subscriptions */
-            subscriptions: {
-                [key: string]: components["schemas"]["SubscriptionConfigurationSchema-Input"];
-            };
-            /** Dynamicdeclarations */
-            dynamicDeclarations?: {
-                [key: string]: string;
-            } | null;
-        };
-        /** SessionConfigurationSchema */
-        "SessionConfigurationSchema-Output": {
-            /** Credentials */
-            credentials: components["schemas"]["AnonymousCredentialsSchema"] | components["schemas"]["UserNameCredentialsSchema"] | components["schemas"]["CertificateCredentialsSchema"];
-            /** Subscriptions */
-            subscriptions: {
-                [key: string]: components["schemas"]["SubscriptionConfigurationSchema-Output"];
-            };
-            /** Dynamicdeclarations */
-            dynamicDeclarations?: {
-                [key: string]: string;
-            } | null;
-        };
         /** SetTemplateVariableRequest */
         SetTemplateVariableRequest: {
             /** Value */
@@ -3711,64 +3532,6 @@ export interface components {
             edited: {
                 [key: string]: unknown;
             };
-        };
-        /** SubscriptionConfigurationSchema */
-        "SubscriptionConfigurationSchema-Input": {
-            /** Maxnotificationsperpublish */
-            maxNotificationsPerPublish: number;
-            /** Publishingenabled */
-            publishingEnabled: boolean;
-            /** Requestedlifetimecount */
-            requestedLifetimeCount: number;
-            /** Requestedmaxkeepalivecount */
-            requestedMaxKeepAliveCount: number;
-            /** Requestedpublishinginterval */
-            requestedPublishingInterval: number;
-            /** Priority */
-            priority: number;
-            /** Monitoreditemsdiscardoldest */
-            monitoredItemsDiscardOldest: boolean;
-            /** Monitoreditemsqueuesize */
-            monitoredItemsQueueSize: number;
-            /** Monitoreditemssamplinginterval */
-            monitoredItemsSamplingInterval: number;
-            /** Edgehuboutput */
-            edgeHubOutput?: components["schemas"]["EdgeHubOutputConfiguration-Input"][] | null;
-            /** Mqttoutput */
-            mqttOutput?: components["schemas"]["MqttOutputConfiguration-Input"][] | null;
-            /** Monitoreditems */
-            monitoredItems?: {
-                [key: string]: components["schemas"]["MonitoredItemConfiguration"];
-            } | null;
-        };
-        /** SubscriptionConfigurationSchema */
-        "SubscriptionConfigurationSchema-Output": {
-            /** Maxnotificationsperpublish */
-            maxNotificationsPerPublish: number;
-            /** Publishingenabled */
-            publishingEnabled: boolean;
-            /** Requestedlifetimecount */
-            requestedLifetimeCount: number;
-            /** Requestedmaxkeepalivecount */
-            requestedMaxKeepAliveCount: number;
-            /** Requestedpublishinginterval */
-            requestedPublishingInterval: number;
-            /** Priority */
-            priority: number;
-            /** Monitoreditemsdiscardoldest */
-            monitoredItemsDiscardOldest: boolean;
-            /** Monitoreditemsqueuesize */
-            monitoredItemsQueueSize: number;
-            /** Monitoreditemssamplinginterval */
-            monitoredItemsSamplingInterval: number;
-            /** Edgehuboutput */
-            edgeHubOutput?: components["schemas"]["EdgeHubOutputConfiguration-Output"][] | null;
-            /** Mqttoutput */
-            mqttOutput?: components["schemas"]["MqttOutputConfiguration-Output"][] | null;
-            /** Monitoreditems */
-            monitoredItems?: {
-                [key: string]: components["schemas"]["MonitoredItemConfiguration"];
-            } | null;
         };
         /** TeamAddUserRequest */
         TeamAddUserRequest: {
@@ -3930,18 +3693,6 @@ export interface components {
         };
         /** UserListResponse */
         UserListResponse: components["schemas"]["UserWithTeamsResponse"][];
-        /** UserNameCredentialsSchema */
-        UserNameCredentialsSchema: {
-            /**
-             * Type
-             * @constant
-             */
-            type: "UserName";
-            /** Username */
-            userName: string;
-            /** Password */
-            password: string;
-        };
         /** UserPermissions */
         UserPermissions: {
             /**
@@ -6039,7 +5790,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OpcuaClientModuleConfigV1-Output"] | null;
+                    "application/json": components["schemas"]["GetModuleTwinResponse"] | null;
                 };
             };
             /** @description Validation Error */
@@ -6064,7 +5815,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OpcuaClientModuleConfigV1-Input"];
+                "application/json": Record<string, never>;
             };
         };
         responses: {
@@ -6105,7 +5856,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GetNetDiscoverModuleConfigV1"] | null;
+                    "application/json": components["schemas"]["GetModuleTwinResponse"] | null;
                 };
             };
             /** @description Validation Error */
@@ -6130,7 +5881,75 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NetworkDiscoverModuleConfigV1"];
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_module_twin_config__device__twin_config__module__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+                module: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetModuleTwinResponse"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_module_twin_config__device__twin_config__module__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+                module: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
             };
         };
         responses: {
@@ -6176,38 +5995,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModuleConfStatus"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_module_twin_config__device__twin_config__module__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device: string;
-                module: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GetModuleTwinResponse"] | null;
                 };
             };
             /** @description Validation Error */
