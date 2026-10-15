@@ -45,6 +45,7 @@ export interface RouteDraft {
   scope_in: "path" | "query";
   upstream_path: string;
   body_ref: boolean;
+  response_ref: boolean;
   bodyText: string;
   exampleText: string;
   query_params: QueryParamDraft[];
@@ -106,6 +107,7 @@ export function emptyRoute(defaultUpstreamKey = ""): RouteDraft {
     scope_in: "query",
     upstream_path: "",
     body_ref: false,
+    response_ref: false,
     bodyText: "",
     exampleText: "",
     query_params: [],
@@ -125,8 +127,9 @@ function upstreamToDraft(key: string, spec: UpstreamSpec): UpstreamDraft {
       key,
       type: "http",
       base_url: spec.base_url,
-      health_path: spec.health_path,
-      version_field: spec.version_field,
+      // Manifests may omit these; the API applies the same defaults, so apply them here too.
+      health_path: spec.health_path ?? "/health",
+      version_field: spec.version_field ?? "version",
       expected_version: spec.expected_version ?? "",
       module_name: "",
       health_device_query: "",
@@ -169,6 +172,7 @@ function routeToDraft(route: RouteSpec): RouteDraft {
     scope_in: route.scope_in ?? "query",
     upstream_path: route.upstream_path ?? "",
     body_ref: route.body_ref ?? false,
+    response_ref: route.response_ref ?? false,
     bodyText: route.body ? JSON.stringify(route.body, null, 2) : "",
     exampleText: route.example ? JSON.stringify(route.example, null, 2) : "",
     query_params: (route.query_params ?? []).map(queryParamToDraft),
@@ -348,6 +352,7 @@ export function draftToRegistration(draft: ExtensionFormDraft): DraftConversionR
       body,
       example,
       body_ref: r.body_ref,
+      response_ref: r.response_ref,
       visibility: r.visibility,
       required_action: r.required_action.trim() || null,
       scoped: r.scoped,

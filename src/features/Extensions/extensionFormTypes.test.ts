@@ -1,4 +1,5 @@
 import {
+  draftFromRegistration,
   draftToRegistration,
   emptyDraft,
   emptyRoute,
@@ -6,6 +7,7 @@ import {
   HTTP_METHODS,
   type ExtensionFormDraft,
 } from "./extensionFormTypes";
+import type { ExtensionRegistration } from "./types";
 
 function validDraft(): ExtensionFormDraft {
   const draft = emptyDraft();
@@ -75,5 +77,20 @@ describe("extension manifest form contract", () => {
 
     expect(result.registration).toBeUndefined();
     expect(result.errors.some((error) => error.includes('unsupported HTTP method "TRACE"'))).toBe(true);
+  });
+
+  it("fills in the API defaults for an HTTP upstream that omits health_path and version_field", () => {
+    // Manifests may omit these fields even though the generated types mark them required.
+    const manifest = {
+      schema_version: 1,
+      name: "catalog",
+      upstreams: { svc: { type: "http", base_url: "http://127.0.0.1:7000" } },
+      routes: [],
+    } as unknown as ExtensionRegistration;
+
+    const result = draftToRegistration(draftFromRegistration(manifest));
+
+    expect(result.errors).toEqual([]);
+    expect(result.registration?.upstreams.svc).toMatchObject({ health_path: "/health", version_field: "version" });
   });
 });
