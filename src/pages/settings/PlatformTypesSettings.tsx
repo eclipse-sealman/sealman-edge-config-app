@@ -2,6 +2,9 @@ import { useMemo } from "react";
 import TypesManager from "@/features/PlatformTypes/TypesManager";
 import DeviceTableColumnsCard from "@/features/PlatformTypes/DeviceTableColumnsCard";
 import DefaultScanPortsCard from "@/features/PlatformTypes/DefaultScanPortsCard";
+import ExtensionFieldsCard from "@/features/PlatformTypes/ExtensionFieldsCard";
+import useGetExtensionFields from "@/generated/edge-administration/hooks/extension_fields/useGetExtensionFields";
+import { useApplyExtensionFields } from "@/generated/edge-administration/hooks/extension_fields/useApplyExtensionFields";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
 import { usePostDeviceType } from "@/generated/edge-administration/hooks/device_types/usePostDeviceType";
 import { useUpdateDeviceType } from "@/generated/edge-administration/hooks/device_types/useUpdateDeviceType";
@@ -42,6 +45,13 @@ export default function PlatformTypesSettings() {
   const { postEndpointType } = usePostEndpointType();
   const { updateEndpointType } = useUpdateEndpointType();
   const { deleteEndpointType } = useDeleteEndpointType();
+
+  // One "Additional fields" card with a row per enabled extension; no card on a query error or with none enabled.
+  const extensionFieldsQuery = useGetExtensionFields();
+  const { applyExtensionFields } = useApplyExtensionFields();
+  const enabledFieldSets = extensionFieldsQuery.isError
+    ? []
+    : (extensionFieldsQuery.data ?? []).filter((set) => set.enabled);
 
   const serviceTypesQuery = useGetServiceTypes();
   const { postServiceType } = usePostServiceType();
@@ -94,8 +104,9 @@ export default function PlatformTypesSettings() {
           roleOptions={ENDPOINT_ROLE_OPTIONS}
           supportsListVisibility
           cascadeDelete={{ instancesLabel: "endpoint" }}
+          extensionFieldSets={enabledFieldSets}
           onCreate={async (body) => {
-            await postEndpointType({ ...body, mapping: body.mapping ?? {} });
+            await postEndpointType({ ...body, mapping: body.mapping ?? {}, extension_fields: body.extension_fields ?? {} });
             await endpointTypesQuery.refetch();
           }}
           onUpdate={async (typeId, body) => {
@@ -107,6 +118,18 @@ export default function PlatformTypesSettings() {
             await endpointTypesQuery.refetch();
           }}
         />
+
+        {enabledFieldSets.length > 0 && (
+          <ExtensionFieldsCard
+            fieldSets={enabledFieldSets}
+            endpointTypes={endpointTypesQuery.data ?? []}
+            onApply={async (extension, body) => {
+              const result = await applyExtensionFields({ extension, body });
+              await Promise.all([endpointTypesQuery.refetch(), extensionFieldsQuery.refetch()]);
+              return result;
+            }}
+          />
+        )}
 
         <TypesManager
           title="Service Types"

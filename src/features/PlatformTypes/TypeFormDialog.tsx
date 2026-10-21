@@ -11,6 +11,9 @@ import FieldsEditor, {
   rowsFromFields,
 } from "./FieldsEditor";
 import type { RoleOption } from "./typeRoles";
+import ExtensionFieldsPicker from "./ExtensionFieldsPicker";
+import { filterOfferedSelection } from "./extensionFieldsOffer";
+import type { ExtensionFieldSet } from "@/generated/edge-administration/hooks/extension_fields/useGetExtensionFields";
 
 export interface BrowserKindOption {
   value: string;
@@ -23,6 +26,8 @@ export interface TypeRecord {
   description: string | null;
   fields: Record<string, FieldDefinition>;
   mapping?: Record<string, string>;
+  /** {field_key: extension} for fields managed by an extension (endpoint types only). */
+  managed_by?: Record<string, string>;
   browser_kind?: string | null;
 }
 
@@ -33,6 +38,8 @@ export interface TypeFormResult {
   browser_kind: string | null;
   /** The type's {field_key: role} mapping, or null for types without roles (device types). */
   mapping: Record<string, string> | null;
+  /** Ticked extension fields as {extension: [keys]}; only set when at least one is ticked. */
+  extension_fields?: Record<string, string[]>;
 }
 
 interface TypeFormDialogProps {
@@ -59,7 +66,14 @@ interface TypeFormDialogProps {
   /** When set, each field row gets a "Show in list" toggle controlling whether its value shows
    * as extra info in the endpoints list - only meaningful for endpoint types. */
   supportsListVisibility?: boolean;
+  /** When set, the dialog has an "Additional fields" section with one unchecked row per extension
+   * that has fields to offer: every field on create, and the fields the type doesn't have yet on
+   * edit. A ticked extension's offered fields are all sent as `extension_fields`. Pass enabled
+   * extensions only. */
+  extensionFieldSets?: ExtensionFieldSet[];
 }
+
+const NO_EXCLUDED_KEYS = new Set<string>();
 
 export default function TypeFormDialog({
   isOpen,
@@ -73,6 +87,7 @@ export default function TypeFormDialog({
   defaultMapping,
   roleOptions,
   supportsListVisibility,
+  extensionFieldSets,
 }: TypeFormDialogProps) {
   const isEdit = Boolean(initial);
 
@@ -81,6 +96,7 @@ export default function TypeFormDialog({
   const [browserKind, setBrowserKind] = useState("");
   const [rows, setRows] = useState<FieldRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [extensionFields, setExtensionFields] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     if (!isOpen) return;
@@ -88,18 +104,21 @@ export default function TypeFormDialog({
     setDescription(initial?.description ?? "");
     setBrowserKind(initial?.browser_kind ?? "");
     if (initial) {
-      setRows(rowsFromFields(initial.fields, initial.mapping ?? {}));
+      setRows(rowsFromFields(initial.fields, initial.mapping ?? {}, initial.managed_by ?? {}));
     } else if (defaultFields && Object.keys(defaultFields).length > 0) {
       setRows(rowsFromFields(defaultFields, defaultMapping ?? {}));
     } else {
       // No pre-filled blank row - the user presses "Add field" to start defining one.
       setRows([]);
     }
+    setExtensionFields({});
     setError(null);
   }, [isOpen, initial, defaultFields, defaultMapping]);
 
   if (!isOpen) return null;
 
+  // On edit, the keys the type already has are not offered.
+  const excludedExtensionKeys = initial ? new Set(Object.keys(initial.fields)) : NO_EXCLUDED_KEYS;
   const duplicateKeys = findDuplicateKeys(rows);
 
   const handleSave = async () => {
@@ -164,16 +183,29 @@ export default function TypeFormDialog({
       }
     }
 
-    const originalKeys = Object.keys(initial?.fields ?? {});
-    const fields = buildFieldsPayload(rows, originalKeys);
+    const tickedExtensionFields = extensionFieldSets
+      ? filterOfferedSelection(extensionFields, extensionFieldSets, excludedExtensionKeys)
+      : {};
+    const rowKeys = new Set(rows.map((row) => row.key.trim()));
+    for (const keys of Object.values(tickedExtensionFields)) {
+      const clash = keys.find((key) => rowKeys.has(key));
+      if (clash) {
+        setError(`Field "${clash}" is also selected as an extension field`);
+        return;
+      }
+    }
+
+    const fields = buildFieldsPayload(rows, initial?.fields ?? {});
 
     try {
       await onSubmit({
         label: trimmedLabel,
-        description: description.trim() || null,
+        // the type PATCH skips a null description, so clearing an existing one sends ""
+        description: description.trim() || (initial?.description ? "" : null),
         fields,
         browser_kind: browserKind || null,
         mapping: roleOptions ? buildMappingPayload(rows) : null,
+        ...(Object.keys(tickedExtensionFields).length > 0 ? { extension_fields: tickedExtensionFields } : {}),
       });
       setError(null);
     } catch {
@@ -257,6 +289,15 @@ export default function TypeFormDialog({
               roleOptions={roleOptions}
             />
           </div>
+
+          {extensionFieldSets && (
+            <ExtensionFieldsPicker
+              fieldSets={extensionFieldSets}
+              excludeKeys={excludedExtensionKeys}
+              value={extensionFields}
+              onChange={setExtensionFields}
+            />
+          )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
