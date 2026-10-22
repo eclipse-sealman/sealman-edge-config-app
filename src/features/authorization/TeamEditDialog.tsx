@@ -241,14 +241,16 @@ export function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps
                           <span>{role.name}</span>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
                                 onClick={(e) => e.stopPropagation()}
-                                className="p-0.5 rounded hover:bg-slate-200 text-muted-foreground hover:text-foreground"
+                                className="h-6 w-6 text-muted-foreground"
                                 aria-label={`View permissions for ${role.name}`}
                               >
                                 <Info className="h-3.5 w-3.5" />
-                              </button>
+                              </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-56 p-3" side="right" align="start">
                               <p className="text-xs font-semibold mb-1.5">Permissions</p>
@@ -347,14 +349,16 @@ export function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps
                           <span>{role!.name}</span>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
                                 onClick={(e) => e.stopPropagation()}
-                                className="p-0.5 rounded hover:bg-slate-200 text-muted-foreground hover:text-foreground"
+                                className="h-6 w-6 text-muted-foreground"
                                 aria-label={`View permissions for ${role!.name}`}
                               >
                                 <Info className="h-3.5 w-3.5" />
-                              </button>
+                              </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-56 p-3" side="right" align="start">
                               <p className="text-xs font-semibold mb-1.5">Permissions</p>

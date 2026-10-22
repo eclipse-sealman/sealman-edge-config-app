@@ -4,6 +4,7 @@ import { components } from "@/generated/edge-administration/types";
 import FieldValueInput, { compactInputClass, validateFieldValue } from "./FieldValueInput";
 import Toggle from "./Toggle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import type { RoleOption } from "./typeRoles";
 
 export type FieldDefinition = components["schemas"]["FieldDefinition"];
@@ -363,14 +364,16 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
                 {/* Invisible label matches the height of the sibling Field labels, so the button
                     lines up with the inputs exactly instead of relying on flex/grid guesswork. */}
                 <Field label=" ">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="icon"
                     onClick={() => removeRow(row.id)}
-                    className="inline-flex items-center justify-center h-8 w-8 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors shadow-sm"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
                     aria-label="Remove field"
                   >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
+                    <TrashIcon />
+                  </Button>
                 </Field>
               </div>
             </div>
@@ -592,17 +595,10 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
         );
       })}
 
-      <button
-        type="button"
-        onClick={addRow}
-        className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium
-          bg-primary/10 text-primary border border-primary/20
-          hover:bg-primary hover:text-white hover:border-primary
-          transition-all shadow-sm"
-      >
-        <PlusIcon className="w-4 h-4" />
+      <Button type="button" variant="outline" onClick={addRow}>
+        <PlusIcon />
         Add field
-      </button>
+      </Button>
     </div>
   );
 }

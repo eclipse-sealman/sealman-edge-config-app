@@ -286,6 +286,23 @@ export interface paths {
         patch: operations["patch_device_metadata__device__metadata_patch"];
         trace?: never;
     };
+    "/{device}/type": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Device Type */
+        patch: operations["patch_device_type__device__type_patch"];
+        trace?: never;
+    };
     "/{device}/deployment": {
         parameters: {
             query?: never;
@@ -381,6 +398,23 @@ export interface paths {
         };
         /** Get Module Deployment Status */
         get: operations["get_module_deployment_status__device__deployment_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/compose-deployment/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Compose Deployment Status */
+        get: operations["get_compose_deployment_status__device__compose_deployment_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1764,6 +1798,15 @@ export interface components {
             /** Updatedat */
             updatedAt?: string | null;
         };
+        /** DeviceRetypeRequest */
+        DeviceRetypeRequest: {
+            /** Typeid */
+            typeId: string;
+            /** Devicemetadata */
+            deviceMetadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DeviceModuleList */
         DeviceModuleList: components["schemas"]["ModuleStatus"][];
         /** DeviceModuleMethodReq */
@@ -2482,6 +2525,23 @@ export interface components {
         /** ModuleConfStatus */
         ModuleConfStatus: {
             [key: string]: components["schemas"]["ConfigStatus"];
+        };
+        /** ComposeDeploymentStatus */
+        ComposeDeploymentStatus: {
+            /** Deviceid */
+            deviceId: string;
+            /** Deploymentid */
+            deploymentId?: string | null;
+            /**
+             * Applied
+             * @default false
+             */
+            applied: boolean;
+            /**
+             * Success
+             * @default false
+             */
+            success: boolean;
         };
         /** ModuleDeploymentStatus */
         ModuleDeploymentStatus: {
@@ -4318,6 +4378,41 @@ export interface operations {
             };
         };
     };
+    patch_device_type__device__type_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceRetypeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceMetadataResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_deployment_tag__device__deployment_get: {
         parameters: {
             query?: never;
@@ -4520,6 +4615,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModuleDeploymentStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_compose_deployment_status__device__compose_deployment_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposeDeploymentStatus"];
                 };
             };
             /** @description Validation Error */

@@ -19,7 +19,7 @@ interface BadgeProps {
 
 export default function Badge({children, color, className}: BadgeProps) {
   return (
-    <span className={`inline-flex whitespace-nowrap rounded-sm px-2 py-1 text-xs font-medium ring-1 ring-inset empty:hidden ${color || BadgeColor.Blue} ${className}`}>
+    <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset empty:hidden ${color || BadgeColor.Blue} ${className}`}>
       {children}
     </span>
   );

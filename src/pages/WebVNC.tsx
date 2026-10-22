@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import VNCViewer from '../features/VNC/VNCViewer';
 import { webVNCApi } from '../api/webVNCApi/webVNCApi';
 import { toast } from "react-toastify";
-import Button from '@/components/Input/Button';
-import { Input } from '@/components/Input/FormElements';
-import { ButtonColor } from '@/components/Input/Button';
+import { WaterLoader } from "@/components/ui/water-loader";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useRef } from 'react';
 import { AxiosError } from 'axios';
 import { VNCTunnelLoader } from '@/components/Misc/VNCTunnelLoader'; 
@@ -18,8 +18,14 @@ type ControlBarProps = {
 
 const ControlBar: React.FC<ControlBarProps> = ({ onDelete, onRecreate, isProcessing }) => (
   <div className="flex justify-between items-center bg-gray-200 p-2 border-b border-gray-300">
-    <Button onClick={onRecreate} processing={isProcessing}>Recreate Tunnel</Button>
-    <Button onClick={onDelete} processing={isProcessing} color={ButtonColor.Red}>Delete Tunnel</Button>
+    <Button onClick={onRecreate} disabled={isProcessing}>
+      {isProcessing && <WaterLoader />}
+      Recreate Tunnel
+    </Button>
+    <Button onClick={onDelete} disabled={isProcessing} variant="destructive">
+      {isProcessing && <WaterLoader />}
+      Delete Tunnel
+    </Button>
   </div>
 );
 
@@ -143,10 +149,10 @@ const WebVNCApp: React.FC<WebVNCAppProps> = ({ deviceId, sourceIp }) => {
               disabled={isDisabled}
             />
             <Button
-              processing={isConnecting}
               onClick={handleConnect}
-              disabled={isDisabled}
+              disabled={isDisabled || isConnecting}
             >
+              {isConnecting && <WaterLoader />}
               Connect
             </Button>
           </div>

@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { InlineAlert } from "@/components/ui/page-state";
 import { toast } from "react-toastify";
 import { PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import SimpleDialog from "@/components/Modal/SimpleDialog";
-import Button, { ButtonColor, ButtonSize } from "@/components/Input/Button";
-import { compactInputClass } from "@/features/PlatformTypes/FieldValueInput";
+import { WaterLoader } from "@/components/ui/water-loader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ApiError } from "@/generated/edge-administration/api";
 import TypeFormDialog, { BrowserKindOption, TypeFormResult, TypeRecord } from "./TypeFormDialog";
 import { FieldDefinition } from "./FieldsEditor";
@@ -158,17 +160,10 @@ export default function TypesManager({
           <h3 className="text-lg font-semibold">{title}</h3>
           {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
         </div>
-        <button
-          type="button"
-          onClick={openAdd}
-          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium
-            bg-primary/10 text-primary border border-primary/20
-            hover:bg-primary hover:text-white hover:border-primary
-            transition-all shadow-sm shrink-0"
-        >
-          <PlusIcon className="w-4 h-4" />
+        <Button type="button" variant="outline" onClick={openAdd} className="shrink-0">
+          <PlusIcon />
           Add {singularLabel.toLowerCase()}
-        </button>
+        </Button>
       </div>
 
       <div className="border rounded-md overflow-hidden">
@@ -207,21 +202,24 @@ export default function TypesManager({
                   <td className="px-4 py-3 text-center">{Object.keys(type.fields).length}</td>
                   <td className="px-3 py-2">
                     <div className="flex items-center justify-center gap-2">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => openEdit(type)}
-                        className="inline-flex items-center px-3 py-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors shadow-sm"
                         aria-label={`Edit ${type.label}`}
                       >
-                        <PencilSquareIcon className="w-4 h-4" />
-                      </button>
+                        <PencilSquareIcon />
+                      </Button>
                       {type.type_id !== protectedTypeId && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => setPendingDelete(type)}
-                          className="inline-flex items-center px-3 py-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors shadow-sm"
                           aria-label={`Delete ${type.label}`}
                         >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
+                          <TrashIcon />
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -253,20 +251,20 @@ export default function TypesManager({
         <div className="space-y-4">
           {cascadeDelete ? (
             <>
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+              <InlineAlert>
                 This permanently deletes this {singularLabel.toLowerCase()} <strong>and every {cascadeDelete.instancesLabel} of it</strong>. This cannot be undone.
-              </p>
+              </InlineAlert>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">
                   Type <span className="font-mono">confirm</span> to confirm
                 </label>
-                <input
+                <Input
                   type="text"
                   value={deleteConfirmationText}
                   onChange={(e) => setDeleteConfirmationText(e.target.value)}
                   placeholder="confirm"
                   autoFocus
-                  className={`${compactInputClass} font-mono`}
+                  className="font-mono"
                 />
               </div>
             </>
@@ -277,17 +275,17 @@ export default function TypesManager({
           )}
           <div className="flex justify-end gap-2 pt-2">
             <Button
-              size={ButtonSize.Small}
-              color={ButtonColor.Red}
+              size="sm"
+              variant="destructive"
               onClick={handleDelete}
-              processing={isDeleting}
-              disabled={cascadeDelete ? !isDeleteConfirmationValid : false}
+              disabled={isDeleting || (cascadeDelete ? !isDeleteConfirmationValid : false)}
             >
+              {isDeleting && <WaterLoader />}
               Delete
             </Button>
             <Button
-              size={ButtonSize.Small}
-              color={ButtonColor.Gray}
+              size="sm"
+              variant="outline"
               onClick={closeDeleteDialog}
               disabled={isDeleting}
             >

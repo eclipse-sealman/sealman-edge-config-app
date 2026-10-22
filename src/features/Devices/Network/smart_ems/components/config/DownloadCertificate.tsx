@@ -15,7 +15,7 @@ export function DownloadOpenVPNConfiguration() {
       await mutateAsync()
     } catch (err) {
       console.error(err)
-      toast.error("Couldn't download certificate")
+      toast.error("Could not download the certificate")
     }
   }
 

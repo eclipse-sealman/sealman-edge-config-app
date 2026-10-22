@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
-import { inputClass, validateFieldValue } from "./FieldValueInput";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { validateFieldValue } from "./FieldValueInput";
 import FieldsEditor, {
   Field,
   FieldDefinition,
@@ -11,6 +14,9 @@ import FieldsEditor, {
   rowsFromFields,
 } from "./FieldsEditor";
 import type { RoleOption } from "./typeRoles";
+
+// Radix Select can't hold an empty-string item, so "no browse action" is represented by this sentinel.
+const NO_BROWSER_KIND = "__none__";
 
 export interface BrowserKindOption {
   value: string;
@@ -182,68 +188,63 @@ export default function TypeFormDialog({
   };
 
   return (
-    <div role="dialog" className="fixed inset-0 flex items-center justify-center bg-gray-900/50 z-20 p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-          <h2 className="text-lg font-semibold">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col gap-0 p-0">
+        <div className="px-6 py-4 border-b shrink-0">
+          <DialogTitle>
             {isEdit ? `Edit ${singularLabel}` : `Add ${singularLabel}`}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Close"
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
+          </DialogTitle>
+          <DialogDescription className="sr-only">Define the type and its fields</DialogDescription>
         </div>
 
         <div className="px-6 py-4 space-y-5 overflow-y-auto">
           {isEdit && (
             <Field label="Type ID">
-              <input
+              <Input
                 type="text"
                 value={(initial as TypeRecord).type_id}
                 disabled
-                className={`${inputClass} font-mono opacity-60 cursor-not-allowed`}
+                className="font-mono"
               />
             </Field>
           )}
 
           <Field label="Label *">
-            <input
+            <Input
               type="text"
               placeholder="Human readable name"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              className={inputClass}
             />
           </Field>
 
           <Field label="Description">
-            <input
+            <Input
               type="text"
               placeholder="Optional description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className={inputClass}
             />
           </Field>
 
           {browserKindOptions && (
             <Field label="Browse Action">
-              <select
-                value={browserKind}
-                onChange={(e) => setBrowserKind(e.target.value)}
-                className={inputClass}
+              <Select
+                value={browserKind || NO_BROWSER_KIND}
+                onValueChange={(v) => setBrowserKind(v === NO_BROWSER_KIND ? "" : v)}
               >
-                <option value="">None</option>
-                {browserKindOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_BROWSER_KIND}>None</SelectItem>
+                  {browserKindOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           )}
 
@@ -262,24 +263,18 @@ export default function TypeFormDialog({
         </div>
 
         <div className="px-6 py-4 border-t flex justify-end gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isPending}
-            className="px-4 py-1.5 rounded-md text-sm font-medium border border-slate-200 hover:bg-muted/60 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
+          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={handleSave}
             disabled={isPending || duplicateKeys.size > 0}
-            className="px-4 py-1.5 rounded-md text-sm font-medium bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {isPending ? "Saving..." : isEdit ? "Save changes" : `Add ${singularLabel.toLowerCase()}`}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

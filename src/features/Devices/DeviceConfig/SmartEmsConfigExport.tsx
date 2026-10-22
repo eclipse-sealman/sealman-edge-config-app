@@ -1,7 +1,10 @@
 import { useParams } from "react-router-dom";
-import Button from "../../../components/Input/Button";
+import { WaterLoader } from "@/components/ui/water-loader";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "react-toastify";
+import { getErrorMessage } from "@/lib/errors";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { CMD_PROXY_MODULE_NAME } from "@/api/edgeConfig/moduleNames";
 import { JSONTree } from "react-json-tree";
@@ -9,7 +12,6 @@ import { useState } from "react";
 import {
   PrinterIcon,
   ArrowDownTrayIcon,
-  WrenchScrewdriverIcon,
 } from "@heroicons/react/24/outline";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
 import { withPermissionAndModuleRequiredTooltip } from "@/features/authorization/permissions/withPermissionAndModuleRequiredTooltip";
@@ -52,12 +54,8 @@ export function DeviceSemsConfigExport() {
       return response;
     },
 
-    onError: (error: any) => {
-      toast.error(
-        `ERROR: Could not generate config export: ${
-          error.code
-        } ${JSON.stringify(error.response?.data)}`
-      );
+    onError: (error: unknown) => {
+      toast.error(`Could not generate the config export: ${getErrorMessage(error)}`);
     },
 
     onSuccess: (resp: any) => {
@@ -73,7 +71,7 @@ export function DeviceSemsConfigExport() {
       let resp = await edgeConfigApi.getDeviceCmdStatus(deviceId);
       if (resp.moduleStatus === "Disconnected") {
         toast.warning(
-          `this function require a connected <${CMD_PROXY_MODULE_NAME}> module -> check Module-Config`
+          `This action requires a connected '${CMD_PROXY_MODULE_NAME}' module. Check Applications.`
         );
       } else {
         resp = await edgeConfigApi.getDeviceCmdConfigShow(deviceId);
@@ -81,12 +79,8 @@ export function DeviceSemsConfigExport() {
       }
     },
 
-    onError: (error: any) => {
-      toast.error(
-        `ERROR: Could not load config from device: ${
-          error.code
-        } ${JSON.stringify(error.response?.data)}`
-      );
+    onError: (error: unknown) => {
+      toast.error(`Could not load the config from the device: ${getErrorMessage(error)}`);
     },
 
     onSuccess: (resp: any) => {
@@ -97,7 +91,7 @@ export function DeviceSemsConfigExport() {
 
   const handleCopy = () => {
     navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
-    toast.success("JSON copied to clipboard!");
+    toast.success("JSON copied to clipboard");
   };
 
   const handleDownload = () => {
@@ -113,61 +107,56 @@ export function DeviceSemsConfigExport() {
   };
 
   return (
-    <div className="space-x-2">
+    <div className="flex gap-2">
       <PermissionGuardedButton
         deviceId={deviceId}
         permissionKey={PERMISSION_KEYS.DEVICE_READ}
-        processing={isExporting}
+        variant="outline"
+        disabled={isExporting}
         onClick={() => exportConfig()}
       >
+        {isExporting && <WaterLoader />}
         Show desired Config
       </PermissionGuardedButton>
       <PermissionAndModuleGuardedButton
           deviceId={deviceId}
           permissionKey={PERMISSION_KEYS.DEVICE_READ}
           requiredModuleName={CMD_PROXY_MODULE_NAME}
-          processing={isLoadingConfig}
+          variant="outline"
+          disabled={isLoadingConfig}
           onClick={() => loadConfig()}
         >
+          {isLoadingConfig && <WaterLoader />}
           Show active Config
         </PermissionAndModuleGuardedButton>
-      {jsonData && isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-3/4 max-w-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <WrenchScrewdriverIcon className="w-7 h-7 mr-1" />
-              <strong>
-                {configType === "sems"
-                  ? "Desired Device Configuration"
-                  : "Deployed Device Configuration"}
-              </strong>
-
-              <div className="ml-auto flex space-x-2">
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center p-2 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  <PrinterIcon className="w-5 h-5 mr-1" />
-                  Copy
-                </button>
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center p-2 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  <ArrowDownTrayIcon className="w-5 h-5 mr-1" />
-                  Download
-                </button>
-              </div>
-            </div>
-            <div className="mb-4 max-h-96 overflow-auto">
-              {jsonData && <JSONTree data={jsonData} theme={theme} />}
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={() => setIsModalOpen(false)}>Close</Button>
-            </div>
+      <Dialog open={Boolean(jsonData) && isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {configType === "sems"
+                ? "Desired Device Configuration"
+                : "Deployed Device Configuration"}
+            </DialogTitle>
+            <DialogDescription className="sr-only">Device configuration as JSON</DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              <PrinterIcon />
+              Copy
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <ArrowDownTrayIcon />
+              Download
+            </Button>
           </div>
-        </div>
-      )}
+          <div className="max-h-96 overflow-auto">
+            {jsonData && <JSONTree data={jsonData} theme={theme} />}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsModalOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,9 +1,12 @@
 import { useState } from "react";
-import Button from "../../../components/Input/Button";
+import { WaterLoader } from "@/components/ui/water-loader";
+import { Button } from "@/components/ui/button";
+import { InlineAlert, LoadingState } from "@/components/ui/page-state";
 import { useParams } from "react-router-dom";
 import JsonEditor from "../../../components/Input/JsonEditor";
 import { edgeConfigApiHooks } from "../../../api/edgeConfig/edgeConfigApiHooks";
 import { toast } from "react-toastify";
+import { getErrorMessage } from "@/lib/errors";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
 import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
@@ -33,20 +36,21 @@ export default function ModuleConfig({
     staleTime: Infinity,
   });
 
-  if (isPending) return <>Loading</>;
+  if (isPending) return <LoadingState />;
 
   if (isError) {
     return (
       <>
-        <div className="flex my-2 gap-2">
-          <div className="grow bg-red-100 border border-red-400 p-2">
-            Could not retrieve twin config. {error.code}{" "}
-            {JSON.stringify(error.response?.data)}
-          </div>
-          <Button onClick={() => refetch()} processing={isPending}>
-            Retry
-          </Button>
-        </div>
+        <InlineAlert
+          className="my-2"
+          action={
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          Could not retrieve the twin config: {getErrorMessage(error)}
+        </InlineAlert>
         <JsonForm
           moduleName={moduleName}
           appMessage={appMessage}
@@ -88,11 +92,10 @@ function JsonForm({
   const onSetTwinConfig = () => {
     usePostTwinConfig.mutate(twinConfigForm, {
       onSuccess: () => {
-        toast.success(`Success: Scheduled config update for ${moduleName}.`);
+        toast.success(`Config update scheduled for ${moduleName}`);
       },
       onError: (err) => {
-        const errData: any = err.response?.data;
-        toast.error(`Error: ${JSON.stringify(errData.message)}`);
+        toast.error(`Could not schedule the config update: ${getErrorMessage(err)}`);
       },
     });
   };
@@ -109,24 +112,23 @@ function JsonForm({
       {appMessage &&
         appMessage !== "configuration successfull" &&
         appMessage !== "configuration successful" && (
-          <div className="max-h-36 overflow-y-auto bg-red-100 border border-red-400 mt-2 p-2">
-            {appMessage}
-          </div>
+          <InlineAlert className="mt-2 max-h-36 overflow-y-auto">{appMessage}</InlineAlert>
         )}
       {moduleStatus === "delete_scheduled" ||
       moduleStatus === "deploy_scheduled" ? (
-        <div className="max-h-36 overflow-y-auto bg-yellow-100 border border-yellow-400 mt-2 p-2">
-          Cannot set Twin config in current Module-State
-        </div>
+        <InlineAlert variant="warning" className="mt-2">
+          Cannot set the twin config in the current module state
+        </InlineAlert>
       ) : (
         <div className="flex items-center">
           <GuardedButton
               deviceId={deviceId}
               permissionKey={PERMISSION_KEYS.DEVICE_MODULE_TWIN_CONFIG_WRITE}
-              processing={usePostTwinConfig.isPending}
+              disabled={usePostTwinConfig.isPending}
               className="mt-2"
               onClick={() => onSetTwinConfig()}
             >
+              {usePostTwinConfig.isPending && <WaterLoader />}
               Set Twin Config
           </GuardedButton>
 

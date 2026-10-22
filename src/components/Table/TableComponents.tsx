@@ -29,7 +29,7 @@ export function TR({
   HTMLTableRowElement
 >) {
   return (
-    <tr className={`even:bg-slate-50 ${className || ""}`} {...props}>
+    <tr className={`border-b transition-colors hover:bg-muted/50 ${className || ""}`} {...props}>
       {children}
     </tr>
   );
@@ -45,7 +45,7 @@ export function THead({
 >) {
   return (
     <thead
-      className={`sticky top-0 bg-vibrant-blue text-left text-white ${
+      className={`sticky top-0 bg-slate-50 text-left text-muted-foreground ${
         className || ""
       }`}
       {...props}
@@ -65,7 +65,7 @@ export function TBody({
 >) {
   return (
     <tbody
-      className={`divide-y divide-solid bg-white ${className || ""}`}
+      className={`divide-y divide-solid bg-background ${className || ""}`}
       {...props}
     >
       {children}
@@ -97,7 +97,7 @@ export function TH({
   HTMLTableCellElement
 >) {
   return (
-    <th className={`p-2 ${className || ""}`} {...props}>
+    <th className={`p-2 text-xs font-semibold uppercase tracking-wider ${className || ""}`} {...props}>
       {children}
     </th>
   );

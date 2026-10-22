@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { Button } from "@/components/ui/button";
 import { ReactNode } from "react";
 
@@ -15,7 +15,7 @@ export default function ButtonWithLoading({ isLoading, handleOnClick, text, vari
   if (isLoading) {
     return (
       <Button disabled className="w-full sm:w-auto" variant={ variant ?? "default" }>
-        <Loader2 className="animate-spin" />
+        <WaterLoader />
         Please wait
       </Button>
     )

@@ -1,6 +1,7 @@
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Fragment } from 'react'
+import { Button } from '@/components/ui/button'
 
 export interface ModalState {
   isOpen: boolean
@@ -50,7 +51,7 @@ export default function Modal({ modalState, setModalState }: ModalProps) {
             <Dialog.Panel className="fixed inset-0 m-16 rounded-sm p-6 bg-white flex flex-col">
               <div className="flex mb-2">
                 <Dialog.Title className="grow">{modalState.title}</Dialog.Title>
-                <button className="outline-hidden" onClick={() => closeModal()}><XMarkIcon className="h-6 w-6"/></button>
+                <Button variant="ghost" size="icon" aria-label="Close" onClick={() => closeModal()}><XMarkIcon /></Button>
               </div>
               {modalState.children}
             </Dialog.Panel>

@@ -1,12 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
-import Button from "../../../components/Input/Button";
+import { WaterLoader } from "@/components/ui/water-loader";
+import { Button } from "@/components/ui/button";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { useState } from 'react';
 import Badge from "@/components/Typography/Badge";
-import Select from "react-select";
-import { InputLabel } from "@/components/Input/InputLabel";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OpcUaTreeBrowser } from "@/features/OPCUABrowser/OPCUATreeBrowser";
 import {
   Accordion,
@@ -73,15 +76,15 @@ function RestartModule({ moduleName }: { moduleName: string }) {
       return edgeConfigApi.invokeDirectMethod(deviceId, "$edgeAgent", payload)
     },
     onSuccess: () => {
-      toast.success(`Success: Module ${moduleName} restarted on Device ${deviceId}`)
+      toast.success(`Module ${moduleName} restarted`)
     },
     onError: () => {
       // edgeAgent always throws an error -> also if it gets directly restarted from azure portal
       if (moduleName == "edgeAgent"){
-        toast.info(`Restart of IoTEdge Runtime initiated on Device ${deviceId}`)
+        toast.info(`Restart of the IoT Edge runtime initiated on device ${deviceId}`)
       }
       else{
-        toast.error(`Error: Module ${moduleName} was not restarted on Device ${deviceId}`)
+        toast.error(`Could not restart module ${moduleName}`)
       }
     }
   })
@@ -168,7 +171,7 @@ function ReadNodeId({ moduleName }: { moduleName: string }) {
     onError: () => {
       setStatusCode(500);
       setOpcuaStatusCode(null);
-      toast.error(`Error: Could not read node-id ${nodeId} on Device ${deviceId}`);
+      toast.error(`Could not read node ${nodeId}`);
     },
     onSuccess: (result) => {
       setStatusCode(result.status);
@@ -187,85 +190,75 @@ function ReadNodeId({ moduleName }: { moduleName: string }) {
     <div className="flex flex-col gap-4 max-w-2xl">
       {/* Endpoint Input */}
       <div>
-        <InputLabel>
-          <input
-            className={`border rounded px-2 py-1 w-full ${!endpointValid ? "border-red-500" : ""}`}
-            value={endpoint}
-            onChange={(e) => {
-              const v = e.target.value;
-              setEndpoint(v);
-              setEndpointValid(validateEndpoint(v));
-            }}
-            placeholder="opc.tcp://x.x.x.x:port"
-          />
-        </InputLabel>
+        <Input
+          className={!endpointValid ? "border-red-500" : ""}
+          value={endpoint}
+          onChange={(e) => {
+            const v = e.target.value;
+            setEndpoint(v);
+            setEndpointValid(validateEndpoint(v));
+          }}
+          placeholder="opc.tcp://x.x.x.x:port"
+        />
         {!endpointValid && (
           <p className="text-red-600 text-sm mt-1">Must be in format: opc.tcp://x.x.x.x:port</p>
         )}
       </div>
 
       {/* NodeId Input */}
-      <InputLabel>
-        <input
-          className="border rounded px-2 py-1 w-full"
-          value={nodeId}
-          onChange={(e) => setNodeId(e.target.value)}
-          placeholder="Enter node ID..."
-        />
-      </InputLabel>
+      <Input
+        value={nodeId}
+        onChange={(e) => setNodeId(e.target.value)}
+        placeholder="Enter node ID..."
+      />
 
       {/* Credentials-Type */}
-      <div>
-        <label className="text-sm font-medium mb-1 block">Credentials</label>
-        <Select
-          value={{ value: credentialsType, label: credentialsType }}
-          onChange={(opt: any) => setCredentialsType(opt.value)}
-          options={[
-            { value: "Anonymous", label: "Anonymous" },
-            { value: "UserName", label: "UserName" },
-            { value: "Certificate", label: "Certificate" },
-          ]}
-        />
+      <div className="space-y-1.5">
+        <Label>Credentials</Label>
+        <Select value={credentialsType} onValueChange={(v) => setCredentialsType(v as typeof credentialsType)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {["Anonymous", "UserName", "Certificate"].map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Credentials Felder abhängig vom Typ */}
       {credentialsType === "UserName" && (
         <div className="grid grid-cols-2 gap-4">
-          <InputLabel>
-            <input
-              className="border rounded px-2 py-1 w-full"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              placeholder="UserName"
-            />
-          </InputLabel>
-          <InputLabel>
-            <input
-              className="border rounded px-2 py-1 w-full"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-            />
-          </InputLabel>
+          <Input
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder="UserName"
+          />
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+          />
         </div>
       )}
 
       {credentialsType === "Certificate" && (
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">Certificate (PEM)</label>
-            <textarea
-              className="border rounded p-2 text-sm font-mono"
+          <div className="flex flex-col gap-1.5">
+            <Label>Certificate (PEM)</Label>
+            <Textarea
+              className="font-mono"
               rows={6}
               value={certificate}
               onChange={(e) => setCertificate(e.target.value)}
             />
           </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">Private Key (PEM)</label>
-            <textarea
-              className="border rounded p-2 text-sm font-mono"
+          <div className="flex flex-col gap-1.5">
+            <Label>Private Key (PEM)</Label>
+            <Textarea
+              className="font-mono"
               rows={6}
               value={privateKey}
               onChange={(e) => setPrivateKey(e.target.value)}
@@ -276,38 +269,44 @@ function ReadNodeId({ moduleName }: { moduleName: string }) {
 
       {/* Security Settings */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm font-medium mb-1 block">Security Mode</label>
-          <Select
-            value={{ value: messageSecurityMode, label: messageSecurityMode }}
-            onChange={(opt: any) => setMessageSecurityMode(opt.value)}
-            options={[
-              { value: "None", label: "None" },
-              { value: "Sign", label: "Sign" },
-              { value: "SignAndEncrypt", label: "SignAndEncrypt" },
-            ]}
-          />
+        <div className="space-y-1.5">
+          <Label>Security Mode</Label>
+          <Select value={messageSecurityMode} onValueChange={(v) => setMessageSecurityMode(v as typeof messageSecurityMode)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {["None", "Sign", "SignAndEncrypt"].map((m) => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <div>
-          <label className="text-sm font-medium mb-1 block">Security Policy</label>
-          <Select
-            value={{ value: securityPolicy, label: securityPolicy }}
-            onChange={(opt: any) => setSecurityPolicy(opt.value)}
-            options={[
-              "None",
-              "Basic128",
-              "Basic192",
-              "Basic256Rsa15",
-              "Basic256Sha256",
-              "Aes128_Sha256_RsaOaep",
-              "Aes256_Sha256_RsaPss",
-              "PubSub_Aes128_CTR",
-              "PubSub_Aes256_CTR",
-              "Basic128Rsa15",
-              "Basic256",
-            ].map((p) => ({ value: p, label: p }))}
-          />
+        <div className="space-y-1.5">
+          <Label>Security Policy</Label>
+          <Select value={securityPolicy} onValueChange={(v) => setSecurityPolicy(v as typeof securityPolicy)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[
+                "None",
+                "Basic128",
+                "Basic192",
+                "Basic256Rsa15",
+                "Basic256Sha256",
+                "Aes128_Sha256_RsaOaep",
+                "Aes256_Sha256_RsaPss",
+                "PubSub_Aes128_CTR",
+                "PubSub_Aes256_CTR",
+                "Basic128Rsa15",
+                "Basic256",
+              ].map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -315,9 +314,9 @@ function ReadNodeId({ moduleName }: { moduleName: string }) {
       <div className="flex items-center gap-3">
         <Button
           onClick={() => mutate()}
-          disabled={!nodeId || !endpointValid || !endpoint}
-          processing={isPending}
+          disabled={!nodeId || !endpointValid || !endpoint || isPending}
         >
+          {isPending && <WaterLoader />}
           Read Node
         </Button>
         

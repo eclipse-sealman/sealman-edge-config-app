@@ -15,7 +15,7 @@ import LineNumberInput from './components/line_number/Input';
 import EditTopology from './components/buttons/Edit';
 import SaveTopology from './components/buttons/Save';
 import { Centered } from '../components';
-import { Loader2 } from 'lucide-react';
+import { WaterLoader } from "@/components/ui/water-loader";
  
 const nodeTypes = {
   machine: MachineNode,
@@ -124,7 +124,7 @@ export default function Topology() {
     return (
       <Centered>
         <p className="text-muted-foreground flex items-center gap-4">
-          <Loader2 className="animate-spin" /> Loading ...
+          <WaterLoader /> Loading ...
         </p>
       </Centered>
     )

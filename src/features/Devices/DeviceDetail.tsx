@@ -1,182 +1,139 @@
+import { NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
 import {
-  NavLink,
-  Route,
-  Routes,
-  useParams,
-} from "react-router-dom";
+  Cog6ToothIcon,
+  InformationCircleIcon,
+  ServerStackIcon,
+  ShieldCheckIcon,
+  Squares2X2Icon,
+} from "@heroicons/react/24/outline";
+import type { ReactNode } from "react";
 import DeviceConfig from "./DeviceConfig/DeviceConfig";
 import ModuleList from "./ModuleConfig/ModuleList";
-import SmartEmsInfo from "./DeviceInfo/SmartEmsInfo";
-import ConnectionStatus from "./DeviceInfo/ConnectionInfo";
+import DeviceInformation from "./DeviceInfo/DeviceInformation";
 import useGetDevice from "@/generated/edge-administration/hooks/devices/useGetDevice";
 import OPCUABrrowserPage from "../../pages/OPCUABrowser";
 import DeploymentInfo from "./ModuleConfig/DeploymentInfo";
 import { NetworkPage } from "./Network";
-import SecurityInformation from "./DeviceInfo/Security/SecurityInformation";
 import { usePermissions } from "../authorization/permissions/use-permissions";
 import { NoPermissionsPanel } from "../authorization/permissions/NoPermissionsPanel";
-import DeviceMetadata from "./DeviceInfo/Metadata/DeviceMetadata";
 import { PERMISSION_KEYS } from "../authorization/permissions/permission-keys";
+import DeviceHeader from "./DeviceHeader";
+import RemoteAccess from "./Vpn/RemoteAccess";
+import DevicePanel from "./DevicePanel";
+import { LoadingState } from "@/components/ui/page-state";
+
+function Panel({ children }: { children: ReactNode }) {
+  return <div className="rounded-lg border bg-white p-4">{children}</div>;
+}
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
 
   const device = useGetDevice(deviceId ?? "");
 
-  const tabs = [
-    {
-      title: "Info",
-      href: "",
-      element: (
-        <div className="space-y-4">
-          <ConnectionStatus
-            connectionStatus={device.data?.connectionStatus}
-            isFetching={device.isFetching}
-            isError={device.isError}
-            error={device.error as any}
-          />
-          <DeviceMetadata
-            deviceMetadata={device.data?.deviceMetadata ?? {}}
-            isFetching={device.isFetching}
-            isError={device.isError}
-            error={device.error as any}
-          />
-          <SmartEmsInfo
-            data={device.data}
-            lastSeenAt={device.data?.lastSeenAt}
-            isFetching={device.isFetching}
-            isPending={device.isPending}
-            isError={device.isError}
-            error={device.error as any}
-          />
-          <SecurityInformation />
-        </div>
-      ),
-    },
-    {
-      title: "Device Config",
-      href: "device-config",
-      element: <DeviceConfig />,
-    },
-    {
-      title: "Module Config",
-      href: "module-config",
-      element: (
-        <div className="space-y-4">
-          <DeploymentInfo />
-          <ModuleList />
-        </div>
-      ),
-    },
-    {
-      title: "Network",
-      href: "network",
-      element: <NetworkPage deviceId={ deviceId ?? "no device ID in the path"} />,
-    }
-  ];
-
   const { hasPermission, noPermissionsMessage, isLoading } = usePermissions({ deviceId: deviceId, permissionKey: PERMISSION_KEYS.DEVICE_READ });
 
+  const menu = [
+    { title: "Info", href: "", icon: InformationCircleIcon, end: true },
+    { title: "Device Config", href: "device-config", icon: Cog6ToothIcon },
+    { title: "Assets", href: "assets", icon: ServerStackIcon },
+    { title: "Applications", href: "applications", icon: Squares2X2Icon },
+    { title: "Remote Access", href: "remote-access", icon: ShieldCheckIcon },
+  ];
+
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-vibrant-blue"></div>
-      </div>
-    );
+    return <LoadingState label="Loading device..." className="h-full" />;
   }
 
   if (!hasPermission) {
     return <NoPermissionsPanel>{noPermissionsMessage}</NoPermissionsPanel>;
   }
 
+  const base = `/devices/${deviceId}`;
+
   return (
-      <div className="space-y-2 h-full overflow-hidden overflow-y-auto flex flex-col">
-        <div className="sticky top-0 flex space-x-1 rounded-sm bg-vibrant-blue p-2 z-20">
-          {tabs.map((tab) => (
+    <div className="flex h-full flex-col gap-4 p-4">
+      <DeviceHeader
+        deviceId={deviceId}
+        connectionStatus={device.data?.connectionStatus}
+        isLoading={device.isLoading}
+        isError={device.isError}
+        error={device.error}
+      />
+
+      <nav aria-label="Device navigation" className="shrink-0 rounded-lg border bg-white p-2">
+        <div className="flex gap-1 overflow-x-auto">
+          {menu.map((item) => (
             <NavLink
-              to={tab.href ? `/devices/${deviceId}/${tab.href}` : `/devices/${deviceId}`}
-              end
-              key={tab.href}
-              className={({
-                isActive,
-              }: {
-                isActive: boolean;
-              }) => `w-full rounded-sm p-2.5 font-medium ring-night-blue text-center ring-white/60 ring-offset-1 ring-offset-blue-400 focus:outline-hidden focus:ring-1
-              ${
-                isActive
-                  ? "bg-blue-50 text-vibrant-blue"
-                  : "text-blue-100 hover:bg-white/25 hover:text-white"
-              }`}
+              key={item.title}
+              to={item.href ? `${base}/${item.href}` : base}
+              end={item.end}
+              className={({ isActive }) =>
+                `flex items-center gap-2 whitespace-nowrap rounded px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
             >
-              {tab.title}
+              <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+              {item.title}
             </NavLink>
           ))}
         </div>
-        <div className="relative z-10 bg-white rounded-sm p-2 relative flex-1 min-h-0 flex flex-col gap-2">
-          <div className="shrink-0">
-            <DeviceCard connectionStatus={device.data?.connectionStatus} isLoading={device.isLoading} isError={device.isError} error={device.error} deviceId={deviceId} />
-          </div>
-          <div className="flex-1 min-h-0">
-            <Routes>
-              {tabs.map((tab) => (
-                <Route path={tab.href} key={tab.href} element={tab.element} />
-              ))}
-              <Route path="opcua" element={<OPCUABrrowserPage />} />
-            </Routes>
-          </div>
-        </div>
-      </div>
+      </nav>
 
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+        <Routes>
+            <Route
+              path=""
+              element={
+                <DevicePanel
+                  title="Information"
+                  description="Hardware, firmware and the metadata stored for this device. Metadata is edited on the Assets tab."
+                >
+                  <DeviceInformation
+                    data={device.data}
+                    isPending={device.isPending}
+                    isError={device.isError}
+                    error={device.error as any}
+                  />
+                </DevicePanel>
+              }
+            />
+            <Route path="device-config/*" element={<DeviceConfig />} />
+            <Route
+              path="applications"
+              element={
+                <DevicePanel
+                  title="Applications"
+                  description="The deployment assigned to this device and the modules running on it."
+                >
+                  <DeploymentInfo />
+                  <ModuleList />
+                </DevicePanel>
+              }
+            />
+            <Route
+              path="assets"
+              element={
+                <Panel>
+                  <NetworkPage deviceId={deviceId ?? "no device ID in the path"} />
+                </Panel>
+              }
+            />
+            <Route path="remote-access/*" element={<RemoteAccess />} />
+            <Route path="vpn" element={<Navigate to={`${base}/remote-access/vpn`} replace />} />
+            <Route
+              path="opcua"
+              element={
+                <Panel>
+                  <OPCUABrrowserPage />
+                </Panel>
+              }
+            />
+            <Route path="module-config" element={<Navigate to={`${base}/applications`} replace />} />
+            <Route path="network" element={<Navigate to={`${base}/assets`} replace />} />
+          </Routes>
+        </div>
+    </div>
   );
-}
-
-function DeviceCard({
-  connectionStatus,
-  isLoading,
-  isError,
-  error,
-  deviceId,
-}: {
-  connectionStatus?: { iotEdgeRuntime: string; iotHub: string; sems: string };
-  isLoading: boolean;
-  isError: boolean;
-  error?: unknown;
-  deviceId?: string;
-}) {
-  if (isLoading)
-    return (
-      <div className="p-2 rounded-sm ring-1 ring-inset animate-pulse ring-gray-200">
-        <div className="h-[55px] bg-slate-300 rounded-sm text-center text-4xl truncate p-2">{deviceId}</div>
-      </div>
-    );
-
-  if (connectionStatus){
-    if (connectionStatus.iotHub === "Connected" && connectionStatus.iotEdgeRuntime === "Connected" && connectionStatus.sems === "Connected"){
-      return (
-        <div className={`text-center text-4xl truncate p-2 rounded-sm ring-1 ring-inset bg-green-100 ring-green-600/20`}>
-          {deviceId}
-        </div>
-      );
-    }
-    if (connectionStatus.iotHub=="Disconnected" && connectionStatus.iotEdgeRuntime === "Disconnected" && connectionStatus.sems=="Disconnected"){
-      return (
-        <div className={`text-center text-4xl truncate p-2 rounded-sm ring-1 ring-inset bg-red-100 ring-red-600/20`}>
-          {deviceId}
-        </div>
-      )
-    }
-    if (connectionStatus.iotHub === "Disconnected" || connectionStatus.iotEdgeRuntime === "Disconnected" || connectionStatus.sems === "Disconnected" ){
-      return (
-        <div className={`text-center text-4xl truncate p-2 rounded-sm ring-1 ring-inset bg-yellow-100 ring-yellow-600/20`}>
-          {deviceId}
-        </div>
-      )
-    }
-  }
-  if (isError)
-    return (
-      <div>
-        Error: {String(error)}
-      </div>
-    );
 }

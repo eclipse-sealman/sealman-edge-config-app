@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import Badge, { BadgeColor } from "../../components/Typography/Badge";
+import Badge from "../../components/Typography/Badge";
 import { useNavigate, useParams } from "react-router-dom";
+import { ChevronRightIcon, CpuChipIcon, MagnifyingGlassIcon, TrashIcon } from "@heroicons/react/24/outline";
 import {
   Table,
-  TBody,
-  THead,
-  TH,
-  TD,
-  TR,
-} from "../../components/Table/TableComponents";
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   createColumnHelper,
   flexRender,
@@ -32,6 +33,9 @@ import useDeviceTableColumnsStore, { defaultFieldVisible } from "@/features/Plat
 import { DeviceDataDisplay, DeviceListProps } from "./Devices.types";
 import { DeviceCards } from "./DeviceCards";
 import DeviceManageDialog, { DeleteDeviceDialog } from "./DeviceManageDialog";
+import { Button } from "@/components/ui/button";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import { getErrorMessage } from "@/lib/errors";
 
 function formatDataForTable(data: DeviceData[] | undefined): DeviceDataDisplay[] {
   if (!data) return [];
@@ -44,21 +48,26 @@ function formatDataForTable(data: DeviceData[] | undefined): DeviceDataDisplay[]
 
 const columnHelper = createColumnHelper<DeviceDataDisplay>();
 
-const getConnectionStatusColor = (connection: string) => {
-  if (connection === "online") {
-    return BadgeColor.Green;
-  } else {
-    return BadgeColor.Red;
-  }
-};
-
 const baseColumns: ColumnDef<DeviceDataDisplay, any>[] = [
   columnHelper.accessor("onlineStatusEdge", {
-    cell: (info) => (
-      <Badge color={getConnectionStatusColor(info.getValue())}>
-        {info.getValue()}
-      </Badge>
-    ),
+    cell: (info) => {
+      const online = info.getValue() === "online";
+      return (
+        <span
+          className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+            online
+              ? "border-green-200 bg-green-50 text-green-700"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          <span className="relative flex h-2 w-2">
+            {online && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />}
+            <span className={`relative inline-flex h-2 w-2 rounded-full ${online ? "bg-green-500" : "bg-red-500"}`} />
+          </span>
+          {online ? "Online" : "Offline"}
+        </span>
+      );
+    },
     header: "Status",
     filterFn: "equalsString",
   }),
@@ -68,6 +77,14 @@ const baseColumns: ColumnDef<DeviceDataDisplay, any>[] = [
     filterFn: "equalsString",
   }),
   columnHelper.accessor("deviceId", {
+    cell: (info) => (
+      <span className="inline-flex items-center gap-2.5">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-700">
+          <CpuChipIcon className="h-4 w-4" />
+        </span>
+        <span className="font-semibold tracking-tight">{info.getValue()}</span>
+      </span>
+    ),
     header: () => "Device-ID",
   }),
 ];
@@ -101,7 +118,7 @@ export default function DeviceList() {
   );
 
   // Metadata columns are just the customizable display in the table - which fields show up
-  // there is controlled by Settings → Platform Types → Devices Table Columns. Search itself is
+  // there is controlled by Asset Configuration → Devices Table Columns. Search itself is
   // scoped separately, below, to every metadata key a device has (see metadataSearchIndexColumn).
   const columns = useMemo<ColumnDef<DeviceDataDisplay, any>[]>(() => {
     const metadataColumns = metadataFields.map(([key, field]) =>
@@ -194,26 +211,17 @@ export default function DeviceList() {
     }
   };
 
-  if (isLoading) return <div>Loading</div>;
+  if (isLoading) return <LoadingState label="Loading devices..." />;
 
   if (isError)
-    return <div>Error: {(error as { message: string }).message}</div>;
+    return <ErrorState title="Could not load the devices" message={getErrorMessage(error)} />;
 
   return (
-    <div className="@container w-full">
+    <div className="@container w-full p-4">
       <div className="hidden @2xl:block">
-        <div className="sticky top-0 h-10 z-10 bg-slate-200 flex flex-row b">
-          <div className="flex-0 flex flex-row items-center py-2 px-2">
-            <DebouncedInput
-              type="text"
-              name="filter"
-              value={globalFilter}
-              onChange={(value) => table.setGlobalFilter(value as string)}
-              placeholder="Search device ID or metadata"
-              className="text-sm text-black -my-1 p-1 w-72"
-            />
-          </div>
-          <div className="flex-0 flex flex-row items-center gap-2">
+        <div className="overflow-hidden rounded-xl border bg-white shadow-xs">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-3">
+            <h1 className="text-lg font-semibold tracking-tight">Devices</h1>
             <DevicesHeader
               deviceOnlineFilter={deviceOnlineFilter}
               setDeviceOnlineFilter={filterByStatusFromHeader}
@@ -225,14 +233,23 @@ export default function DeviceList() {
                 className="items-center"
               />
             )}
-          </div>
-          <div className="flex-1 flex flex-row justify-end py-2 px-2 gap-4 items-center">
-            <div className="flex-0 self-center">
+            <div className="ml-auto flex items-center gap-3">
+              <div className="relative w-72">
+                <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <DebouncedInput
+                  type="text"
+                  name="filter"
+                  value={globalFilter}
+                  onChange={(value) => table.setGlobalFilter(value as string)}
+                  placeholder="Search device ID or metadata"
+                  className="pl-9"
+                />
+              </div>
               <DeviceManageDialog />
             </div>
           </div>
+          <DeviceTable table={table} />
         </div>
-        <DeviceTable table={table} />
       </div>
       <div className="block @2xl:hidden">
         <DeviceCards
@@ -252,56 +269,68 @@ function DeviceTable({ table }: DeviceListProps) {
 
   return (
     <>
-      <div className="rounded-sm">
-        <Table>
-          <THead className="top-10">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TR key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TH key={header.id} style={{ width: `${header.getSize()}px` }}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TH>
-                ))}
-                <TH style={{ width: "60px" }} />
-              </TR>
-            ))}
-          </THead>
-          <TBody>
-            {table.getRowModel().rows.map((row) => (
-              <TR
-                key={row.id}
-                className={`group ${activeDeviceId === row.original.deviceId ? "" : "hover:bg-gray-100"}`}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TD
-                    key={cell.id}
-                    onClick={() => navigate(`/devices/${row.original.deviceId}`)}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TD>
-                ))}
-                <TD>
-                  <button
+      <Table>
+        <TableHeader className="bg-slate-50">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id} className="hover:bg-transparent">
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                </TableHead>
+              ))}
+              <TableHead className="w-28" />
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.length === 0 && (
+            <TableRow className="hover:bg-transparent">
+              <TableCell colSpan={table.getVisibleLeafColumns().length + 1} className="py-12 text-center text-muted-foreground">
+                No devices match the current filter.
+              </TableCell>
+            </TableRow>
+          )}
+          {table.getRowModel().rows.map((row) => (
+            <TableRow
+              key={row.id}
+              onClick={() => navigate(`/devices/${row.original.deviceId}`)}
+              className={`group cursor-pointer ${activeDeviceId === row.original.deviceId ? "bg-blue-50" : "hover:bg-slate-50"}`}
+            >
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id} className="py-3">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+              <TableCell className="py-3 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
                       setDeleteTargetId(row.original.deviceId);
                     }}
-                    className="text-xs px-2 py-1 text-red-600 border border-red-200 rounded hover:bg-red-50"
+                    className="h-8 w-8 text-muted-foreground opacity-0 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
                     title="Delete device"
+                    aria-label={`Delete device ${row.original.deviceId}`}
                   >
-                    Delete
-                  </button>
-                </TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      </div>
+                    <TrashIcon />
+                  </Button>
+                  <ChevronRightIcon className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       {deleteTargetId && (
         <DeleteDeviceDialog

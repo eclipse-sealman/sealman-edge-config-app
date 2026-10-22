@@ -1,6 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { useScanDiscoverStore } from "../../stores";
 import { useEffect } from "react";
 
@@ -18,7 +18,7 @@ export default function NetworkScanResultsTable(){
   if (isScanning) {
     return (
       <p className="text-muted-foreground flex items-center gap-4">
-        <Loader2 className="animate-spin" /> Scan is in progress ...
+        <WaterLoader /> Scan is in progress ...
       </p>
     )
   }

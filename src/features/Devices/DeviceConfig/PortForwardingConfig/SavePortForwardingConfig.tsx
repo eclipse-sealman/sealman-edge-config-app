@@ -1,4 +1,4 @@
-import Button from "@/components/Input/Button";
+import { Button } from "@/components/ui/button";
 import { usePortForwardingConfig } from "./useContext";
 import { useSavePortForwardingConfig } from "./useSavePortForwardingConfig";
 import { toast } from "react-toastify";
@@ -43,8 +43,8 @@ export default function SavePortForwardingConfig({
             },
           },
           {
-            onSuccess: () => toast.success("Success: configuration successfully saved"),
-            onError: () => toast.error("Error: the configuration could not be saved"),
+            onSuccess: () => toast.success("Configuration saved"),
+            onError: () => toast.error("Could not save the configuration"),
           }
         )
       }

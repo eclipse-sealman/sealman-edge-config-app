@@ -1,4 +1,4 @@
-import Button, { ButtonSize } from "../../components/Input/Button";
+import { Button } from "@/components/ui/button";
 import Badge, { BadgeColor } from "../../components/Typography/Badge";
 
 interface FilterDetailsProps {
@@ -17,7 +17,7 @@ export default function FilterDetails({ totalRows, filteredRows, clearTableFilte
       {totalRows !== filteredRows ? (
         <div className={`flex flex-row gap-2 ${className}`}>
           {clearTableFilter && (
-            <Button size={ButtonSize.Tiny} className="flex-0" onClick={clearTableFilter}>
+            <Button size="sm" variant="outline" onClick={clearTableFilter}>
               Clear filter
             </Button>
           )}

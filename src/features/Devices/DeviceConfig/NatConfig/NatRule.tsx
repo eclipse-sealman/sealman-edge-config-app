@@ -1,4 +1,4 @@
-import { Input } from "@/components/Input/FormElements";
+import { Input } from "@/components/ui/input";
 import { components } from "@/generated/edge-administration/types";
 import { useState, useContext } from "react";
 import { DeviceNatConfigRulesContext } from "./context";

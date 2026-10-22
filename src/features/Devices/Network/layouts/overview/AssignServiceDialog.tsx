@@ -9,7 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { inputClass, validateFields } from "@/features/PlatformTypes/FieldValueInput";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import { components } from "@/generated/edge-administration/types";
 import useGetServiceTypes from "@/generated/edge-administration/hooks/service_types/useGetServiceTypes";
 import { usePostService } from "@/generated/edge-administration/hooks/services/usePostService";
@@ -140,14 +141,18 @@ export default function AssignServiceDialog({
         <div className="space-y-4">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Service Type *</label>
-            <select value={typeId} onChange={(e) => setTypeId(e.target.value)} className={inputClass}>
-              <option value="">Select a type...</option>
-              {(serviceTypes ?? []).map((t) => (
-                <option key={t.type_id} value={t.type_id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+            <Select value={typeId} onValueChange={setTypeId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a type..." />
+              </SelectTrigger>
+              <SelectContent>
+                {(serviceTypes ?? []).map((t) => (
+                  <SelectItem key={t.type_id} value={t.type_id}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {selectedType && (

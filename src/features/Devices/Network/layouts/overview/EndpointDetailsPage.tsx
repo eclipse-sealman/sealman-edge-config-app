@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { ArrowLeft, ChevronRight, Loader2, Plus, Repeat, Server, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, Plus, Repeat, Server, Trash2 } from "lucide-react";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { Button } from "@/components/ui/button";
 import { Centered } from "@/features/Devices/Network/components";
 import { useNetworkPageStore } from "@/features/Devices/Network/stores";
@@ -138,7 +139,7 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
       {isLoading && (
         <Centered>
           <p className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="animate-spin" /> Loading endpoint...
+            <WaterLoader /> Loading endpoint...
           </p>
         </Centered>
       )}

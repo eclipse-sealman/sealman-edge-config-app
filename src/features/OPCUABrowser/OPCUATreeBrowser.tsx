@@ -2,8 +2,11 @@ import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
 import { useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { useState } from 'react';
-import Select from "react-select";
-import { Loader2 } from "lucide-react";
+import { WaterLoader } from "@/components/ui/water-loader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronRight, ChevronDown, Folder, File } from "lucide-react";
 
 interface BrowseName {
@@ -118,7 +121,7 @@ const TreeNode: React.FC<TreeNodeProps & { browsingLock: boolean; setBrowsingLoc
       }
       setExpanded(!expanded);
     } catch {
-      toast.error(`Error: Could not browse node ${node.nodeId}`);
+      toast.error(`Could not browse node ${node.nodeId}`);
     } finally {
       setLoading(false);
       setBrowsingLock(false);
@@ -144,7 +147,7 @@ const TreeNode: React.FC<TreeNodeProps & { browsingLock: boolean; setBrowsingLoc
           <File className="ml-1 mr-2 text-gray-500" size={16} />
         )}
         <span>{node.displayName?.text || node.browseName?.name}</span>
-        {loading && <Loader2 className="ml-2 animate-spin text-gray-400" size={16} />}
+        {loading && <WaterLoader className="ml-2 h-4 w-4" />}
       </div>
 
       {expanded && (
@@ -222,7 +225,7 @@ export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }
       setIsConnected(true)
     }
     catch {
-      toast.error(`Error: Could not connect to Server - check login information`);
+      toast.error(`Could not connect to the server. Check the login information.`);
     }
     finally {
       setIsConnecting(false);
@@ -251,7 +254,7 @@ export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }
     setReadResult(result);
   }
   catch {
-    toast.error("Could not read nodeId")
+    toast.error("Could not read the node")
   }
   finally{
     setIsReadingNode(false)
@@ -265,35 +268,36 @@ export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }
         <h3 className="font-semibold mb-2">Connection Setting</h3>
 
         <div className="grid grid-cols-2 gap-3">
-          <input
-            className="border rounded px-2 py-1"
+          <Input
             placeholder="Endpoint"
             value={conn.endpoint}
             onChange={(e) => setConn({ ...conn, endpoint: e.target.value })}
             disabled={isConnected}
           />
           <Select
-            value={{ value: credentialsType, label: credentialsType }}
-            onChange={(opt: any) => setCredentialsType(opt.value)}
-            options={[
-              { value: "Anonymous", label: "Anonymous" },
-              { value: "UserName", label: "UserName" },
-              { value: "Certificate", label: "Certificate" },
-            ]}
-            isDisabled={isConnected}
-          />
+            value={credentialsType}
+            onValueChange={(v) => setCredentialsType(v as typeof credentialsType)}
+            disabled={isConnected}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {["Anonymous", "UserName", "Certificate"].map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {credentialsType === "UserName" && (
             <>
-              <input
-                className="border rounded px-2 py-1"
+              <Input
                 placeholder="Username"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 disabled={isConnected}
               />
-              <input
-                className="border rounded px-2 py-1"
+              <Input
                 type="password"
                 placeholder="Password"
                 value={password}
@@ -305,16 +309,16 @@ export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }
 
           {credentialsType === "Certificate" && (
             <div className="col-span-2 grid grid-cols-2 gap-4">
-              <textarea
-                className="border rounded p-2 text-sm font-mono"
+              <Textarea
+                className="font-mono"
                 rows={6}
                 placeholder="PEM Certificate"
                 value={certificate}
                 onChange={(e) => setCertificate(e.target.value)}
                 disabled={isConnected}
               />
-              <textarea
-                className="border rounded p-2 text-sm font-mono"
+              <Textarea
+                className="font-mono"
                 rows={6}
                 placeholder="PEM Private Key"
                 value={privateKey}
@@ -325,53 +329,65 @@ export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }
           )}
 
           <Select
-            value={{ value: conn.messageSecurityMode, label: conn.messageSecurityMode }}
-            onChange={(opt: any) => setConn({ ...conn, messageSecurityMode: opt.value })}
-            options={[
-              { value: "None", label: "None" },
-              { value: "Sign", label: "Sign" },
-              { value: "SignAndEncrypt", label: "SignAndEncrypt" },
-            ]}
-            isDisabled={isConnected}
-          />
+            value={conn.messageSecurityMode}
+            onValueChange={(v) => setConn({ ...conn, messageSecurityMode: v as typeof conn.messageSecurityMode })}
+            disabled={isConnected}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {["None", "Sign", "SignAndEncrypt"].map((m) => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Select
-            value={{ value: conn.securityPolicy, label: conn.securityPolicy }}
-            onChange={(opt: any) => setConn({ ...conn, securityPolicy: opt.value })}
-            options={[
-              "None",
-              "Basic128",
-              "Basic192",
-              "Basic256Rsa15",
-              "Basic256Sha256",
-              "Aes128_Sha256_RsaOaep",
-              "Aes256_Sha256_RsaPss",
-              "PubSub_Aes128_CTR",
-              "PubSub_Aes256_CTR",
-              "Basic128Rsa15",
-              "Basic256",
-            ].map((p) => ({ value: p, label: p }))}
-            isDisabled={isConnected}
-          />
+            value={conn.securityPolicy}
+            onValueChange={(v) => setConn({ ...conn, securityPolicy: v as typeof conn.securityPolicy })}
+            disabled={isConnected}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[
+                "None",
+                "Basic128",
+                "Basic192",
+                "Basic256Rsa15",
+                "Basic256Sha256",
+                "Aes128_Sha256_RsaOaep",
+                "Aes256_Sha256_RsaPss",
+                "PubSub_Aes128_CTR",
+                "PubSub_Aes256_CTR",
+                "Basic128Rsa15",
+                "Basic256",
+              ].map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <button
-            onClick={isConnected ? handleDisconnect : loadRoot}
-            className={`mt-3 px-3 py-1 rounded shadow flex items-center justify-center disabled:opacity-50 ${
-                isConnected ? "bg-red-500 text-white hover:bg-red-600" : "bg-blue-500 text-white hover:bg-blue-600"
-            }`}
-            >
-                {isConnecting ? (
+        <Button
+          className="mt-3"
+          variant={isConnected ? "destructive" : "default"}
+          onClick={isConnected ? handleDisconnect : loadRoot}
+          disabled={isConnecting}
+        >
+          {isConnecting ? (
             <>
-            <Loader2 className="animate-spin mr-2" size={16} />
-                {isConnected ? "Disconnecting…" : "Connecting…"}
+              <WaterLoader />
+              {isConnected ? "Disconnecting…" : "Connecting…"}
             </>
-        ) : isConnected ? (
+          ) : isConnected ? (
             "Disconnect"
-        ) : (
+          ) : (
             "Connect & Browse"
-        )}
-        </button>
+          )}
+        </Button>
       </div>
 
       <div className="flex gap-6">
@@ -398,13 +414,14 @@ export const OpcUaTreeBrowser: React.FC<{ moduleName: string, endpoint: string }
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-semibold">Node Details</h3>
             {selectedNode && selectedNode.nodeClass === "Variable" && (
-              <button
+              <Button
+                size="sm"
                 onClick={handleRefresh}
-                className="mt-3 px-3 py-1 bg-blue-500 text-white rounded shadow-sm flex items-center justify-center disabled:opacity-50"
+                disabled={isReadingNode}
               >
-                {isReadingNode && <Loader2 className="animate-spin mr-2" size={16} />}
-                <span className={`${isReadingNode ? "invisible" : ""}`}>Refresh</span>
-              </button>
+                {isReadingNode && <WaterLoader />}
+                Refresh
+              </Button>
             )}
           </div>
           {selectedNode && readResult ? (

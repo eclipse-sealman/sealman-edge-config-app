@@ -1,5 +1,6 @@
-import { ExclamationTriangleIcon } from "@heroicons/react/24/outline"
-import { NavLink } from "react-router-dom"
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/page-state";
 
 interface ErrorPageParams {
   error?: Error,
@@ -7,21 +8,21 @@ interface ErrorPageParams {
   resetError?: () => void
 }
 
-
-export default function ErrorFallback({ error }: ErrorPageParams) {
+export default function ErrorFallback({ error, resetError }: ErrorPageParams) {
   return (
-    <div className="h-full flex flex-col justify-center items-center">
-      <ExclamationTriangleIcon className="h-12 w-12" />
-      <div>An Error occured</div>
-      <div>{error?.message}</div>
-
-      <NavLink
-        to={"/"}
-        className={({ isActive }: { isActive: boolean }) => `px-3 py-2 text-sm font-medium ${isActive ? "underline" : "hover:text-vibrant-blue"}`}
-        aria-current={false ? 'page' : undefined}
-      >
-        Go to starting page
-      </NavLink>
+    <div className="flex h-full items-center justify-center p-6">
+      <div className="rounded-xl border bg-background shadow-xs">
+        <ErrorState
+          title="This page could not be displayed"
+          message={error?.message}
+          onRetry={resetError}
+        />
+        <div className="flex justify-center pb-6">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/">Go to the dashboard</Link>
+          </Button>
+        </div>
+      </div>
     </div>
-  )
+  );
 }

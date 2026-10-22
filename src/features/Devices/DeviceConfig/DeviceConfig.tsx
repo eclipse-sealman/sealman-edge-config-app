@@ -1,35 +1,93 @@
+import { NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
 import DeviceIpSetup from "./DeviceIpSetup";
-import { Heading } from "../../../components/Typography/Heading";
-import { WrenchScrewdriverIcon, CommandLineIcon } from "@heroicons/react/24/outline";
-import SmartEmsStatus from './SmartEmsStatus';
-import { DeviceSemsCheck } from "./DeviceSemsCheck";
 import { Cellular } from "./DeviceCellularConfig";
-import { DeviceSemsConfigExport } from "./SmartEmsConfigExport";
 import DeviceNatConfigProvided from "./NatConfig/DeviceNatConfigProvided";
 import PortForwardingConfigProvider from "./PortForwardingConfig/provider";
 import PortForwardingConfig from "./PortForwardingConfig/PortForwardingConfig";
 import SavePortForwardingConfig from "./PortForwardingConfig/SavePortForwardingConfig";
-import { useParams } from "react-router-dom";
+import SecurityInformation from "../DeviceInfo/Security/SecurityInformation";
+import Firmware from "./Firmware";
+import CommandHistory from "./CommandHistory";
+import { ActivateConfigButton } from "./ActivateConfigButton";
+import useSmartEmsStatusPolling from "./useSmartEmsStatusPolling";
 
+const TABS = [
+  { title: "Firmware", path: "firmware" },
+  { title: "Command History", path: "command-history" },
+  { title: "Security", path: "security" },
+  { title: "Network Interfaces", path: "network-interfaces" },
+  { title: "NAT", path: "nat" },
+  { title: "Port Forwarding", path: "port-forwarding" },
+];
 
 export default function DeviceConfig() {
-  const { deviceId } = useParams<{ deviceId: any }>();
+  const { deviceId = "" } = useParams<{ deviceId: string }>();
+  const base = `/devices/${deviceId}/device-config`;
+  const { data: status } = useSmartEmsStatusPolling(deviceId);
+
   return (
-    <div className="space-y-4">
-      <SmartEmsStatus />
-      <Heading><CommandLineIcon className="w-7 h-7 mr-1" />Configuration Commands</Heading>
-      <div className="flex flex-row space-x-2">
-        <DeviceSemsConfigExport />
-        <DeviceSemsCheck />
+    <div className="rounded-lg border bg-background shadow-xs">
+      <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
+        <div className="space-y-1.5">
+          <h2 className="text-lg font-semibold leading-none tracking-tight">Device Configuration</h2>
+          <p className="text-sm text-muted-foreground">
+            Firmware, security and network settings. Saved changes take effect once the config is activated.
+          </p>
+        </div>
+        <div className="shrink-0">
+          <ActivateConfigButton hasPendingChanges={status?.configUpdateScheduled === true} />
+        </div>
       </div>
-      <Heading><WrenchScrewdriverIcon className="w-7 h-7 mr-1" />Interface Configuration</Heading>
-      <DeviceIpSetup />
-      <Cellular />
-      <DeviceNatConfigProvided />
-      <PortForwardingConfigProvider deviceId={deviceId}>
-        <PortForwardingConfig />
-        <SavePortForwardingConfig deviceId={deviceId} />
-      </PortForwardingConfigProvider>
+
+      <div className="flex items-start">
+        <nav
+          aria-label="Device configuration"
+          className="flex w-52 shrink-0 flex-col gap-1 self-stretch border-r p-3 text-sm font-medium text-muted-foreground"
+        >
+          {TABS.map((tab) => (
+            <NavLink
+              key={tab.path}
+              to={`${base}/${tab.path}`}
+              className={({ isActive }) =>
+                `rounded-md px-3 py-2 transition-colors ${
+                  isActive ? "bg-muted text-foreground shadow-sm" : "hover:bg-muted/60 hover:text-foreground"
+                }`
+              }
+            >
+              {tab.title}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="min-w-0 flex-1 space-y-6 p-6">
+        <Routes>
+          <Route index element={<Navigate to={`${base}/firmware`} replace />} />
+          <Route path="firmware" element={<Firmware />} />
+          <Route path="command-history" element={<CommandHistory />} />
+          <Route path="security" element={<SecurityInformation />} />
+          <Route
+            path="network-interfaces"
+            element={
+              <div className="space-y-4">
+                <DeviceIpSetup />
+                <Cellular />
+              </div>
+            }
+          />
+          <Route path="nat" element={<DeviceNatConfigProvided />} />
+          <Route
+            path="port-forwarding"
+            element={
+              <PortForwardingConfigProvider deviceId={deviceId}>
+                <PortForwardingConfig />
+                <SavePortForwardingConfig deviceId={deviceId} />
+              </PortForwardingConfigProvider>
+            }
+          />
+          <Route path="*" element={<Navigate to={`${base}/firmware`} replace />} />
+        </Routes>
+        </div>
+      </div>
     </div>
   );
 }

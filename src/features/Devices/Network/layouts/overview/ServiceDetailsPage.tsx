@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { Button } from "@/components/ui/button";
 import { Centered } from "@/features/Devices/Network/components";
 import { useNetworkPageStore } from "@/features/Devices/Network/stores";
@@ -125,7 +126,7 @@ export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: pro
       {isLoading && (
         <Centered>
           <p className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="animate-spin" /> Loading service...
+            <WaterLoader /> Loading service...
           </p>
         </Centered>
       )}

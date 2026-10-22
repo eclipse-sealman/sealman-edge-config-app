@@ -1,5 +1,6 @@
 import { useGetJwt } from '../../config/authConfig';
 import { ReactNode } from 'react';
+import { ErrorState, LoadingState } from '@/components/ui/page-state';
 
 interface ProtectedPageProps {
   requiredRoles: string[], // One of them is necessary
@@ -11,10 +12,10 @@ export default function AuthGuard({requiredRoles, children, fallback}: Protected
   const jwtQuery = useGetJwt();
 
   if (jwtQuery.isPending)
-    return <>Loading...</>
+    return <LoadingState />
 
   if (jwtQuery.isError)
-    return <>Error</>
+    return <ErrorState title="Could not verify your access" />
 
   if (!requiredRoles.some(role => jwtQuery.data?.roles?.includes(role)))
     return <>{fallback}</>

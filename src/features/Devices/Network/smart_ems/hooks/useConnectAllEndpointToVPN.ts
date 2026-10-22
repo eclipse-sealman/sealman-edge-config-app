@@ -52,7 +52,7 @@ export function useConnectAllEndpointToVPN(deviceId: string) {
 
     if (!disconnectedIds.length) {
       setIsConnectingOrDisconnecting(false);
-      toast.warn("No valid endpoint to connect.")
+      toast.warn("No valid endpoint to connect")
       return
     }
 
@@ -62,17 +62,17 @@ export function useConnectAllEndpointToVPN(deviceId: string) {
       for (const id of disconnectedIds) {
         try {
           await mutateAsync(id);
-          toast.success(`Connected to endpoint ${id}`);
+          toast.success(`Endpoint ${id} connected to VPN`);
         } catch (err) {
           // Optionally handle individual errors here
-          toast.error(`Error connecting to endpoint ${id}`);
+          toast.error(`Could not connect endpoint ${id} to VPN`);
           console.error(`Error connecting to endpoint ${id}:`, err);
         }
       }
       await invalidate();
       //toast.success(`Connected to ${disconnectedIds.length} endpoints`);
     } catch (err) {
-      toast.error("Error while trying to connect all endpoints");
+      toast.error("Could not connect all endpoints to VPN");
       console.error(err);
     } finally {
       setIsPending(false);

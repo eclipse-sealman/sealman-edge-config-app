@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { InlineAlert } from "@/components/ui/page-state";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 
@@ -66,9 +67,9 @@ export function RoleDeleteDialog({
         )}
 
         {isError && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          <InlineAlert>
             {(error as Error).message}
-          </p>
+          </InlineAlert>
         )}
 
         {teams.length > 0 && (
@@ -87,9 +88,9 @@ export function RoleDeleteDialog({
         )}
 
         {deleteError && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          <InlineAlert>
             {deleteError}
-          </p>
+          </InlineAlert>
         )}
 
         <AlertDialogFooter>

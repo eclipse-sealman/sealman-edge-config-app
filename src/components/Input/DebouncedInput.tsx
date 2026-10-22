@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Input } from "./FormElements";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export interface DebouncedInputProps {
   value: string | number;
@@ -43,7 +44,7 @@ export default function DebouncedInput({
       <Input
         {...props}
         value={value}
-        className={`${className ?? ""} pr-6`}
+        className={`${className ?? ""} pr-8`}
         onChange={(ev: React.ChangeEvent<HTMLInputElement>) =>
           setValue(ev.target.value)
         }
@@ -56,14 +57,16 @@ export default function DebouncedInput({
         }}
       />
       {value !== "" && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={handleClear}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          className="absolute right-0.5 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground"
           aria-label="Clear search"
         >
-          <XMarkIcon className="w-4 h-4" />
-        </button>
+          <XMarkIcon />
+        </Button>
       )}
     </div>
   );

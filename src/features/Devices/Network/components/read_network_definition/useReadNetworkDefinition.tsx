@@ -52,7 +52,7 @@ export default function useReadNetworkDefinition(deviceId: string): ReadNetworkD
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any
     } catch(err) {
-      toast.error("Read unsuccessful, is this device online?")
+      toast.error("Could not read the network. Is the device online?")
     }
 
     if (!nmShow) {
@@ -62,7 +62,7 @@ export default function useReadNetworkDefinition(deviceId: string): ReadNetworkD
     try {
       lan3 = nmShow.payload.network.lan3
     } catch (err) {
-      toast.error("Error while trying to read network from LAN3.")
+      toast.error("Could not read the network from LAN3")
       return
     }
 
@@ -81,10 +81,10 @@ export default function useReadNetworkDefinition(deviceId: string): ReadNetworkD
 
       const mask = Number.parseInt(subnet)
       const address = getNetworkAddress(ipAddress, mask)
-      toast.success("LAN3 values have been loaded in the form.")
+      toast.success("LAN3 values loaded into the form")
       return {address, mask}
     } catch (err) {
-      toast.error("Failed to parse network prefix, please enter it manually.")
+      toast.error("Could not parse the network prefix. Please enter it manually.")
     }
   }
 

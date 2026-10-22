@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import PageTitle from "@/components/Typography/PageTitle";
 import TypesManager from "@/features/PlatformTypes/TypesManager";
 import DeviceTableColumnsCard from "@/features/PlatformTypes/DeviceTableColumnsCard";
 import DefaultScanPortsCard from "@/features/PlatformTypes/DefaultScanPortsCard";
@@ -50,13 +51,10 @@ export default function PlatformTypesSettings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold">Platform Types</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Define the device, endpoint and service types available on the platform, and the fields captured for
-          each.
-        </p>
-      </div>
+      <PageTitle
+        title="Asset Configuration"
+        description="Define the device, endpoint and service types available on the platform, and the fields captured for each."
+      />
 
       <div className="flex flex-col gap-6">
         <TypesManager

@@ -1,14 +1,12 @@
 import { useAuth } from "@/auth";
+import { Button } from "@/components/ui/button";
 
 export default function SignOutButton() {
   const auth = useAuth();
 
   return (
-    <button 
-      onClick={() => auth.signOut()} 
-      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-    >
+    <Button variant="ghost" onClick={() => auth.signOut()} className="w-full justify-start rounded-none px-4 font-normal text-gray-700">
       Logout
-    </button>
+    </Button>
   );
 }

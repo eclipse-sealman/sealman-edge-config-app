@@ -15,10 +15,6 @@ import { ReactNode, useEffect, useState } from "react";
 import { NotConnected } from "../components/config/NotConnected";
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  SmartEmsSettingsButton,
-  SmartEmsSettingsButtonIcon,
-} from "../components/config/SmartEmsSettingsButton";
 import { SessionTimer } from "../components/session/SessionTimer";
 import { OpenVPNNotConnected } from "../components/vpn/endpoint_connection/OpenVPNNotConnected";
 import { ConnectEdgeDevice } from "../components/vpn/endpoint_connection/ConnectEdgeDevice";
@@ -68,9 +64,6 @@ export function EdgeDeviceVPNCard({ edgeGatewayId }: Props) {
     return (
       <SmartEmsVpnCardWrapper>
         <NotConnected />
-        <div className="sm:text-right">
-          <SmartEmsSettingsButton />
-        </div>
       </SmartEmsVpnCardWrapper>
     );
   }
@@ -128,7 +121,6 @@ function SmartEmsVpnCardWrapper({ children }: { readonly children: ReactNode }) 
               <div className="w-16">
                 <SessionTimer />
               </div>
-              <SmartEmsSettingsButtonIcon />
             </div>
           </div>
         </CardTitle>

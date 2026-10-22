@@ -88,7 +88,7 @@ describe("Renew Password", () => {
     });
 
     await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith("Success: Password for device 22016270 has been successfully renewed.");
+      expect(toast.success).toHaveBeenCalledWith("Password for device 22016270 renewed");
     });
   });
 });

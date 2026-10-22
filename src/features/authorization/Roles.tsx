@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import PageTitle from "@/components/Typography/PageTitle";
+import { getErrorMessage } from "@/lib/errors";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   createColumnHelper,
@@ -86,44 +89,14 @@ export default function Roles() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => handleEditRole(role)}
-                      className="
-                        inline-flex items-center gap-1
-                        px-3 py-1.5 rounded-md
-                        bg-slate-100 text-slate-700
-                        hover:bg-slate-200
-                        transition-all
-                        font-medium
-                        shadow-xs
-                      "
-                      aria-label={`Edit role ${role.name}`}
-                    >
-                      <PencilSquareIcon className="w-4 h-4" />
-                    </button>
+                    <Button type="button" variant="outline" size="icon" onClick={() => handleEditRole(role)} aria-label={`Edit role ${role.name}`}><PencilSquareIcon /></Button>
                   </TooltipTrigger>
                   <TooltipContent>Edit</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteRole(role)}
-                      className="
-                        inline-flex items-center gap-1
-                        px-3 py-1.5 rounded-md
-                        bg-red-50 text-red-700
-                        hover:bg-red-100
-                        transition-all
-                        font-medium
-                        shadow-xs
-                      "
-                      aria-label={`Delete role ${role.name}`}
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
+                    <Button type="button" variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteRole(role)} aria-label={`Delete role ${role.name}`}><TrashIcon /></Button>
                   </TooltipTrigger>
                   <TooltipContent>Delete</TooltipContent>
                 </Tooltip>
@@ -143,17 +116,17 @@ export default function Roles() {
   });
 
   if (isLoading) {
-    return <div>Loading roles...</div>;
+    return <LoadingState label="Loading roles..." />;
   }
 
   if (isError) {
-    return <div>Failed to load roles: {error.message}</div>;
+    return <ErrorState title="Could not load roles" message={getErrorMessage(error)} />;
   }
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Roles</h2>
+        <PageTitle title="Roles" description="Bundles of permissions that can be assigned to teams." />
         {canWrite && (
           <Button type="button" onClick={handleCreateRole}>
             New role

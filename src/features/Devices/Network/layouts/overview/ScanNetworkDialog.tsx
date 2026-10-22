@@ -10,8 +10,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { Badge } from "@/components/ui/badge";
-import { inputClass } from "@/features/PlatformTypes/FieldValueInput";
+import { Input } from "@/components/ui/input";
 import { useNetworkPageStore } from "@/features/Devices/Network/stores";
 import useReadNetworkDefinition from "@/features/Devices/Network/components/read_network_definition/useReadNetworkDefinition";
 
@@ -187,29 +188,26 @@ export default function ScanNetworkDialog({
                 onClick={handleReadNetworkConfig}
                 disabled={isReading || !deviceId}
               >
-                <RefreshCw className={isReading ? "animate-spin" : ""} /> Read Network Configuration
+                {isReading ? <WaterLoader /> : <RefreshCw />} Read Network Configuration
               </Button>
             </div>
-            {/* Fixed width on the mask column, not `auto` - `inputClass` already sets `w-full` on
-                the input itself, which only resolves to something sane against a definite-width
-                column (an `auto` track sized by an already-100%-wide child is a circular/degenerate
-                case that collapses to a sliver in most browsers). */}
+            {/* Fixed width on the mask column, not `auto` - the input is `w-full`, which only resolves to something sane against a definite-width
+                column (an `auto` track sized by an already-100%-wide child collapses to a sliver in most browsers). */}
             <div className="grid grid-cols-[1fr_7rem] gap-2">
-              <input
+              <Input
                 type="text"
                 value={networkInput}
                 onChange={(e) => onNetworkInputChange(e.target.value)}
                 placeholder="e.g. 172.22.220.0"
-                className={`${inputClass} h-9`}
               />
-              <input
+              <Input
                 type="number"
                 min={1}
                 max={32}
                 value={maskInput}
                 onChange={(e) => onMaskInputChange(e.target.value)}
                 placeholder="e.g. 24"
-                className={`${inputClass} h-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
           </div>
@@ -219,7 +217,7 @@ export default function ScanNetworkDialog({
               Additional ports for scan <span className="font-normal">(saved permanently for this device)</span>
             </label>
             <div className="flex gap-2">
-              <input
+              <Input
                 type="number"
                 value={portInput}
                 onChange={(e) => setPortInput(e.target.value)}
@@ -230,7 +228,6 @@ export default function ScanNetworkDialog({
                   }
                 }}
                 placeholder="e.g. 502"
-                className={`${inputClass} h-9`}
               />
               <Button type="button" variant="outline" onClick={addPort} className="shrink-0">
                 <Plus />
@@ -253,7 +250,7 @@ export default function ScanNetworkDialog({
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">Additional endpoints for scan</label>
             <div className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 value={ipInput}
                 onChange={(e) => setIpInput(e.target.value)}
@@ -264,7 +261,6 @@ export default function ScanNetworkDialog({
                   }
                 }}
                 placeholder="e.g. 10.0.0.5"
-                className={`${inputClass} h-9`}
               />
               <Button type="button" variant="outline" onClick={addIp} className="shrink-0">
                 <Plus />

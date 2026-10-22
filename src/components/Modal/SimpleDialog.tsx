@@ -1,4 +1,5 @@
-import Button, { ButtonSize } from "../Input/Button";
+﻿import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SimpleDialogProps {
     isOpen: boolean;
@@ -13,15 +14,25 @@ export default function SimpleDialog({
   title,
   children,
 }: SimpleDialogProps) {
-  if (!isOpen) return null;
-
+  // Without onClose the dialog can only be left through its own actions, so the corner close button is hidden.
   return (
-    <div role="dialog" className="fixed inset-0 flex items-center justify-center bg-gray-900/50 z-10">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-auto">
-        <h2 className="text-lg font-semibold mb-5">{title}</h2>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose?.()}>
+      <DialogContent
+        className={`max-w-md ${onClose ? "" : "[&>button]:hidden"}`}
+        aria-describedby={undefined}
+        onInteractOutside={(e) => !onClose && e.preventDefault()}
+        onEscapeKeyDown={(e) => !onClose && e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         {children}
-        {onClose ? <><Button size={ButtonSize.Small} onClick={onClose}>Close</Button></> : null}
-      </div>
-    </div>
+        {onClose ? (
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+          </DialogFooter>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
