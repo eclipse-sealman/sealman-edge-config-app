@@ -38,7 +38,7 @@ export default function SideNavigation() {
       items.push({ name: "Authorization", href: "/authorization/teams", icon: ShieldCheckIcon });
     }
 
-    items.push({ name: "Monitoring", href: "/activity", icon: ClockIcon });
+    items.push({ name: "Monitoring", href: "/monitoring", icon: ClockIcon });
 
     items.push({
       name: "Platform Configuration",

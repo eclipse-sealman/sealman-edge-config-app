@@ -17,6 +17,8 @@ import PlatformTypesSettings from "./pages/settings/PlatformTypesSettings";
 import TemplatesSettings from "./pages/settings/TemplatesSettings";
 import SettingsPlaceholder from "./pages/settings/SettingsPlaceholder";
 import SealAgentSettings from "./pages/settings/SealAgentSettings";
+import DeploymentsLayout from "./pages/deployments/DeploymentsLayout";
+import AssetConfigurationLayout from "./pages/assetConfiguration/AssetConfigurationLayout";
 import { SmartEmsAuthCallback } from "./features/Devices/Network/smart_ems/pages/AuthCallback";
 import { useAuth } from "./auth";
 import { useEffect } from "react";
@@ -56,25 +58,35 @@ export default function App() {
               <Route path=":deviceId/*" element={<DeviceDetail />} />
             </Route>
 
+            <Route path="platform-types" element={<AssetConfigurationLayout />}>
+              <Route index element={<Navigate to="asset-types" replace />} />
+              <Route path="asset-types" element={<PlatformTypesSettings />} />
+              <Route path="templates" element={<TemplatesSettings />} />
+            </Route>
+            <Route path="deployments" element={<DeploymentsLayout />}>
+              <Route index element={<Navigate to="management" replace />} />
+              <Route
+                path="management"
+                element={
+                  <ComingNextPage
+                    title="Deployment Management"
+                    description="Managing deployments across your whole fleet is the next feature on our roadmap and will arrive in an upcoming release."
+                  />
+                }
+              />
+              <Route
+                path="operations"
+                element={
+                  <ComingNextPage
+                    title="Deployment Operations"
+                    description="Running and tracking deployment operations across your fleet is coming soon and will arrive in an upcoming release."
+                  />
+                }
+              />
+            </Route>
+            <Route path="fleet-configuration/*" element={<Navigate to="/deployments" replace />} />
             <Route
-              path="platform-types"
-              element={
-                <div className="h-full overflow-y-auto p-6">
-                  <PlatformTypesSettings />
-                </div>
-              }
-            />
-            <Route
-              path="deployments/*"
-              element={
-                <ComingNextPage
-                  title="Deployments"
-                  description="Rolling out deployments across your whole fleet is the next feature on our roadmap and will arrive in an upcoming release."
-                />
-              }
-            />
-            <Route
-              path="activity/*"
+              path="monitoring/*"
               element={
                 <ComingNextPage
                   title="Monitoring"
@@ -82,15 +94,7 @@ export default function App() {
                 />
               }
             />
-            <Route
-              path="fleet-configuration/*"
-              element={
-                <ComingNextPage
-                  title="Fleet Configuration"
-                  description="Managing configuration for your whole fleet in one place is coming soon and will arrive in an upcoming release."
-                />
-              }
-            />
+            <Route path="activity/*" element={<Navigate to="/monitoring" replace />} />
 
             <Route path="authorization" element={<Authorization />}>
               <Route index element={<Navigate to="teams" replace />} />
@@ -117,7 +121,7 @@ export default function App() {
                 path="container-registries"
                 element={<SettingsPlaceholder title="Container Registries" description="Registries used to pull container images for deployments." />}
               />
-              <Route path="templates" element={<TemplatesSettings />} />
+              <Route path="templates" element={<Navigate to="/platform-types/templates" replace />} />
               {/* <Route path="smartems" element={<SmartEmsSettings />} /> */}
             </Route>
             <Route path="user/profile" element={<UserProfile />} />
