@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import PageTitle from "@/components/Typography/PageTitle";
 import TypesManager from "@/features/PlatformTypes/TypesManager";
 import DeviceTableColumnsCard from "@/features/PlatformTypes/DeviceTableColumnsCard";
 import DefaultScanPortsCard from "@/features/PlatformTypes/DefaultScanPortsCard";
@@ -25,7 +24,7 @@ import {
   SERVICE_TYPE_DEFAULT_MAPPING,
 } from "@/features/PlatformTypes/typeRoles";
 
-export default function PlatformTypesSettings() {
+export function DeviceTypesSettings() {
   const deviceTypesQuery = useGetDeviceTypes();
   const { postDeviceType } = usePostDeviceType();
   const { updateDeviceType } = useUpdateDeviceType();
@@ -39,100 +38,103 @@ export default function PlatformTypesSettings() {
     [deviceTypesQuery.data],
   );
 
+  return (
+    <div className="flex flex-col gap-6">
+      <TypesManager
+        title="Device Types"
+        singularLabel="Device Type"
+        description="Types available when creating devices."
+        types={deviceTypesQuery.data ?? []}
+        isLoading={deviceTypesQuery.isLoading}
+        defaultFields={defaultDeviceTypeFields}
+        protectedTypeId="default"
+        onCreate={async (body) => {
+          await postDeviceType(body);
+          await deviceTypesQuery.refetch();
+        }}
+        onUpdate={async (typeId, body) => {
+          await updateDeviceType({ typeId, body });
+          await deviceTypesQuery.refetch();
+        }}
+        onDelete={async (typeId) => {
+          await deleteDeviceType(typeId);
+          await deviceTypesQuery.refetch();
+        }}
+      />
+
+      <DeviceTableColumnsCard />
+    </div>
+  );
+}
+
+export function EndpointTypesSettings() {
   const endpointTypesQuery = useGetEndpointTypes();
   const { postEndpointType } = usePostEndpointType();
   const { updateEndpointType } = useUpdateEndpointType();
   const { deleteEndpointType } = useDeleteEndpointType();
 
+  return (
+    <TypesManager
+      title="Endpoint Types"
+      singularLabel="Endpoint Type"
+      description="Types available when creating endpoints on a device."
+      types={endpointTypesQuery.data ?? []}
+      isLoading={endpointTypesQuery.isLoading}
+      defaultFields={ENDPOINT_TYPE_DEFAULT_FIELDS}
+      defaultMapping={ENDPOINT_TYPE_DEFAULT_MAPPING}
+      roleOptions={ENDPOINT_ROLE_OPTIONS}
+      supportsListVisibility
+      cascadeDelete={{ instancesLabel: "endpoint" }}
+      onCreate={async (body) => {
+        await postEndpointType({ ...body, mapping: body.mapping ?? {} });
+        await endpointTypesQuery.refetch();
+      }}
+      onUpdate={async (typeId, body) => {
+        await updateEndpointType({ typeId, body });
+        await endpointTypesQuery.refetch();
+      }}
+      onDelete={async (typeId) => {
+        await deleteEndpointType(typeId, true);
+        await endpointTypesQuery.refetch();
+      }}
+    />
+  );
+}
+
+export function ServiceTypesSettings() {
   const serviceTypesQuery = useGetServiceTypes();
   const { postServiceType } = usePostServiceType();
   const { updateServiceType } = useUpdateServiceType();
   const { deleteServiceType } = useDeleteServiceType();
 
   return (
-    <div className="space-y-6">
-      <PageTitle
-        title="Asset Configuration"
-        description="Define the device, endpoint and service types available on the platform, and the fields captured for each."
+    <div className="flex flex-col gap-6">
+      <TypesManager
+        title="Service Types"
+        singularLabel="Service Type"
+        description="Types available when creating services on an endpoint."
+        types={serviceTypesQuery.data ?? []}
+        isLoading={serviceTypesQuery.isLoading}
+        browserKindOptions={listRegisteredBrowsers()}
+        defaultFields={SERVICE_TYPE_DEFAULT_FIELDS}
+        defaultMapping={SERVICE_TYPE_DEFAULT_MAPPING}
+        roleOptions={SERVICE_ROLE_OPTIONS}
+        cascadeDelete={{ instancesLabel: "service" }}
+        onCreate={async (body) => {
+          await postServiceType({ ...body, mapping: body.mapping ?? {} });
+          await serviceTypesQuery.refetch();
+        }}
+        onUpdate={async (typeId, body) => {
+          await updateServiceType({ typeId, body });
+          await serviceTypesQuery.refetch();
+        }}
+        onDelete={async (typeId) => {
+          await deleteServiceType(typeId, true);
+          await serviceTypesQuery.refetch();
+        }}
       />
 
-      <div className="flex flex-col gap-6">
-        <TypesManager
-          title="Device Types"
-          singularLabel="Device Type"
-          description="Types available when creating devices."
-          types={deviceTypesQuery.data ?? []}
-          isLoading={deviceTypesQuery.isLoading}
-          defaultFields={defaultDeviceTypeFields}
-          protectedTypeId="default"
-          onCreate={async (body) => {
-            await postDeviceType(body);
-            await deviceTypesQuery.refetch();
-          }}
-          onUpdate={async (typeId, body) => {
-            await updateDeviceType({ typeId, body });
-            await deviceTypesQuery.refetch();
-          }}
-          onDelete={async (typeId) => {
-            await deleteDeviceType(typeId);
-            await deviceTypesQuery.refetch();
-          }}
-        />
-
-        <DeviceTableColumnsCard />
-
-        <TypesManager
-          title="Endpoint Types"
-          singularLabel="Endpoint Type"
-          description="Types available when creating endpoints on a device."
-          types={endpointTypesQuery.data ?? []}
-          isLoading={endpointTypesQuery.isLoading}
-          defaultFields={ENDPOINT_TYPE_DEFAULT_FIELDS}
-          defaultMapping={ENDPOINT_TYPE_DEFAULT_MAPPING}
-          roleOptions={ENDPOINT_ROLE_OPTIONS}
-          supportsListVisibility
-          cascadeDelete={{ instancesLabel: "endpoint" }}
-          onCreate={async (body) => {
-            await postEndpointType({ ...body, mapping: body.mapping ?? {} });
-            await endpointTypesQuery.refetch();
-          }}
-          onUpdate={async (typeId, body) => {
-            await updateEndpointType({ typeId, body });
-            await endpointTypesQuery.refetch();
-          }}
-          onDelete={async (typeId) => {
-            await deleteEndpointType(typeId, true);
-            await endpointTypesQuery.refetch();
-          }}
-        />
-
-        <TypesManager
-          title="Service Types"
-          singularLabel="Service Type"
-          description="Types available when creating services on an endpoint."
-          types={serviceTypesQuery.data ?? []}
-          isLoading={serviceTypesQuery.isLoading}
-          browserKindOptions={listRegisteredBrowsers()}
-          defaultFields={SERVICE_TYPE_DEFAULT_FIELDS}
-          defaultMapping={SERVICE_TYPE_DEFAULT_MAPPING}
-          roleOptions={SERVICE_ROLE_OPTIONS}
-          cascadeDelete={{ instancesLabel: "service" }}
-          onCreate={async (body) => {
-            await postServiceType({ ...body, mapping: body.mapping ?? {} });
-            await serviceTypesQuery.refetch();
-          }}
-          onUpdate={async (typeId, body) => {
-            await updateServiceType({ typeId, body });
-            await serviceTypesQuery.refetch();
-          }}
-          onDelete={async (typeId) => {
-            await deleteServiceType(typeId, true);
-            await serviceTypesQuery.refetch();
-          }}
-        />
-
-        <DefaultScanPortsCard />
-      </div>
+      <DefaultScanPortsCard />
     </div>
   );
 }

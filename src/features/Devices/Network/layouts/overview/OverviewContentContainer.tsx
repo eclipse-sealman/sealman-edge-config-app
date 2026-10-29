@@ -374,8 +374,8 @@ export default function OverviewContentContainer() {
       {viewMode === "list" ? (
         <>
           <div>
-            <DeviceGatewayCard deviceId={deviceId} />
-            <div className="ml-10 h-6 w-0.5 bg-blue-600/30" aria-hidden="true" />
+            <DeviceGatewayCard deviceId={deviceId} compact />
+            <div className="ml-8 h-4 w-0.5 bg-blue-600/30" aria-hidden="true" />
           </div>
           <DiscoveredEndpointsCard
             endpoints={discovered}
@@ -392,13 +392,8 @@ export default function OverviewContentContainer() {
         </>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1.5">
-              <h2 className="text-lg font-semibold leading-none tracking-tight">Endpoints &amp; Services</h2>
-              <p className="text-sm text-muted-foreground">
-                Every endpoint as a tile - drag them to arrange your own layout. Tiles show each service and its state.
-              </p>
-            </div>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold leading-none tracking-tight">Assets</h2>
             <EndpointActions
               onScan={() => setScanDialogOpen(true)}
               isScanning={isScanning}

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
@@ -9,6 +9,7 @@ import {
   Panel,
   ReactFlow,
   ReactFlowProvider,
+  useNodesInitialized,
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -23,6 +24,7 @@ import {
   GATEWAY_ESTIMATED_HEIGHT,
   GATEWAY_ID,
   Position,
+  canvasColumns,
   clearSavedLayout,
   defaultGatewayPosition,
   estimateTileHeight,
@@ -78,12 +80,13 @@ function CanvasInner({ endpoints, deviceId, onEndpointCreated, onOpenDetails, on
       return { id, height: sizes[id]?.height ?? estimateTileHeight(e) };
     });
     // New tiles start below the gateway, leaving room for the edges that connect them to it.
-    const layout = layoutTiles(tiles, positions, undefined, gatewayHeight + GATEWAY_EDGE_SPACE);
+    const columns = canvasColumns(tiles.length);
+    const layout = layoutTiles(tiles, positions, columns, gatewayHeight + GATEWAY_EDGE_SPACE);
 
     const gateway: GatewayNode = {
       id: GATEWAY_ID,
       type: "gateway",
-      position: positions[GATEWAY_ID] ?? defaultGatewayPosition(),
+      position: positions[GATEWAY_ID] ?? defaultGatewayPosition(columns),
       dragHandle: ".gateway-drag-handle",
       data: { deviceId },
       measured: sizes[GATEWAY_ID],
@@ -160,6 +163,15 @@ function CanvasInner({ endpoints, deviceId, onEndpointCreated, onOpenDetails, on
     setPositions({});
     window.requestAnimationFrame(() => fitView({ padding: 0.1, maxZoom: 1, duration: 300 }));
   };
+
+  // The initial fitView runs on estimated sizes; refit once the auto layout has settled on the real ones.
+  const nodesInitialized = useNodesInitialized();
+  const hasRefitted = useRef(false);
+  useEffect(() => {
+    if (!nodesInitialized || hasRefitted.current) return;
+    hasRefitted.current = true;
+    window.requestAnimationFrame(() => fitView({ padding: 0.1, maxZoom: 1 }));
+  }, [nodesInitialized, fitView]);
 
   return (
     <div className="h-[calc(100vh-24rem)] min-h-[520px] overflow-hidden rounded-lg border bg-slate-50">

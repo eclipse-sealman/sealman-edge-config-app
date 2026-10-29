@@ -1,8 +1,9 @@
 import SectionLayout from "@/layouts/SectionLayout";
 
 const ASSET_CONFIGURATION_TABS = [
-  { label: "Asset Types", path: "asset-types" },
-  { label: "Templates", path: "templates" },
+  { label: "Device Types", path: "device-types" },
+  { label: "Endpoint Types", path: "endpoint-types" },
+  { label: "Service Types", path: "service-types" },
 ];
 
 export default function AssetConfigurationLayout() {

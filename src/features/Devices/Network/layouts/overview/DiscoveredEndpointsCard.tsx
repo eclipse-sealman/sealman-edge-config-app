@@ -30,13 +30,8 @@ export default function DiscoveredEndpointsCard({
 }: props) {
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1.5">
-          <h2 className="text-lg font-semibold leading-none tracking-tight">Assets</h2>
-          <p className="text-sm text-muted-foreground">
-            Physical machines and systems discovered on the network. Expand each endpoint to view its services.
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold leading-none tracking-tight">Assets</h2>
         <EndpointActions onScan={onScan} isScanning={isScanning} onAddEndpoint={onAddEndpoint} leading={viewToggle} />
       </div>
 

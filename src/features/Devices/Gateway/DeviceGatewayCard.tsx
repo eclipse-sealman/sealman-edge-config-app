@@ -24,7 +24,7 @@ const isEmpty = (value: unknown) => value === null || value === undefined || val
  * The device is the gateway the endpoints and services on the Assets tab hang off, so its type and
  * metadata are edited here, right above them.
  */
-export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
+export default function DeviceGatewayCard({ deviceId, compact = false }: { deviceId: string; compact?: boolean }) {
   const metadataQuery = useGetDeviceMetadata(deviceId);
   const typesQuery = useGetDeviceTypes();
   const { query: patchMetadata, isPending: isPatchingMetadata } = usePatchDeviceMetadata();
@@ -119,17 +119,28 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border-2 border-l-8 border-blue-600/30 border-l-blue-600 bg-background shadow-md">
-      <header className="flex items-start justify-between gap-4 border-b bg-blue-50/60 px-6 py-5">
-        <div className="flex items-center gap-4">
-          <div className="rounded-xl bg-blue-600 p-3 text-white shadow-sm">
-            <Cpu className="h-7 w-7" aria-hidden="true" />
+    <section
+      className={`overflow-hidden rounded-xl border-2 border-blue-600/30 border-l-blue-600 bg-background shadow-md ${compact ? "border-l-4" : "border-l-8"}`}
+    >
+      <header
+        className={`flex justify-between gap-4 border-b bg-blue-50/60 ${compact ? "items-center px-4 py-2.5" : "items-start px-6 py-5"}`}
+      >
+        <div className={`flex items-center ${compact ? "gap-3" : "gap-4"}`}>
+          <div className={`bg-blue-600 text-white shadow-sm ${compact ? "rounded-lg p-1.5" : "rounded-xl p-3"}`}>
+            <Cpu className={compact ? "h-4 w-4" : "h-7 w-7"} aria-hidden="true" />
           </div>
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Gateway</p>
-            <h2 className="text-2xl font-semibold leading-none tracking-tight">{deviceId}</h2>
-            <p className="text-sm text-muted-foreground">The endpoints and services of this device are connected through it.</p>
-          </div>
+          {compact ? (
+            <div className="flex items-baseline gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-700">Gateway</p>
+              <h2 className="text-base font-semibold leading-none tracking-tight">{deviceId}</h2>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Gateway</p>
+              <h2 className="text-2xl font-semibold leading-none tracking-tight">{deviceId}</h2>
+              <p className="text-sm text-muted-foreground">The endpoints and services of this device are connected through it.</p>
+            </div>
+          )}
         </div>
         {metadata &&
           (editing ? (
@@ -154,7 +165,7 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
           ))}
       </header>
 
-      <div className="p-6">
+      <div className={compact ? "px-4 py-3" : "p-6"}>
         {metadataQuery.isLoading && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <WaterLoader /> Loading gateway...
@@ -163,7 +174,7 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
         {metadataQuery.isError && <p className="text-sm text-destructive">Failed to load the gateway data.</p>}
 
         {metadata && !editing && (
-          <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+          <dl className={compact ? "grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-4" : "grid gap-x-8 gap-y-3 sm:grid-cols-2"}>
             {viewEntries.map(([label, value]) => (
               <div key={label} className="min-w-0 space-y-0.5">
                 <dt className="text-xs text-muted-foreground">{label}</dt>

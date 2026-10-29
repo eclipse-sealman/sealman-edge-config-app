@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CANVAS_COLUMNS, GATEWAY_WIDTH, TILE_GAP, TILE_WIDTH, defaultGatewayPosition, estimateTileHeight, layoutTiles } from "../canvasLayout";
+import { CANVAS_COLUMNS, GATEWAY_WIDTH, TILE_GAP, TILE_WIDTH, canvasColumns, defaultGatewayPosition, estimateTileHeight, layoutTiles } from "../canvasLayout";
 
 const COLUMN = TILE_WIDTH + TILE_GAP;
 
@@ -51,6 +51,12 @@ describe("gateway layout", () => {
     const totalWidth = CANVAS_COLUMNS * TILE_WIDTH + (CANVAS_COLUMNS - 1) * TILE_GAP;
     expect(y).toBe(0);
     expect(x + GATEWAY_WIDTH / 2).toBe(totalWidth / 2);
+  });
+
+  it("uses only as many columns as there are tiles, so few tiles stay under the gateway", () => {
+    expect(canvasColumns(0)).toBe(1);
+    expect(canvasColumns(2)).toBe(2);
+    expect(canvasColumns(10)).toBe(CANVAS_COLUMNS);
   });
 });
 

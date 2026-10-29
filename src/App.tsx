@@ -13,7 +13,7 @@ import Version from "./pages/Version";
 import { QueryClientProvider } from "@tanstack/react-query";
 // import { SmartEmsSettings } from "@/features/Devices/Network/smart_ems/pages/settings.tsx";
 import SettingsLayout from "./pages/settings/SettingsLayout";
-import PlatformTypesSettings from "./pages/settings/PlatformTypesSettings";
+import { DeviceTypesSettings, EndpointTypesSettings, ServiceTypesSettings } from "./pages/settings/PlatformTypesSettings";
 import TemplatesSettings from "./pages/settings/TemplatesSettings";
 import SettingsPlaceholder from "./pages/settings/SettingsPlaceholder";
 import SealAgentSettings from "./pages/settings/SealAgentSettings";
@@ -75,9 +75,12 @@ export default function App() {
             </Route>
 
             <Route path="platform-types" element={<AssetConfigurationLayout />}>
-              <Route index element={<Navigate to="asset-types" replace />} />
-              <Route path="asset-types" element={<PlatformTypesSettings />} />
-              <Route path="templates" element={<TemplatesSettings />} />
+              <Route index element={<Navigate to="device-types" replace />} />
+              <Route path="asset-types" element={<Navigate to="/platform-types/device-types" replace />} />
+              <Route path="device-types" element={<DeviceTypesSettings />} />
+              <Route path="endpoint-types" element={<EndpointTypesSettings />} />
+              <Route path="service-types" element={<ServiceTypesSettings />} />
+              <Route path="templates" element={<Navigate to="/settings/templates" replace />} />
             </Route>
             <Route path="deployments" element={<DeploymentsLayout />}>
               <Route index element={<Navigate to="management" replace />} />
@@ -113,11 +116,11 @@ export default function App() {
             <Route path="activity/*" element={<Navigate to="/monitoring" replace />} />
 
             <Route path="authorization" element={<Authorization />}>
-              <Route index element={<Navigate to="teams" replace />} />
+              <Route index element={<Navigate to="users" replace />} />
+              <Route path="users" element={<Users />} />
               <Route path="teams" element={<Teams />} />
               <Route path="roles" element={<Roles />} />
               <Route path="scopes" element={<Scopes />} />
-              <Route path="users" element={<Users />} />
             </Route>
 
             <Route path="settings/smartems" element={<SmartEmsAuthCallback />} />
@@ -137,8 +140,6 @@ export default function App() {
                 path="container-registries"
                 element={<SettingsPlaceholder title="Container Registries" description="Registries used to pull container images for deployments." />}
               />
-              <Route path="templates" element={<Navigate to="/platform-types/templates" replace />} />
-              <Route path="platform-types" element={<PlatformTypesSettings />} />
               <Route path="templates" element={<TemplatesSettings />} />
               <Route path="extensions" element={<Outlet />}>
                 <Route index element={<ExtensionsSettings />} />

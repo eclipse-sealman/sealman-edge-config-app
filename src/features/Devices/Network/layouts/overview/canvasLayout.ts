@@ -1,14 +1,19 @@
 import type { MappedEndpoint } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 
 export const TILE_WIDTH = 360;
-export const TILE_GAP = 28;
+export const TILE_GAP = 16;
 export const CANVAS_COLUMNS = 3;
 
 export const GATEWAY_ID = "gateway";
 export const GATEWAY_WIDTH = 560;
 export const GATEWAY_ESTIMATED_HEIGHT = 260;
 /** Vertical room between the gateway and the first row of endpoints, where the connecting edges run. */
-export const GATEWAY_EDGE_SPACE = 80;
+export const GATEWAY_EDGE_SPACE = 48;
+
+/** Fewer endpoints than columns would otherwise leave empty columns and push the tiles away from the gateway. */
+export function canvasColumns(tileCount: number): number {
+  return Math.min(CANVAS_COLUMNS, Math.max(1, tileCount));
+}
 
 /** Default spot of the gateway: centered above the endpoint columns. */
 export function defaultGatewayPosition(columns = CANVAS_COLUMNS): Position {
