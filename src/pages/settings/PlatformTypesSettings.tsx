@@ -3,6 +3,8 @@ import PageTitle from "@/components/Typography/PageTitle";
 import TypesManager from "@/features/PlatformTypes/TypesManager";
 import DeviceTableColumnsCard from "@/features/PlatformTypes/DeviceTableColumnsCard";
 import DefaultScanPortsCard from "@/features/PlatformTypes/DefaultScanPortsCard";
+import ExtensionSlot from "@/features/Extensions/slots/ExtensionSlot";
+import { EXTENSION_SLOTS } from "@/features/Extensions/slots/slots";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
 import { usePostDeviceType } from "@/generated/edge-administration/hooks/device_types/usePostDeviceType";
 import { useUpdateDeviceType } from "@/generated/edge-administration/hooks/device_types/useUpdateDeviceType";
@@ -132,6 +134,18 @@ export default function PlatformTypesSettings() {
         />
 
         <DefaultScanPortsCard />
+
+        {/* Extensions contribute their own platform-configuration cards here (e.g. fields they need). */}
+        <ExtensionSlot
+          name={EXTENSION_SLOTS.settings.name}
+          context={{}}
+          renderFrame={(label, panel) => (
+            <div className="bg-card border rounded-lg p-4 space-y-4">
+              <h3 className="text-lg font-semibold">{label}</h3>
+              {panel}
+            </div>
+          )}
+        />
       </div>
     </div>
   );
