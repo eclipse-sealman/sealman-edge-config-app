@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import useGetNetworkTopology from "@/generated/edge-administration/hooks/useGetNetworkTopology"
 import { ReloadIcon } from "@radix-ui/react-icons"
-import { Loader2 } from "lucide-react"
+import { WaterLoader } from "@/components/ui/water-loader";
 import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
 import { useNetworkPageStore } from "@/features/Devices/Network/stores"
@@ -24,10 +24,10 @@ export default function RefetchPeriodicScan() {
     setIsManuallyRefetching(true)
     try {
       await refetch()
-      toast.success("Success: network scan refetched")
+      toast.success("Network scan refreshed")
     } catch (err) {
       console.error("ERROR", err)
-      toast.error("Error: network scan could not be refetched")
+      toast.error("Could not refresh the network scan")
     } finally {
       setIsManuallyRefetching(false)
     }
@@ -36,7 +36,7 @@ export default function RefetchPeriodicScan() {
   if (isManuallyRefetching) {
     return (
       <Button id="periodic-scan-refresh" variant="outline" size="icon" disabled>
-        <Loader2 className="animate-spin" />
+        <WaterLoader />
       </Button>
     )
   }

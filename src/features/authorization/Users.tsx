@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { EyeIcon, MagnifyingGlassIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { Button } from "@/components/ui/button";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import PageTitle from "@/components/Typography/PageTitle";
+import { getErrorMessage } from "@/lib/errors";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -126,44 +130,14 @@ export default function Users() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => setDetailsTarget(user)}
-                      className="
-                        inline-flex items-center gap-1
-                        px-3 py-1.5 rounded-md
-                        bg-slate-100 text-slate-700
-                        hover:bg-slate-200
-                        transition-all
-                        font-medium
-                        shadow-xs
-                      "
-                      aria-label={`View details for ${user.preferred_username}`}
-                    >
-                      <EyeIcon className="w-4 h-4" />
-                    </button>
+                    <Button type="button" variant="outline" size="icon" onClick={() => setDetailsTarget(user)} aria-label={`View details for ${user.preferred_username}`}><EyeIcon /></Button>
                   </TooltipTrigger>
                   <TooltipContent>View Details</TooltipContent>
                 </Tooltip>
                 {canWrite && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => handleManageTeams(user)}
-                      className="
-                        inline-flex items-center gap-1
-                        px-3 py-1.5 rounded-md
-                        bg-slate-100 text-slate-700
-                        hover:bg-slate-200
-                        transition-all
-                        font-medium
-                        shadow-xs
-                      "
-                      aria-label={`Manage teams for ${user.preferred_username}`}
-                    >
-                      <UserGroupIcon className="w-4 h-4" />
-                    </button>
+                    <Button type="button" variant="outline" size="icon" onClick={() => handleManageTeams(user)} aria-label={`Manage teams for ${user.preferred_username}`}><UserGroupIcon /></Button>
                   </TooltipTrigger>
                   <TooltipContent>Manage Teams</TooltipContent>
                 </Tooltip>
@@ -184,17 +158,17 @@ export default function Users() {
   });
 
   if (isLoading) {
-    return <div>Loading users...</div>;
+    return <LoadingState label="Loading users..." />;
   }
 
   if (isError) {
-    return <div>Failed to load users: {error.message}</div>;
+    return <ErrorState title="Could not load users" message={getErrorMessage(error)} />;
   }
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Users</h2>
+        <PageTitle title="Users" description="Everyone who can sign in to the platform and the teams they belong to." />
       </div>
 
       <div className="bg-card border rounded-lg p-4 space-y-4">

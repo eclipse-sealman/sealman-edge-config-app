@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { PencilSquareIcon, TrashIcon, UsersIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import PageTitle from "@/components/Typography/PageTitle";
+import { getErrorMessage } from "@/lib/errors";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   createColumnHelper,
@@ -104,66 +107,21 @@ export default function Teams() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => handleEditTeam(team)}
-                      className="
-                        inline-flex items-center gap-1
-                        px-3 py-1.5 rounded-md
-                        bg-slate-100 text-slate-700
-                        hover:bg-slate-200
-                        transition-all
-                        font-medium
-                        shadow-xs
-                      "
-                      aria-label={`Edit team ${team.name}`}
-                    >
-                      <PencilSquareIcon className="w-4 h-4" />
-                    </button>
+                    <Button type="button" variant="outline" size="icon" onClick={() => handleEditTeam(team)} aria-label={`Edit team ${team.name}`}><PencilSquareIcon /></Button>
                   </TooltipTrigger>
                   <TooltipContent>Edit</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => handleMembers(team)}
-                      className="
-                        inline-flex items-center gap-1
-                        px-3 py-1.5 rounded-md
-                        bg-slate-100 text-slate-700
-                        hover:bg-slate-200
-                        transition-all
-                        font-medium
-                        shadow-xs
-                      "
-                      aria-label={`Manage members of ${team.name}`}
-                    >
-                      <UsersIcon className="w-4 h-4" />
-                    </button>
+                    <Button type="button" variant="outline" size="icon" onClick={() => handleMembers(team)} aria-label={`Manage members of ${team.name}`}><UsersIcon /></Button>
                   </TooltipTrigger>
                   <TooltipContent>Members</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTeam(team)}
-                      className="
-                        inline-flex items-center gap-1
-                        px-3 py-1.5 rounded-md
-                        bg-red-50 text-red-700
-                        hover:bg-red-100
-                        transition-all
-                        font-medium
-                        shadow-xs
-                      "
-                      aria-label={`Delete team ${team.name}`}
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
+                    <Button type="button" variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteTeam(team)} aria-label={`Delete team ${team.name}`}><TrashIcon /></Button>
                   </TooltipTrigger>
                   <TooltipContent>Delete</TooltipContent>
                 </Tooltip>
@@ -183,17 +141,17 @@ export default function Teams() {
   });
 
   if (isLoading) {
-    return <div>Loading teams...</div>;
+    return <LoadingState label="Loading teams..." />;
   }
 
   if (isError) {
-    return <div>Failed to load teams: {error.message}</div>;
+    return <ErrorState title="Could not load teams" message={getErrorMessage(error)} />;
   }
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Teams</h2>
+        <PageTitle title="Teams" description="Groups of users with the roles and scope they share." />
         {canWrite && (
           <Button type="button" onClick={handleCreateTeam}>
             New team

@@ -1,7 +1,8 @@
 import { DeviceNatConfigRulesContext } from "./context";
 import { useContext } from "react";
 import { toast } from "react-toastify";
-import Button from "@/components/Input/Button";
+import { WaterLoader } from "@/components/ui/water-loader";
+import { Button } from "@/components/ui/button";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
 import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
@@ -15,10 +16,10 @@ export default function SaveNat() {
   const handleOnClick = async () => {
     try {
       await postConfig();
-      toast.success("Success: configuration successfully saved");
+      toast.success("Configuration saved");
     } catch (err) {
       console.error("ERROR", err);
-      toast.error("Error: the configuration could not be saved");
+      toast.error("Could not save the configuration");
     }
   };
 
@@ -27,8 +28,9 @@ export default function SaveNat() {
         deviceId={deviceId}
         permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE}
         onClick={handleOnClick}
-        processing={postIsPending}
+        disabled={postIsPending}
       >
+        {postIsPending && <WaterLoader />}
         Save
       </GuardedButton>
   );

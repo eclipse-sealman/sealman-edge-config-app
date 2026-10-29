@@ -23,9 +23,9 @@ export function useConnectEdgeDeviceToVpn() {
     try {
       await mutateAsync(deviceId);
       await invalidate();
-      toast.success("Device successfully connected to VPN");
+      toast.success("Device connected to VPN");
     } catch (err) {
-      toast.error("Error while trying to connect. Please try again. If the issue persists, please contact your division administrator.");
+      toast.error("Could not connect to VPN. Please try again or contact your administrator.");
       console.error(err);
     } finally {
       setIsLoading(false);

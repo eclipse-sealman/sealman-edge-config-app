@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { DeviceNatConfigRulesContext } from "./context";
 import NatRule from "./NatRule";
-import Button from "@/components/Input/Button";
+import { Button } from "@/components/ui/button";
 import { PlusIcon } from "@heroicons/react/24/outline";
 
 export default function NatRules() {
@@ -15,7 +15,7 @@ export default function NatRules() {
     <>
       <div className="flex items-center gap-4">
         <h1 className="font-bold">Rules</h1>
-        <Button onClick={handleOnClick}><PlusIcon className="mr-2 w-5 h-5"/>Add a rule</Button>
+        <Button onClick={handleOnClick}><PlusIcon />Add a rule</Button>
       </div>
       {natConfig?.nat_rules?.map((r, i) => (
         <React.Fragment key={i}>

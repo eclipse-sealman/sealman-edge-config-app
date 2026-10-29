@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
-import { ChevronRightIcon, LinkIcon } from "@heroicons/react/24/outline";
+import { ChevronRightIcon, CubeIcon, LinkIcon } from "@heroicons/react/24/outline";
+import { Heading } from "../../../components/Typography/Heading";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import { getErrorMessage } from "@/lib/errors";
 import Modal, { ModalState } from "../../../components/Modal/Modal";
 import { Tab } from "@headlessui/react";
 import ModuleLogs from "./ModuleLogs";
@@ -10,7 +13,7 @@ import DirectMethods from "./DirectMethods";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { useQuery } from "@tanstack/react-query";
 import { edgeConfigApiHooks, ModuleData } from "../../../api/edgeConfig/edgeConfigApiHooks";
-import { Table, THead, TH, TBody, TR, TD } from "../../../components/Table/TableComponents";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 
 export default function ModuleList() {
@@ -42,21 +45,21 @@ export default function ModuleList() {
     refetchInterval: 5000,
   });
 
-  if (isPending) return <div>Loading...</div>
-  if (isError) return <div>Error: {statusError.message}</div>
+  if (isPending) return <LoadingState label="Loading modules..." />
+  if (isError) return <ErrorState title="Could not load the modules" message={getErrorMessage(statusError)} />
 
   const moduleRows = moduleData.map((module, index) => (
-    <TR onClick={() => setModalState({
+    <TableRow className="cursor-pointer" onClick={() => setModalState({
       children: <ModuleModal module={module} />,
       title: <div className="flex items-center">{deviceId}<ChevronRightIcon className="w-4 h-4" /> {module.moduleName}</div>,
       isOpen: true
     })} key={index}>
-      <TD>
+      <TableCell>
         <Badge color={module.connectionState === "Connected" ? BadgeColor.Green : BadgeColor.Red}>
           {module.connectionState === "Connected" ? <LinkIcon className="w-3 h-3" /> : ""}
         </Badge>
-      </TD>
-      <TD>
+      </TableCell>
+      <TableCell>
         <Badge color={
           (module.moduleName === "$edgeAgent" && module.status === "runtime_online") ? BadgeColor.Green :
           (module.moduleName === "$edgeAgent" && module.status === "runtime_offline") ? BadgeColor.Yellow :
@@ -89,8 +92,8 @@ export default function ModuleList() {
           {module.status === "runtime_offline" && "RUNTIME OFFLINE"}
           {module.status === null && "UNKNOWN"}
         </Badge>
-      </TD>
-      <TD>
+      </TableCell>
+      <TableCell>
         {(() => {
           switch (module.confStatus) {
             case 'NO_CONFIG':
@@ -105,8 +108,8 @@ export default function ModuleList() {
               return <Badge color={BadgeColor.Purple}>{module.confStatus}</Badge>;
           }
         })()}
-      </TD>
-      <TD>
+      </TableCell>
+      <TableCell>
         {(() => {
           switch (module.appStatus) {
             case 'OK':
@@ -119,11 +122,11 @@ export default function ModuleList() {
               return <Badge color={BadgeColor.Purple}>{module.appStatus}</Badge>;
           }
         })()}
-      </TD>
-      <TD className="flex items-center">
+      </TableCell>
+      <TableCell className="font-medium">
         {module.moduleName}
-      </TD>
-      <TD>
+      </TableCell>
+      <TableCell>
       {(() => {
           switch (module.deploymentType) {
             case 'base':
@@ -134,8 +137,8 @@ export default function ModuleList() {
               return <Badge color={BadgeColor.Indigo}>base</Badge>;
           }
         })()}
-      </TD>
-      <TD>
+      </TableCell>
+      <TableCell>
       {(() => {
           switch (module.moduleType) {
             case 'iotedge':
@@ -148,28 +151,36 @@ export default function ModuleList() {
               return <Badge color={BadgeColor.Indigo}>iotedge</Badge>;
           }
         })()}
-      </TD>
-      <TD>{module.version}</TD>
-    </TR>
+      </TableCell>
+      <TableCell>{module.version}</TableCell>
+    </TableRow>
   ));
 
   return (
     <>
-      <Table>
-        <THead>
-          <TR>
-            <TH>API</TH>
-            <TH>Module Status</TH>
-            <TH>Config Sync</TH>
-            <TH>Config Status</TH>
-            <TH>Module Name</TH>
-            <TH>Stack</TH>
-            <TH>Type</TH>
-            <TH>Version</TH>
-          </TR>
-        </THead>
-        <TBody>{moduleRows}</TBody>
-      </Table>
+      <div className="space-y-2">
+        <Heading>
+          <CubeIcon />
+          Modules
+        </Heading>
+        <div className="overflow-hidden rounded-lg border bg-background">
+          <Table>
+        <TableHeader className="bg-slate-50">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">API</TableHead>
+            <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Module Status</TableHead>
+            <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Config Sync</TableHead>
+            <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Config Status</TableHead>
+            <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Module Name</TableHead>
+            <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Stack</TableHead>
+            <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</TableHead>
+            <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Version</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>{moduleRows}</TableBody>
+          </Table>
+        </div>
+      </div>
       <Modal modalState={modalState} setModalState={setModalState}></Modal>
     </>
   );
@@ -180,19 +191,20 @@ function ModuleModal({ module }: { module: ModuleData }) {
     <Tab.Group className="h-full">
       <div className="h-full">
         <Tab.List>
-          <div className="grid grid-cols-3 p-2 bg-vibrant-blue text-white rounded-sm">
-            <Tab className={({ selected }) => `rounded-sm ${selected ? 'bg-blue-500 text-white' : ''}`}>
-              Module Configuration
-            </Tab>
-            <Tab className={({ selected }) => `rounded-sm ${selected ? 'bg-blue-500 text-white' : ''}`}>
-              Methods
-            </Tab>
-            <Tab className={({ selected }) => `rounded-sm ${selected ? 'bg-blue-500 text-white' : ''}`}>
-              Logs
-            </Tab>
+          <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 text-sm font-medium text-muted-foreground">
+            {["Module Configuration", "Methods", "Logs"].map((label) => (
+              <Tab
+                key={label}
+                className={({ selected }) =>
+                  `rounded-md px-3 py-1.5 transition-colors focus:outline-hidden ${selected ? "bg-background text-foreground shadow-sm" : "hover:text-foreground"}`
+                }
+              >
+                {label}
+              </Tab>
+            ))}
           </div>
         </Tab.List>
-        <Tab.Panels as="div" className="h-full overflow-y-auto">
+        <Tab.Panels as="div" className="mt-4 h-full overflow-y-auto">
           <Tab.Panel className="h-full ">
             <ModuleConfig moduleName={module.moduleId} appMessage={module.appMessage} moduleStatus={module.status} />
           </Tab.Panel>

@@ -1,15 +1,18 @@
 import { AxiosError } from "axios";
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
-import { InputLabel } from '../../../components/Input/InputLabel';
-import { Input } from "../../../components/Input/FormElements";
+import { Label } from "@/components/ui/label";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import { Input } from "@/components/ui/input";
 import { CpuChipIcon, GlobeAltIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
-import Button from "../../../components/Input/Button";
+import { WaterLoader } from "@/components/ui/water-loader";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { Heading } from "../../../components/Typography/Heading";
-import { HeadingColor } from "../../../components/Typography/Heading";
+import { getErrorMessage } from "@/lib/errors";
 import Badge, { BadgeColor } from "../../../components/Typography/Badge";
 import { edgeConfigApiHooks } from "../../../api/edgeConfig/edgeConfigApiHooks";
 import { CMD_PROXY_MODULE_NAME } from "@/api/edgeConfig/moduleNames";
@@ -49,10 +52,10 @@ export default function DeviceIpSetup() {
   const { isPending, isError, data, error } = edgeConfigApiHooks.useGetSmartEmsConfigLan(deviceId);
 
   if (isPending)
-    return <div>Loading...</div>
+    return <LoadingState />
 
   if (isError)
-    return <div>Error: {error.message} {JSON.stringify(error.response?.data, null, 4)}</div>
+    return <ErrorState title="Could not load the interface config" message={getErrorMessage(error)} />
 
    // Putting the form into a child component is an easy way to make sure that data is not undefined
   return (
@@ -82,10 +85,10 @@ function InterfacesForm({ interfaceData }: { interfaceData: InterfaceData }) {
       return edgeConfigApi.postSmartEmsConfigLan(deviceId, payload)
     },
     onSuccess: () => {
-      toast.success(`Success: scheduled interface update on device ${deviceId} -> check config update flag`)
+      toast.success("Interface config saved. Activate the config to apply it.")
     },
     onError: (error: AxiosError) => {
-      toast.error(`ERROR: Could not schedule interface config on device ${deviceId}. ${error.message} ${JSON.stringify(error.response?.data, null, 4)}`)
+      toast.error(`Could not save the interface config: ${getErrorMessage(error)}`)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['getSmartEmsConfigLan', deviceId] });
@@ -129,7 +132,10 @@ function InterfacesForm({ interfaceData }: { interfaceData: InterfaceData }) {
           interfaceForm={interfaceForm}
           handleChange={handleChange} />
       </div>
-      <GuardedButton deviceId={deviceId} permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE} type="submit" processing={isPending}>Save</GuardedButton>
+      <GuardedButton deviceId={deviceId} permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE} type="submit" disabled={isPending}>
+        {isPending && <WaterLoader />}
+        Save
+      </GuardedButton>
     </form>
   )
 }
@@ -194,7 +200,7 @@ function InterfaceForm({ interfaceForm, interfaceName, handleChange, readableInt
         current_dns: networkInfo.current_dns || "N/A"
       });
     } catch (error) {
-      toast.error(`ERROR: Could not fetch network info for ${interfaceName}.`);
+      toast.error(`Could not load the network info for ${interfaceName}`);
     }
     finally {
       setIsLoadingModal(false);
@@ -210,7 +216,7 @@ function InterfaceForm({ interfaceForm, interfaceName, handleChange, readableInt
       </div>
 
 
-      <InputLabel>DHCP</InputLabel>
+      <Label>DHCP</Label>
       <input
         type="checkbox"
         name="dhcp"
@@ -218,7 +224,7 @@ function InterfaceForm({ interfaceForm, interfaceName, handleChange, readableInt
         onChange={handleToggleChange}
       />
 
-      <InputLabel>IP</InputLabel>
+      <Label>IP</Label>
       <Input
         type="text"
         name="ip"
@@ -227,7 +233,7 @@ function InterfaceForm({ interfaceForm, interfaceName, handleChange, readableInt
         disabled={interfaceForm.interfaceConfig[interfaceName].dhcp}
       />
 
-      <InputLabel>Subnet</InputLabel>
+      <Label>Subnet</Label>
       <Input
         type="text"
         name="subnet"
@@ -236,7 +242,7 @@ function InterfaceForm({ interfaceForm, interfaceName, handleChange, readableInt
         disabled={interfaceForm.interfaceConfig[interfaceName].dhcp}
       />
 
-      <InputLabel>Gateway</InputLabel>
+      <Label>Gateway</Label>
       <Input
         type="text"
         name="gw"
@@ -245,7 +251,7 @@ function InterfaceForm({ interfaceForm, interfaceName, handleChange, readableInt
         disabled={interfaceForm.interfaceConfig[interfaceName].dhcp}
       />
 
-      <InputLabel>DNS</InputLabel>
+      <Label>DNS</Label>
       <Input
         type="text"
         name="dns"
@@ -254,79 +260,77 @@ function InterfaceForm({ interfaceForm, interfaceName, handleChange, readableInt
         disabled={interfaceForm.interfaceConfig[interfaceName].dhcp}
       />
       {isLoadingModal && (
-        <div className="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-4 rounded shadow-lg">
-            <div className="flex items-center justify-center space-x-2">
-              <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-blue-500"></div>
-              <p>Requesting current network config...</p>
-            </div>
-          </div>
-        </div>
+        <Dialog open>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="sr-only">Loading</DialogTitle>
+              <DialogDescription className="flex items-center gap-2">
+                <WaterLoader className="h-5 w-5" />
+                Requesting current network config...
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
       )}
 
-      {moduleGuardMessage && !isLoadingModal && (
-        <div className="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-4 rounded shadow-lg max-w-md w-full">
-            <p className="text-m">{moduleGuardMessage}</p>
-            <div className="flex justify-end mt-4">
-              <button className="px-4 py-2 bg-blue-500 text-white rounded" onClick={() => setModuleGuardMessage(null)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={Boolean(moduleGuardMessage) && !isLoadingModal} onOpenChange={(open) => !open && setModuleGuardMessage(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Action not available</DialogTitle>
+            <DialogDescription>{moduleGuardMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setModuleGuardMessage(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {modalData && !isLoadingModal && (
-        <div className="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-2 rounded shadow-lg inline-block">
-            <div className="inline-block">
-              <Heading color={HeadingColor.Gray}>
-                <InformationCircleIcon className="w-7 h-7 mr-1" />
-                Current Network of {interfaceName.toUpperCase()}
-              </Heading>
-            </div>
-            <table className="border border-gray-400 table-auto w-full mt-2">
-              <tbody>
-              <tr className="border border-gray-300">
-                  <td className="p-2 bg-gray-100"><strong>State:</strong></td>
-                  <td className="p-2 bg-gray-200">{(modalData.interface_state === "active") ?
-                    <Badge color={BadgeColor.Green}>ACTIVE</Badge> : <Badge color={BadgeColor.Yellow}>INACTIVE</Badge>}</td>
-                </tr>
-                <tr className="border border-gray-300">
-                  <td className="p-2 bg-gray-100"><strong>Mode:</strong></td>
-                  <td className="p-2 bg-gray-200">{modalData.current_mode}</td>
-                </tr>
-                <tr className="border border-gray-300">
-                  <td className="p-2 bg-gray-100"><strong>IP:</strong></td>
-                  <td className="p-2 bg-gray-200">{modalData.current_ip}</td>
-                </tr>
-                <tr className="border border-gray-300">
-                  <td className="p-2 bg-gray-100"><strong>Subnet:</strong></td>
-                  <td className="p-2 bg-gray-200">{modalData.current_subnet}</td>
-                </tr>
-                <tr className="border border-gray-300">
-                  <td className="p-2 bg-gray-100"><strong>Gateway:</strong></td>
-                  <td className="p-2 bg-gray-200">{modalData.current_gateway}</td>
-                </tr>
-                <tr className="border border-gray-300">
-                  <td className="p-2 bg-gray-100"><strong>DNS:</strong></td>
-                  <td className="p-2 bg-gray-200">
+      <Dialog open={Boolean(modalData) && !isLoadingModal} onOpenChange={(open) => !open && setModalData(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Current Network of {interfaceName.toUpperCase()}</DialogTitle>
+            <DialogDescription className="sr-only">Current network configuration reported by the device</DialogDescription>
+          </DialogHeader>
+          {modalData && (
+            <Table>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">State</TableCell>
+                  <TableCell>{(modalData.interface_state === "active") ?
+                    <Badge color={BadgeColor.Green}>ACTIVE</Badge> : <Badge color={BadgeColor.Yellow}>INACTIVE</Badge>}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Mode</TableCell>
+                  <TableCell>{modalData.current_mode}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">IP</TableCell>
+                  <TableCell>{modalData.current_ip}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Subnet</TableCell>
+                  <TableCell>{modalData.current_subnet}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Gateway</TableCell>
+                  <TableCell>{modalData.current_gateway}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">DNS</TableCell>
+                  <TableCell>
                     {typeof modalData.current_dns === "string"
                       ? modalData.current_dns
-                      : <ul>{modalData.current_dns.map((ip, index) => <li key={index}  className="border-b border-gray-300 last:border-0 py-1">{ip}</li>)}</ul>}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <button className="mt-4 px-4 py-2 bg-blue-500 text-white rounded" onClick={() => setModalData(null)}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-
+                      : <ul>{modalData.current_dns.map((ip, index) => <li key={index}>{ip}</li>)}</ul>}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setModalData(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

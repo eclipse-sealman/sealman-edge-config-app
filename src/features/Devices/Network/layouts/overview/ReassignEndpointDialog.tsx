@@ -9,7 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { inputClass, validateFields } from "@/features/PlatformTypes/FieldValueInput";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes";
 import { useUpdateEndpoint } from "@/generated/edge-administration/hooks/endpoints/useUpdateEndpoint";
 import { components } from "@/generated/edge-administration/types";
@@ -96,14 +97,18 @@ export default function ReassignEndpointDialog({
         <div className="space-y-4">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Endpoint Type *</label>
-            <select value={typeId} onChange={(e) => setTypeId(e.target.value)} className={inputClass}>
-              <option value="">Select a type...</option>
-              {(endpointTypes ?? []).map((t) => (
-                <option key={t.type_id} value={t.type_id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+            <Select value={typeId} onValueChange={setTypeId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a type..." />
+              </SelectTrigger>
+              <SelectContent>
+                {(endpointTypes ?? []).map((t) => (
+                  <SelectItem key={t.type_id} value={t.type_id}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {selectedType && (

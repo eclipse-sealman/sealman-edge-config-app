@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
 import { useQueryClient } from "@tanstack/react-query";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
 import FieldValueInput, { validateFields } from "@/features/PlatformTypes/FieldValueInput";
+import { Button } from "@/components/ui/button";
+import { InlineAlert } from "@/components/ui/page-state";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const fieldCls =
-  "w-full h-9 px-3 rounded-md border border-gray-200 bg-white text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all";
-const labelCls = "block text-sm font-medium text-gray-700 mb-1";
+function Message({ kind, children }: { kind: "error" | "success"; children: React.ReactNode }) {
+  return <InlineAlert variant={kind}>{children}</InlineAlert>;
+}
 
 // ─── Create Device Dialog ─────────────────────────────────────────────────────
 export default function DeviceManageDialog() {
@@ -81,76 +88,74 @@ export default function DeviceManageDialog() {
 
   return (
     <>
-      <button
-        onClick={openDialog}
-        className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm hover:bg-blue-600 active:scale-95 transition-all whitespace-nowrap"
-      >
-        Add Device
-      </button>
+      <Button onClick={openDialog}>Add Device</Button>
 
-      {open && <div className="fixed inset-0 bg-black/40 z-40 backdrop-blur-[1px]" onClick={closeDialog} />}
-
-      {open && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-          <h2 className="text-base font-semibold text-gray-900 mb-5">Create Device</h2>
+      <Dialog open={open} onOpenChange={(next) => !next && closeDialog()}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Device</DialogTitle>
+            <DialogDescription className="sr-only">Register a new device</DialogDescription>
+          </DialogHeader>
 
           <div className="flex flex-col gap-4">
-            <div>
-              <label className={labelCls}>Device ID <span className="text-red-500">*</span></label>
-              <input type="text" value={deviceId} onChange={(e) => setDeviceId(e.target.value)}
-                placeholder="e.g. 90909090" className={fieldCls} />
+            <div className="space-y-1.5">
+              <Label>Device ID <span className="text-red-500">*</span></Label>
+              <Input type="text" value={deviceId} onChange={(e) => setDeviceId(e.target.value)}
+                placeholder="e.g. 90909090" />
             </div>
-            <div>
-              <label className={labelCls}>Auth Type</label>
-              <select value={authType} onChange={(e) => setAuthType(e.target.value)} className={fieldCls}>
-                <option value="sas">sas</option>
-                <option value="tpm" disabled>tpm</option>
-              </select>
+            <div className="space-y-1.5">
+              <Label>Auth Type</Label>
+              <Select value={authType} onValueChange={setAuthType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sas">sas</SelectItem>
+                  <SelectItem value="tpm" disabled>tpm</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className={labelCls}>
-                Registration ID <span className="text-gray-400 font-normal text-xs">(optional)</span>
-              </label>
-              <input type="text" value={registrationId} onChange={(e) => setRegistrationId(e.target.value)}
-                placeholder="Leave blank to use Device ID" className={fieldCls} />
+            <div className="space-y-1.5">
+              <Label>
+                Registration ID <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+              </Label>
+              <Input type="text" value={registrationId} onChange={(e) => setRegistrationId(e.target.value)}
+                placeholder="Leave blank to use Device ID" />
             </div>
 
-            <div>
-              <label className={labelCls}>Device Type <span className="text-red-500">*</span></label>
-              <select
-                value={typeId}
-                onChange={(e) => handleTypeChange(e.target.value)}
-                disabled={deviceTypesQuery.isLoading}
-                className={fieldCls}
-              >
-                <option value="">
-                  {deviceTypesQuery.isLoading ? "Loading device types…" : "Select a device type…"}
-                </option>
-                {deviceTypes.map((type) => (
-                  <option key={type.type_id} value={type.type_id}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-1.5">
+              <Label>Device Type <span className="text-red-500">*</span></Label>
+              <Select value={typeId} onValueChange={handleTypeChange} disabled={deviceTypesQuery.isLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder={deviceTypesQuery.isLoading ? "Loading device types…" : "Select a device type…"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {deviceTypes.map((type) => (
+                    <SelectItem key={type.type_id} value={type.type_id}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {deviceTypesQuery.isSuccess && deviceTypes.length === 0 && (
-                <p className="text-xs text-gray-400 mt-1">
-                  No device types defined yet. Create one under Settings → Platform Types.
+                <p className="text-xs text-muted-foreground">
+                  No device types defined yet. Create one under Asset Configuration.
                 </p>
               )}
             </div>
 
             {selectedType && Object.keys(effectiveFields).length > 0 && (
-              <div>
-                <label className={labelCls}>Fields</label>
-                <div className="rounded-lg border border-gray-200 overflow-visible divide-y divide-gray-100">
+              <div className="space-y-1.5">
+                <Label>Fields</Label>
+                <div className="rounded-lg border overflow-visible divide-y">
                   {Object.entries(effectiveFields).map(([key, field]) => (
                     <div key={key} className="px-3 py-2.5">
-                      <span className="text-sm text-gray-700 font-medium block mb-1">
+                      <span className="text-sm font-medium block mb-1">
                         {field.label}
                         {field.required && <span className="text-red-500"> *</span>}
                       </span>
                       {field.description && (
-                        <p className="text-xs text-gray-400 mb-1.5">{field.description}</p>
+                        <p className="text-xs text-muted-foreground mb-1.5">{field.description}</p>
                       )}
                       <FieldValueInput
                         definition={field}
@@ -164,24 +169,23 @@ export default function DeviceManageDialog() {
               </div>
             )}
 
-            {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">{error}</p>}
-            {success && <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">{success}</p>}
+            {error && <Message kind="error">{error}</Message>}
+            {success && <Message kind="success">{success}</Message>}
           </div>
 
-          <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-gray-100">
-            <button onClick={closeDialog}
-              className="text-sm px-4 py-1.5 border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 transition-colors">
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={closeDialog}>
               {success ? "Close" : "Cancel"}
-            </button>
+            </Button>
             {!success && (
-              <button onClick={handleCreate} disabled={loading}
-                className="text-sm px-5 py-1.5 text-white rounded-md bg-blue-700 hover:bg-blue-600 font-medium shadow-sm disabled:opacity-50 transition-colors">
+              <Button onClick={handleCreate} disabled={loading}>
+                {loading && <WaterLoader />}
                 {loading ? "Processing..." : "Create"}
-              </button>
+              </Button>
             )}
-          </div>
-        </div>
-      )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -209,37 +213,37 @@ export function DeleteDeviceDialog({ deviceId, onClose }: DeleteDeviceDialogProp
   };
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-40 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Delete Device</h2>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete Device</DialogTitle>
+          <DialogDescription className="sr-only">Permanently delete the device</DialogDescription>
+        </DialogHeader>
         <div className="flex flex-col gap-3">
-          <div>
-            <label className={labelCls}>Device ID</label>
-            <input type="text" value={deviceId} disabled
-              className="w-full h-9 border border-gray-200 rounded-md px-3 text-sm bg-gray-50 text-gray-500 cursor-not-allowed" />
+          <div className="space-y-1.5">
+            <Label>Device ID</Label>
+            <Input type="text" value={deviceId} disabled />
           </div>
           {!success && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+            <Message kind="error">
               This will permanently remove the device from SEMS, IoTHub, and the database.
-            </p>
+            </Message>
           )}
-          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">{error}</p>}
-          {success && <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">{success}</p>}
+          {error && <Message kind="error">{error}</Message>}
+          {success && <Message kind="success">{success}</Message>}
         </div>
-        <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-gray-100">
-          <button onClick={onClose}
-            className="text-sm px-4 py-1.5 border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 transition-colors">
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={onClose}>
             {success ? "Close" : "Cancel"}
-          </button>
+          </Button>
           {!success && (
-            <button onClick={handleDelete} disabled={loading}
-              className="text-sm px-5 py-1.5 text-white rounded-md bg-red-600 hover:bg-red-500 font-medium shadow-sm disabled:opacity-50 transition-colors">
+            <Button variant="destructive" onClick={handleDelete} disabled={loading}>
+              {loading && <WaterLoader />}
               {loading ? "Deleting..." : "Delete"}
-            </button>
+            </Button>
           )}
-        </div>
-      </div>
-    </>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

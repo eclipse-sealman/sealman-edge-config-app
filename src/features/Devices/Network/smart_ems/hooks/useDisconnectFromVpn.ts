@@ -19,9 +19,9 @@ export function useDisconnectFromVpn() {
     try {
       await mutateAsync(connectionId);
       await invalidate();
-      toast.success("Endpoint successfully disconnected from VPN");
+      toast.success("Endpoint disconnected from VPN");
     } catch (err) {
-      toast.error("Error while trying to connect. Please try again. If the issue persists, please contact your division administrator.");
+      toast.error("Could not disconnect from VPN. Please try again or contact your administrator.");
       console.error(err);
     } finally {
       setIsLoading(false)

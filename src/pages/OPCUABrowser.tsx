@@ -1,9 +1,9 @@
 import { useSearchParams } from "react-router-dom";
 //import OPCUABrowser from "../features/OPCUABrowser/OPCUABrowser";
-import { Input } from "../components/Input/FormElements";
-import { InputLabel } from "../components/Input/InputLabel";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import Button from "../components/Input/Button";
+import { Button } from "@/components/ui/button";
 import { OpcUaTreeBrowser } from "@/features/OPCUABrowser/OPCUATreeBrowser";
 
 export default function OPCUABrrowserPage() {
@@ -37,7 +37,7 @@ function EndpointForm() {
 
   return (
     <div className="flex flex-col max-w-lg gap-2">
-      <InputLabel>OPCUA Endpoint</InputLabel>
+      <Label>OPCUA Endpoint</Label>
       <Input
         type="text"
         name="endpoint"

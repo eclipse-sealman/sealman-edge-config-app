@@ -30,7 +30,7 @@ export default function SaveTwinConfig({ onSuccess = () => {}, saveText = "Save 
   const handleOnClick = async () => {
     if (!networkPrefix) {
       console.error("Network prefix is null")
-      toast.error("The network prefix can't be empty")
+      toast.error("The network prefix must not be empty")
       return
     }
 
@@ -60,11 +60,11 @@ export default function SaveTwinConfig({ onSuccess = () => {}, saveText = "Save 
         body: postData,
         deviceId,
       })
-      toast.success("Your network preferences have been saved")
+      toast.success("Network preferences saved")
       onSuccess()
     } catch (err) {
       console.error("SaveNetworkConfiguration", err)
-      toast.error("Something went wrong")
+      toast.error("Could not save the network preferences")
     }
     setStatus(previousStatus)
   }

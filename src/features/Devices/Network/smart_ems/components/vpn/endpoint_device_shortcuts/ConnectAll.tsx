@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Link2, Loader2 } from "lucide-react";
+import { Link2 } from "lucide-react";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { useGetVpnContainerClientByName } from "../../../services/smartems/hooks";
 import { NoVpnContainerClient } from "./NoContainer";
 import { LoadingShortcut } from "./Loading";
@@ -25,7 +26,7 @@ export function ConnectAll({ deviceId }: {deviceId: string}) {
           }
           {
             isWaiting && (
-              <Loader2 className="animate-spin" />
+              <WaterLoader />
             )
           }
         </Button>

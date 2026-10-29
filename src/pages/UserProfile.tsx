@@ -1,54 +1,59 @@
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { useAuth } from "@/auth";
 import { UserTeamAssignmentsView } from "@/features/authorization/UserTeamAssignmentsView";
+import PageTitle from "@/components/Typography/PageTitle";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function UserProfile() {
-  const { data: currentUser } = edgeConfigApiHooks.useGetCurrentUser();
+  const { data: currentUser, isError, error } = edgeConfigApiHooks.useGetCurrentUser();
   const { data: userTeamAssignments } = edgeConfigApiHooks.useGetCurrentUserTeams();
 
   const auth = useAuth();
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-200">
-      <div className="p-6 flex justify-center">
-        <div className="max-w-3xl w-full rounded-lg border bg-white p-6 shadow-sm space-y-6">
-      <h1 className="text-2xl font-bold">{auth.user?.name ?? "User Profile"}</h1>
+    <div className="h-full overflow-y-auto p-6">
+      <div className="mx-auto w-full max-w-3xl space-y-6">
+        <PageTitle title={auth.user?.name ?? "User Profile"} description="Your account and the teams you belong to." />
 
-      {currentUser ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-medium text-muted-foreground">Username</span>
-              <p className="font-medium">{currentUser.preferred_username}</p>
-            </div>
-            <div>
-              <span className="font-medium text-muted-foreground">Is Admin</span>
-              <p>
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    currentUser.is_admin
-                      ? "bg-green-100 text-green-700"
-                      : "bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  {currentUser.is_admin ? "Yes" : "No"}
-                </span>
-              </p>
-            </div>
-          </div>
+        <div className="space-y-6 rounded-lg border bg-background p-6 shadow-xs">
+          {isError ? (
+            <ErrorState title="Could not load your profile" message={getErrorMessage(error)} />
+          ) : currentUser ? (
+            <>
+              <dl className="grid grid-cols-2 gap-4 text-sm">
+                <div className="space-y-1">
+                  <dt className="text-muted-foreground">Username</dt>
+                  <dd className="font-medium">{currentUser.preferred_username}</dd>
+                </div>
+                <div className="space-y-1">
+                  <dt className="text-muted-foreground">Administrator</dt>
+                  <dd>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                        currentUser.is_admin
+                          ? "border-green-200 bg-green-50 text-green-700"
+                          : "border-slate-200 bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      {currentUser.is_admin ? "Yes" : "No"}
+                    </span>
+                  </dd>
+                </div>
+              </dl>
 
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Teams</h4>
-            {userTeamAssignments ? (
-              <UserTeamAssignmentsView assignments={userTeamAssignments} />
-            ) : (
-              <p className="text-sm text-muted-foreground">Loading...</p>
-            )}
-          </div>
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      )}
+              <div className="space-y-2 border-t pt-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Teams</h3>
+                {userTeamAssignments ? (
+                  <UserTeamAssignmentsView assignments={userTeamAssignments} />
+                ) : (
+                  <LoadingState className="justify-start p-0" />
+                )}
+              </div>
+            </>
+          ) : (
+            <LoadingState />
+          )}
         </div>
       </div>
     </div>

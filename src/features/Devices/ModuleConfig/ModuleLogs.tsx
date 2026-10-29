@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import React from "react";
-import Button from "../../../components/Input/Button";
+import { Button } from "@/components/ui/button";
 import { useParams } from "react-router-dom";
-import { Input } from "../../../components/Input/FormElements";
+import { Input } from "@/components/ui/input";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import { getErrorMessage } from "@/lib/errors";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import JsonEditor from "../../../components/Input/JsonEditor";
@@ -64,9 +66,9 @@ export default function ModuleLogs({ moduleName }: { moduleName: string }) {
     return <NoPermissionsPanel>{noPermissionsMessage}</NoPermissionsPanel>;
   }
 
-  if (isPending) return <div>Loading...</div>;
+  if (isPending) return <LoadingState label="Loading logs..." />;
 
-  if (isError) return <div>Error: {error.message}</div>;
+  if (isError) return <ErrorState title="Could not load the logs" message={getErrorMessage(error)} />;
 
   return (
     <>
@@ -80,7 +82,7 @@ export default function ModuleLogs({ moduleName }: { moduleName: string }) {
           value={lineNumber}
           onChange={handleFormChange}
         />
-        <Button onClick={() => refetch()} processing={isPending}>
+        <Button onClick={() => refetch()} disabled={isPending}>
           Get Module Logs
         </Button>
       </div>

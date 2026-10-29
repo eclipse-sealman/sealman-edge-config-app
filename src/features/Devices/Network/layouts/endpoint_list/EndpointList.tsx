@@ -6,7 +6,7 @@ import {
   useEndpointSearchStore,
   useDisplayTopologyStore,
 } from "@/features/Devices/Network/stores";
-import { Loader2 } from "lucide-react";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { useHandleSelectedEndpoint } from "@/features/Devices/Network/useHandleSelectedEndpoint";
 import { useGetPeriodicScanData } from "./useGetPeriodicScanData";
 import { SmartEmsVpnShortcut } from "../../smart_ems/layouts/VpnShortcut";
@@ -47,7 +47,7 @@ export default function EndpointList() {
     return (
       <Centered>
         <p className="flex text-xs text-muted-foreground items-center gap-2">
-          <Loader2 className="animate-spin" /> Loading ...
+          <WaterLoader /> Loading ...
         </p>
       </Centered>
     );

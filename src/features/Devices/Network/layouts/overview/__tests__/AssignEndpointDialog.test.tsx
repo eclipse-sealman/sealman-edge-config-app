@@ -30,6 +30,11 @@ vi.mock("@/generated/edge-administration/hooks/endpoints/useUpdateEndpoint", () 
 vi.mock("@/generated/edge-administration/hooks/endpoints/useDeleteEndpoint", () => ({ useDeleteEndpoint: () => ({ deleteEndpoint: mocks.deleteEndpoint, isPending: false }) }));
 
 describe("AssignEndpointDialog", () => {
+  async function selectType(label: string) {
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(await screen.findByRole("option", { name: label }));
+  }
+
   beforeEach(() => {
     mocks.postEndpoint.mockReset().mockResolvedValue(undefined);
     mocks.updateEndpoint.mockReset().mockResolvedValue(undefined);
@@ -58,6 +63,7 @@ describe("AssignEndpointDialog", () => {
 
   it("retypes with PATCH instead of deleting and recreating", async () => {
     render(<AssignEndpointDialog open onOpenChange={() => {}} deviceId="d" existingEndpoint={EXISTING} onCreated={() => {}} />);
+    await selectType("No IP");
     await userEvent.selectOptions(screen.getByRole("combobox"), "no-ip");
     await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
     expect(mocks.deleteEndpoint).not.toHaveBeenCalled();
@@ -70,6 +76,7 @@ describe("AssignEndpointDialog", () => {
 
   it("keeps the stored value instead of the new type's default when retyping", async () => {
     render(<AssignEndpointDialog open onOpenChange={() => {}} deviceId="d" existingEndpoint={EXISTING} onCreated={() => {}} />);
+    await selectType("No IP");
     await userEvent.selectOptions(screen.getByRole("combobox"), "no-ip");
     expect(screen.getByDisplayValue("S-1")).toBeInTheDocument();
     expect(screen.queryByDisplayValue("UNKNOWN")).not.toBeInTheDocument();

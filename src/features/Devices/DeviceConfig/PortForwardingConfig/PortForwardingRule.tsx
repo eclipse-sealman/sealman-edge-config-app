@@ -1,10 +1,12 @@
 import { useContext, useState } from "react";
 import { PortForwardingContext } from "./context";
-import { Input } from "@/components/Input/FormElements";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { PortForwardingRule as Rule } from "./types";
 import { isValidIP } from "@/lib/validateIP";
 import { TrashIcon } from "@heroicons/react/24/outline";
-import Button, { ButtonColor } from "@/components/Input/Button";
+import { Button } from "@/components/ui/button";
 import { parseRuleName } from "@/utils/parseRuleName";
 
 
@@ -44,76 +46,68 @@ const isInvalidDestAddr = !!rule.destAddr && !isValidIP(String(rule.destAddr).tr
 
   return (
     <div className="flex gap-4 mb-2 items-center">
-      <div className="flex flex-col">
-        <label className="text-xs font-medium mb-1">Name</label>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Name</Label>
         <Input
           value={rule.name}
-          className={nameError ? "border border-red-500" : undefined}
+          className={nameError ? "border-red-500" : undefined}
           onChange={(e) => onChange("name", e.target.value)}
         />
         {nameError && <p className="text-red-500 text-xs mt-1">{nameError}</p>}
       </div>
 
-      
- <div className="flex flex-col">
-        <label className="text-xs font-medium mb-1">Interface</label>
-        <select
-          className="border rounded px-5"
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Interface</Label>
+        <Select
           value={rule.interface ?? ""}
-          onChange={(e) =>
-            onChange("interface", e.target.value as Rule["interface"])
-          }
+          onValueChange={(value) => onChange("interface", value as Rule["interface"])}
         >
-          <option value="" disabled>
-            Select
-          </option>
-          {INTERFACE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-28">
+            <SelectValue placeholder="Select" />
+          </SelectTrigger>
+          <SelectContent>
+            {INTERFACE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-
-      <div className="flex flex-col">
-        <label className="text-xs font-medium mb-1">Source Port</label>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Source Port</Label>
         <Input
           type="number"
           value={rule.srcPort}
           onChange={(e) => onChange("srcPort", e.target.value === "" ? undefined : Number(e.target.value))}
         />
       </div>
-  
- 
-<div className="flex flex-col">
-  <label className="text-xs font-medium mb-1">Destination Address</label>
-  <Input
-    value={rule.destAddr ?? ""}
-    onChange={(e) => onChange("destAddr", e.target.value as typeof rule.destAddr)}
-    inputMode="numeric"
-    placeholder="e.g. 192.168.1.100"
-    className={isInvalidDestAddr ? "border-red-500 focus:ring-red-400" : undefined}
-    aria-invalid={isInvalidDestAddr} 
-  />
-</div>
 
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Destination Address</Label>
+        <Input
+          value={rule.destAddr ?? ""}
+          onChange={(e) => onChange("destAddr", e.target.value as typeof rule.destAddr)}
+          inputMode="numeric"
+          placeholder="e.g. 192.168.1.100"
+          className={isInvalidDestAddr ? "border-red-500" : undefined}
+          aria-invalid={isInvalidDestAddr}
+        />
+      </div>
 
-
-      <div className="flex flex-col">
-        <label className="text-xs font-medium mb-1">Destination Port</label>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Destination Port</Label>
         <Input
           type="number"
           value={rule.destPort}
           onChange={(e) => onChange("destPort", e.target.value === "" ? undefined : Number(e.target.value))}
         />
       </div>
-      <div className="mt-5">
-
-      <Button color={ButtonColor.Red } className="whitespace-nowrap" onClick={() => deleteRule(index)}>
-         <span className="mr-2">Delete</span> <TrashIcon className="w-7 h-7 cursor-pointer"/>
-      </Button>
-
+      <div className="mt-6">
+        <Button variant="destructive" onClick={() => deleteRule(index)}>
+          Delete <TrashIcon />
+        </Button>
       </div>
     </div>
   );

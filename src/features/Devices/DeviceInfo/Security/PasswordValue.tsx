@@ -1,5 +1,6 @@
-import Button from "@/components/Input/Button";
-import { Input } from "@/components/Input/FormElements";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { InlineAlert, LoadingState } from "@/components/ui/page-state";
 import usePostDeviceRequestPassword from "@/generated/edge-administration/hooks/usePostDeviceRequestPassword";
 import { useState } from "react";
 
@@ -21,12 +22,12 @@ export default function PasswordValue({ deviceId }: PasswordValueProps) {
 
   return (
     <div className="pt-4 pb-4">
-      {isError ? <div className="mb-3 text-red-600 ">Error getting password.</div> : null}
-      {isLoading ? <div className="mb-3">Loading...</div> : null}
+      {isError ? <InlineAlert className="mb-3">Error getting password.</InlineAlert> : null}
+      {isLoading ? <LoadingState className="p-2" /> : null}
       {!isLoading && !isError && data ? 
       <div className="mb-3 flex flex-row gap-2">
         <Input className="flex-1" type="text" name="password-value" value={data.secretValue} readOnly />
-        <Button className="flex-0" onClick={handleCopy}>{copied ? "Copied" : "Copy"}</Button>
+        <Button onClick={handleCopy}>{copied ? "Copied" : "Copy"}</Button>
       </div> : null}
     </div>
   );

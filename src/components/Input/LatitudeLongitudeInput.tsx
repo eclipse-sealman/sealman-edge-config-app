@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Input } from "./FormElements";
+import { Input } from "@/components/ui/input";
 
 export interface LocationErrors {
   latitude: string;

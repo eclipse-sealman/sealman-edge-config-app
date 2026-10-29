@@ -57,6 +57,27 @@
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-sweep: sweep 5s ease-in-out infinite;
+  --animate-breathe: breathe 3s ease-in-out infinite;
+
+  @keyframes sweep {
+    0% {
+      transform: translateX(-120%);
+    }
+    60%,
+    100% {
+      transform: translateX(420%);
+    }
+  }
+  @keyframes breathe {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
 
   @keyframes accordion-down {
     from {
@@ -101,200 +122,66 @@
 
 @layer utilities {
   .leaflet-container {
-    height: 800px;
+    height: max(420px, calc(100vh - 19rem));
     z-index: 0;
-  }
-
-  #wifi-loader {
-    --background: #62abff;
-    --front-color: #4f29f0;
-    --back-color: #c3c8de;
-    --text-color: #414856;
-    width: 64px;
-    height: 64px;
-    border-radius: 50px;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    svg {
-      position: absolute;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      circle {
-        position: absolute;
-        fill: none;
-        stroke-width: 6px;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        transform: rotate(-100deg);
-        transform-origin: center;
-        &.back {
-          stroke: var(--back-color);
-        }
-        &.front {
-          stroke: var(--front-color);
-        }
-      }
-      &.circle-outer {
-        height: 86px;
-        width: 86px;
-        circle {
-          stroke-dasharray: 62.75 188.25;
-          &.back {
-            animation: circle-outer 1.8s ease infinite 0.3s;
-          }
-          &.front {
-            animation: circle-outer 1.8s ease infinite 0.15s;
-          }
-        }
-      }
-      &.circle-middle {
-        height: 60px;
-        width: 60px;
-        circle {
-          stroke-dasharray: 42.5 127.5;
-          &.back {
-            animation: circle-middle 1.8s ease infinite 0.25s;
-          }
-          &.front {
-            animation: circle-middle 1.8s ease infinite 0.1s;
-          }
-        }
-      }
-      &.circle-inner {
-        height: 34px;
-        width: 34px;
-        circle {
-          stroke-dasharray: 22 66;
-          &.back {
-            animation: circle-inner 1.8s ease infinite 0.2s;
-          }
-          &.front {
-            animation: circle-inner 1.8s ease infinite 0.05s;
-          }
-        }
-      }
-    }
-    .text {
-      position: absolute;
-      bottom: -40px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-transform: lowercase;
-      font-weight: 500;
-      font-size: 14px;
-      letter-spacing: 0.2px;
-      &::before,
-      &::after {
-        content: attr(data-text);
-      }
-      &::before {
-        color: var(--text-color);
-      }
-      &::after {
-        color: var(--front-color);
-        animation: text-animation 3.6s ease infinite;
-        position: absolute;
-        left: 0;
-      }
-    }
-  }
-
-  @keyframes circle-outer {
-    0% {
-      stroke-dashoffset: 25;
-    }
-    25% {
-      stroke-dashoffset: 0;
-    }
-    65% {
-      stroke-dashoffset: 301;
-    }
-    80% {
-      stroke-dashoffset: 276;
-    }
-    100% {
-      stroke-dashoffset: 276;
-    }
-  }
-
-  @keyframes circle-middle {
-    0% {
-      stroke-dashoffset: 17;
-    }
-    25% {
-      stroke-dashoffset: 0;
-    }
-    65% {
-      stroke-dashoffset: 204;
-    }
-    80% {
-      stroke-dashoffset: 187;
-    }
-    100% {
-      stroke-dashoffset: 187;
-    }
-  }
-
-  @keyframes circle-inner {
-    0% {
-      stroke-dashoffset: 9;
-    }
-    25% {
-      stroke-dashoffset: 0;
-    }
-    65% {
-      stroke-dashoffset: 106;
-    }
-    80% {
-      stroke-dashoffset: 97;
-    }
-    100% {
-      stroke-dashoffset: 97;
-    }
-  }
-
-  @keyframes text-animation {
-    0% {
-      clip-path: inset(0 100% 0 0);
-    }
-    50% {
-      clip-path: inset(0);
-    }
-    100% {
-      clip-path: inset(0 0 0 100%);
-    }
   }
 
   .z-index-above-map {
     z-index: 1001;
   }
 }
+
+/* Notifications: brand-consistent look for react-toastify */
+.Toastify {
+  --toastify-color-success: #16a34a;
+  --toastify-color-error: #dc2626;
+  --toastify-color-warning: #d97706;
+  --toastify-color-info: #0303b8;
+  --toastify-font-family: inherit;
+  --toastify-toast-width: 380px;
+}
+.Toastify .Toastify__toast-container--top-right {
+  top: 4.5rem;
+}
+.Toastify .Toastify__toast {
+  align-items: flex-start;
+  padding: 0.75rem 1rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: hsl(var(--foreground));
+  box-shadow: 0 10px 30px -12px rgb(15 31 71 / 0.35);
+}
+.Toastify .Toastify__toast-body {
+  padding: 0;
+  align-items: flex-start;
+}
+.Toastify .Toastify__progress-bar {
+  height: 3px;
+}
   
   @layer base {
   :root {
         --background: 0 0% 100%;
-        --foreground: 0 0% 3.9%;
+        --foreground: 222 47% 11%;
         --card: 0 0% 100%;
-        --card-foreground: 0 0% 3.9%;
+        --card-foreground: 222 47% 11%;
         --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 3.9%;
-        --primary: 0 0% 9%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 0 0% 96.1%;
-        --secondary-foreground: 0 0% 9%;
-        --muted: 0 0% 96.1%;
-        --muted-foreground: 0 0% 45.1%;
-        --accent: 0 0% 96.1%;
-        --accent-foreground: 0 0% 9%;
-        --destructive: 0 84.2% 60.2%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 240 97% 37%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 214 32% 95%;
+        --secondary-foreground: 225 100% 13%;
+        --muted: 210 40% 96%;
+        --muted-foreground: 215 16% 47%;
+        --accent: 214 100% 97%;
+        --accent-foreground: 225 100% 13%;
+        --destructive: 0 72% 51%;
         --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 89.8%;
-        --input: 0 0% 89.8%;
-        --ring: 0 0% 3.9%;
+        --border: 214 32% 91%;
+        --input: 214 32% 86%;
+        --ring: 240 97% 37%;
         --chart-1: 12 76% 61%;
         --chart-2: 173 58% 39%;
         --chart-3: 197 37% 24%;
@@ -349,4 +236,21 @@
     @apply bg-background text-foreground;
     }
 }
-  
+
+/* Water loader: the level sways while two waves roll across the glass */
+@keyframes wl-wave {
+  from { transform: translateX(0); }
+  to { transform: translateX(-40px); }
+}
+@keyframes wl-level {
+  from { transform: translateY(-5px); }
+  to { transform: translateY(6px); }
+}
+.water-loader .wl-level { animation: wl-level 2.4s ease-in-out infinite alternate; }
+.water-loader .wl-wave-front { animation: wl-wave 1.5s linear infinite; }
+.water-loader .wl-wave-back { animation: wl-wave 2.6s linear infinite reverse; }
+@media (prefers-reduced-motion: reduce) {
+  .water-loader .wl-level,
+  .water-loader .wl-wave-front,
+  .water-loader .wl-wave-back { animation: none; }
+}

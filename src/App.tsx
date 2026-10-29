@@ -5,9 +5,8 @@ import { ToastContainer } from "react-toastify";
 import { queryClient } from "./config/queryConfig";
 import Dashboard from "./pages/Dashboard";
 
-import SidebarLayout from "./layouts/SidebarLayout";
 import DeviceDetail from "./features/Devices/DeviceDetail";
-import Deployments from "./features/deployments/Deployments";
+import ComingNextPage from "./pages/ComingNextPage";
 import ErrorFallback from "./pages/ErrorFallback";
 import PageNotFound from "./pages/PageNotFound";
 import Version from "./pages/Version";
@@ -16,6 +15,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import SettingsLayout from "./pages/settings/SettingsLayout";
 import PlatformTypesSettings from "./pages/settings/PlatformTypesSettings";
 import TemplatesSettings from "./pages/settings/TemplatesSettings";
+import SettingsPlaceholder from "./pages/settings/SettingsPlaceholder";
+import SealAgentSettings from "./pages/settings/SealAgentSettings";
+import DeploymentsLayout from "./pages/deployments/DeploymentsLayout";
+import AssetConfigurationLayout from "./pages/assetConfiguration/AssetConfigurationLayout";
+import { SmartEmsAuthCallback } from "./features/Devices/Network/smart_ems/pages/AuthCallback";
 import ExtensionsSettings from "./features/Extensions/ExtensionsSettings";
 import ExtensionDetail from "./features/Extensions/ExtensionDetail";
 import RegisterExtensionPage from "./features/Extensions/RegisterExtensionPage";
@@ -23,8 +27,6 @@ import EditExtensionPage from "./features/Extensions/EditExtensionPage";
 import { useAuth } from "./auth";
 import { useEffect } from "react";
 import { NewUserCheck } from "./components/NewUserCheck";
-import DeploymentDetails from "./features/deployments/DeploymentDetails";
-import ServiceDetails from "./features/deployments/ServiceDetails";
 import Authorization from "./features/authorization/Authorization";
 import Teams from "./features/authorization/Teams";
 import Roles from "./features/authorization/Roles";
@@ -69,18 +71,46 @@ export default function App() {
                   </div>
                 }
               />
-              <Route path=":deviceId/*" element={<SidebarLayout sidebar={<DeviceList />} />}>
-                <Route path="*" element={<DeviceDetail />} />
-              </Route>
+              <Route path=":deviceId/*" element={<DeviceDetail />} />
             </Route>
 
-            <Route path="deployments" element={<Outlet />}>
-              <Route index element={<Deployments />} />
-              <Route path=":deploymentId" element={<Outlet />}>
-                <Route index element={<DeploymentDetails />} />
-                <Route path="services/:serviceId" element={<ServiceDetails />} />
-              </Route>
+            <Route path="platform-types" element={<AssetConfigurationLayout />}>
+              <Route index element={<Navigate to="asset-types" replace />} />
+              <Route path="asset-types" element={<PlatformTypesSettings />} />
+              <Route path="templates" element={<TemplatesSettings />} />
             </Route>
+            <Route path="deployments" element={<DeploymentsLayout />}>
+              <Route index element={<Navigate to="management" replace />} />
+              <Route
+                path="management"
+                element={
+                  <ComingNextPage
+                    title="Deployment Management"
+                    description="Managing deployments across your whole fleet is the next feature on our roadmap and will arrive in an upcoming release."
+                  />
+                }
+              />
+              <Route
+                path="operations"
+                element={
+                  <ComingNextPage
+                    title="Deployment Operations"
+                    description="Running and tracking deployment operations across your fleet is coming soon and will arrive in an upcoming release."
+                  />
+                }
+              />
+            </Route>
+            <Route path="fleet-configuration/*" element={<Navigate to="/deployments" replace />} />
+            <Route
+              path="monitoring/*"
+              element={
+                <ComingNextPage
+                  title="Monitoring"
+                  description="A central log of what happened on your platform and fleet is coming soon and will arrive in an upcoming release."
+                />
+              }
+            />
+            <Route path="activity/*" element={<Navigate to="/monitoring" replace />} />
 
             <Route path="authorization" element={<Authorization />}>
               <Route index element={<Navigate to="teams" replace />} />
@@ -90,7 +120,24 @@ export default function App() {
               <Route path="users" element={<Users />} />
             </Route>
 
+            <Route path="settings/smartems" element={<SmartEmsAuthCallback />} />
             <Route path="settings" element={<SettingsLayout />}>
+              <Route index element={<Navigate to="seal-agent" replace />} />
+              <Route path="platform-types" element={<Navigate to="/platform-types" replace />} />
+              <Route path="seal-agent" element={<SealAgentSettings />} />
+              <Route
+                path="azure-iot-edge"
+                element={<SettingsPlaceholder title="Azure IoT Edge" description="Connection and runtime settings for Azure IoT Edge." />}
+              />
+              <Route
+                path="sealman-ems"
+                element={<SettingsPlaceholder title="SEALMAN EMS" description="Settings for the SEALMAN Edge Management System." />}
+              />
+              <Route
+                path="container-registries"
+                element={<SettingsPlaceholder title="Container Registries" description="Registries used to pull container images for deployments." />}
+              />
+              <Route path="templates" element={<Navigate to="/platform-types/templates" replace />} />
               <Route path="platform-types" element={<PlatformTypesSettings />} />
               <Route path="templates" element={<TemplatesSettings />} />
               <Route path="extensions" element={<Outlet />}>
@@ -110,7 +157,7 @@ export default function App() {
         </Routes>
       </BrowserRouter>
       <NewUserCheck />
-      <ToastContainer position="bottom-right" />
+      <ToastContainer position="top-right" theme="light" autoClose={5000} newestOnTop pauseOnFocusLoss={false} />
     </QueryClientProvider>
   );
 }

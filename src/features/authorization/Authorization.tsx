@@ -1,8 +1,6 @@
-import { NavLink, Outlet } from "react-router-dom";
+import SectionLayout from "@/layouts/SectionLayout";
 
-type AuthorizationTab = { label: string; path: string };
-
-const tabs: AuthorizationTab[] = [
+const AUTHORIZATION_TABS = [
   { label: "Teams", path: "teams" },
   { label: "Roles", path: "roles" },
   { label: "Scopes", path: "scopes" },
@@ -10,31 +8,5 @@ const tabs: AuthorizationTab[] = [
 ];
 
 export default function Authorization() {
-  return (
-    <div className="h-full flex bg-gray-50">
-      <div className="w-64 bg-white border-r">
-        <nav className="flex flex-col p-2 gap-1">
-          {tabs.map((tab) => (
-            <NavLink
-              key={tab.path}
-              to={tab.path}
-              className={({ isActive }) =>
-                `px-3 py-2 rounded text-sm font-medium transition-colors text-left ${
-                  isActive
-                    ? "bg-blue-100 text-blue-700"
-                    : "hover:bg-gray-100 text-gray-700"
-                }`
-              }
-            >
-              {tab.label}
-            </NavLink>
-          ))}
-        </nav>
-      </div>
-
-      <div className="flex-1 p-6 overflow-y-auto">
-        <Outlet />
-      </div>
-    </div>
-  );
+  return <SectionLayout title="Authorization" tabs={AUTHORIZATION_TABS} />;
 }

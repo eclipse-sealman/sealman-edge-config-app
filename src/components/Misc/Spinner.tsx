@@ -1,15 +1,11 @@
-import { ArrowPathIcon } from "@heroicons/react/24/outline"
-import { RefAttributes, SVGProps } from "react"
+import { WaterLoader } from "@/components/ui/water-loader";
 
-interface SpinnerProps extends Omit<SVGProps<SVGSVGElement>, "ref">, RefAttributes<SVGSVGElement> {
-  title?: string | undefined;
-  titleId?: string | undefined;
-  processing?: boolean
+interface SpinnerProps {
+  processing?: boolean;
+  className?: string;
 }
 
-export default function Spinner({ processing, className, ...props }: SpinnerProps) {
-
-  return (
-    <ArrowPathIcon className={`${!processing && 'invisible'} h-4 w-4 animate-[spin_1.5s_linear_infinite] ${className}`} {...props}/>
-  )
+/** Reserves its space and shows the water loader only while `processing`. */
+export default function Spinner({ processing, className }: SpinnerProps) {
+  return <WaterLoader className={`${processing ? "" : "invisible"} ${className ?? ""}`} />;
 }

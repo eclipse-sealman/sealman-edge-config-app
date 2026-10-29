@@ -18,9 +18,9 @@ export interface DictionaryListEntries {
 export default function DictionaryList({ dictionary, processing, error }: DictionaryListProps) {
 
   const dictionaryRows = Object.entries(dictionary).map(([key, value]) =>
-    <li className="grid grid-cols-2 p-1 bg-white even:bg-slate-50 rounded-sm items-center" key={key}>
-      <div className="font-medium p-2">{key}</div>
-      <div>{value}</div>
+    <li className="grid grid-cols-[minmax(9rem,1fr)_2fr] items-center gap-4 px-1 py-2.5 text-sm" key={key}>
+      <div className="text-muted-foreground">{key}</div>
+      <div className="font-medium">{value}</div>
     </li>
   )
 
@@ -41,7 +41,7 @@ export default function DictionaryList({ dictionary, processing, error }: Dictio
 
   return (
     <div className="relative">
-      <ul className="divide-y divide-solid bg-white">
+      <ul className="divide-y divide-slate-100">
         {dictionaryRows}
       </ul>
       {processing && processingIndicator}
@@ -52,9 +52,9 @@ export default function DictionaryList({ dictionary, processing, error }: Dictio
 
 export function DictionaryListEntry({ displayName, value }: { displayName: string, value: string | React.ReactNode | undefined }) {
   return (
-    <li className="grid grid-cols-2 p-1 bg-white even:bg-slate-50 rounded-sm items-center">
-      <div className="font-medium p-2">{displayName}</div>
-      <div>{value}</div>
+    <li className="grid grid-cols-[minmax(9rem,1fr)_2fr] items-center gap-4 px-1 py-2.5 text-sm">
+      <div className="text-muted-foreground">{displayName}</div>
+      <div className="font-medium">{value}</div>
     </li>
   )
 }
@@ -80,7 +80,7 @@ export function DictionaryList2({ processing, error, children }: DictionaryList2
 
   return (
     <div className="relative">
-      <ul className="divide-y divide-solid bg-white">
+      <ul className="divide-y divide-slate-100">
         {children}
       </ul>
       {processing && processingIndicator}

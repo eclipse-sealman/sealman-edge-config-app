@@ -1,4 +1,4 @@
-import Button, { ButtonSize } from "@/components/Input/Button";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import PasswordValue from "./PasswordValue";
 import useGetSmartEmsSecretInfo from "@/generated/edge-administration/hooks/useGetSmartEmsSecretInfo";
@@ -26,7 +26,7 @@ export default function RequestPassword({ deviceId }: RequestPasswordParams) {
 
   return (
     <div>
-      <GuardedButton permissionKey={PERMISSION_KEYS.DEVICE_PASSWORD_READ} deviceId={deviceId} size={ButtonSize.Small} onClick={() => setIsRequestModalOpen(true)}>
+      <GuardedButton permissionKey={PERMISSION_KEYS.DEVICE_PASSWORD_READ} deviceId={deviceId} size="sm" variant="outline" onClick={() => setIsRequestModalOpen(true)}>
         Show password value
       </GuardedButton>
       <SimpleDialog isOpen={isRequestModalOpen} onClose={closeRequestModal} title={`Password for device ${deviceId}`}>

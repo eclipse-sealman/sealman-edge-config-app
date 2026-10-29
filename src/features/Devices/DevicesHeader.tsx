@@ -40,14 +40,18 @@ export default function DevicesHeader({
   }
 
   return (
-    <div className="flex flex-row p-2 gap-2">
-      <div className="flex-0" onClick={() => setDeviceOnlineFilter(DeviceOnlineFilterStatus.All)}>
-        <Badge color={BadgeColor.Blue} className="cursor-pointer">
-          {totalCount} Devices
-        </Badge>
-      </div>
-      <div
-        className="flex-0"
+    <div className="flex flex-row flex-wrap items-center gap-2 p-2">
+      <FilterPill
+        label={`${totalCount} Devices`}
+        active={deviceOnlineFilter === DeviceOnlineFilterStatus.All}
+        activeClass="border-slate-900 bg-slate-900 text-white"
+        onClick={() => setDeviceOnlineFilter(DeviceOnlineFilterStatus.All)}
+      />
+      <FilterPill
+        label={`${onlineCount} Online`}
+        dotClass="bg-green-500"
+        active={deviceOnlineFilter === DeviceOnlineFilterStatus.Online}
+        activeClass="border-green-500 bg-green-50 text-green-700"
         onClick={() =>
           setDeviceOnlineFilter(
             deviceOnlineFilter !== DeviceOnlineFilterStatus.Online
@@ -55,18 +59,12 @@ export default function DevicesHeader({
               : DeviceOnlineFilterStatus.All
           )
         }
-      >
-        <Badge
-          color={BadgeColor.Green}
-          className={`cursor-pointer ${
-            deviceOnlineFilter === DeviceOnlineFilterStatus.Online ? "ring-green-700 font-bold! " : ""
-          }`}
-        >
-          {onlineCount} Online
-        </Badge>
-      </div>
-      <div
-        className="flex-0"
+      />
+      <FilterPill
+        label={`${totalCount - onlineCount} Offline`}
+        dotClass="bg-red-500"
+        active={deviceOnlineFilter === DeviceOnlineFilterStatus.Offline}
+        activeClass="border-red-500 bg-red-50 text-red-700"
         onClick={() =>
           setDeviceOnlineFilter(
             deviceOnlineFilter !== DeviceOnlineFilterStatus.Offline
@@ -74,21 +72,38 @@ export default function DevicesHeader({
               : DeviceOnlineFilterStatus.All
           )
         }
-      >
-        <Badge
-          color={BadgeColor.Red}
-          className={`cursor-pointer ${
-            deviceOnlineFilter === DeviceOnlineFilterStatus.Offline ? "ring-red-700 font-bold! " : ""
-          }`}
-        >
-          {totalCount - onlineCount} Offline
-        </Badge>
-      </div>
+      />
       {showGeolocationInfo ? (
-        <div className="flex-0">
-          <Badge color={BadgeColor.Gray}>{missingGeolocationCount} Missing Geolocation</Badge>
-        </div>
+        <Badge color={BadgeColor.Gray}>{missingGeolocationCount} Missing Geolocation</Badge>
       ) : null}
     </div>
+  );
+}
+
+function FilterPill({
+  label,
+  dotClass,
+  active,
+  activeClass,
+  onClick,
+}: {
+  label: string;
+  dotClass?: string;
+  active: boolean;
+  activeClass: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+        active ? activeClass : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+      }`}
+    >
+      {dotClass && <span className={`h-2 w-2 rounded-full ${dotClass}`} />}
+      {label}
+    </button>
   );
 }

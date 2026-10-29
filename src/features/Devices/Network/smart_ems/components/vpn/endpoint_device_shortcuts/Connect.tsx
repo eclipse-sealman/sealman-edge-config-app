@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/features/Devices/Network/components/tooltip";
-import { Link2, Link2Off, Loader2 } from "lucide-react";
+import { Link2, Link2Off } from "lucide-react";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { useConnectToVpn } from "../../../hooks";
 import { useVPNConnectionLock } from "../../../stores";
 
@@ -39,7 +40,7 @@ export function Connect({endpointDeviceId}: props) {
         {
           isWaiting && (
             <>
-              <Loader2 className="animate-spin" />
+              <WaterLoader />
             </>
           )
         }

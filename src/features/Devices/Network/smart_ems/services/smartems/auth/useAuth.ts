@@ -35,7 +35,7 @@ export const useLogin = () => {
 export const useAuthRedirectHandler = () => {
   const invalidate = useInvalidateAllSmartEmsQueries()
   const { code, state } = getCodeAndStateFromUrl()
-  const {data} = useQuery({
+  const query = useQuery({
     queryKey: ["AuthSmartEMS", code, state],
     queryFn: () => {
       if (code && state) {
@@ -45,6 +45,7 @@ export const useAuthRedirectHandler = () => {
     },
     retry: false
   })
+  const { data } = query
 
   useEffect(() => {
     if (!data) {
@@ -58,4 +59,6 @@ export const useAuthRedirectHandler = () => {
   // Only data is not stable
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
+
+  return query
 }

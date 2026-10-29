@@ -1,61 +1,37 @@
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/solid';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ConfirmationDialogProps {
-    confirmationText: string;
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: () => void;
-    type: "info"| "warning" | "error"
-  }
-  
-  
-  export default function ConfirmationDialog ({ confirmationText, isOpen, onClose, onConfirm , type="info"}: ConfirmationDialogProps){
+  confirmationText: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  type: "info" | "warning" | "error"
+}
 
-    if (!isOpen) return null;
+const ICONS = {
+  info: { Icon: InformationCircleIcon, color: 'text-blue-500' },
+  warning: { Icon: ExclamationCircleIcon, color: 'text-yellow-500' },
+  error: { Icon: ExclamationCircleIcon, color: 'text-red-500' },
+} as const;
 
-    let IconComponent;
-    let iconColor;
+export default function ConfirmationDialog({ confirmationText, isOpen, onClose, onConfirm, type = "info" }: ConfirmationDialogProps) {
+  const { Icon, color } = ICONS[type];
 
-    switch (type) {
-        case 'info':
-        IconComponent = InformationCircleIcon;
-        iconColor = 'text-blue-500';
-        break;
-        case 'warning':
-        IconComponent = ExclamationCircleIcon;
-        iconColor = 'text-yellow-500'; 
-        break;
-        case 'error':
-        IconComponent = ExclamationCircleIcon;
-        iconColor = 'text-red-500';
-        break;
-        default:
-        return null;
-    }
-  
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gray-900/50 z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg text-center max-w-md mx-auto">
-          <div className={`shrink-0 ${iconColor}`}>
-            <IconComponent className="w-8 h-8" />
-          </div>
-          <h2 className="text-lg font-semibold">Confirmation</h2>
-          <p className="mt-4">{confirmationText}</p>
-          <div className="mt-6 flex justify-center space-x-4">
-            <button
-              onClick={onConfirm}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              OK
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md text-center">
+        <DialogHeader className="items-center">
+          <Icon className={`h-8 w-8 ${color}`} />
+          <DialogTitle>Confirmation</DialogTitle>
+          <DialogDescription>{confirmationText}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:justify-center sm:space-x-0">
+          <Button onClick={onConfirm}>OK</Button>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

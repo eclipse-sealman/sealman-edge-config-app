@@ -16,7 +16,7 @@ interface DeviceTableColumnsState {
 
 /**
  * Which device metadata fields show as columns in the devices table, configured from the
- * Platform Types settings page. The backend has no concept of this yet, so it's persisted
+ * Asset Configuration settings page. The backend has no concept of this yet, so it's persisted
  * locally in the browser rather than shared across admins.
  */
 const useDeviceTableColumnsStore = create<DeviceTableColumnsState>()(

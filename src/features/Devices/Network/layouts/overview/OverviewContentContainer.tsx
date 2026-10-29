@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Centered } from "@/features/Devices/Network/components";
@@ -18,6 +18,11 @@ import AssignEndpointDialog from "./AssignEndpointDialog";
 import EndpointDetailsPage from "./EndpointDetailsPage";
 import ServiceDetailsPage from "./ServiceDetailsPage";
 import { mergeConfiguredEndpoints, mergeEndpointsByIp } from "./overviewMerge";
+import EndpointCanvas from "./EndpointCanvas";
+import EndpointActions from "./EndpointActions";
+import DeviceGatewayCard from "@/features/Devices/Gateway/DeviceGatewayCard";
+import AssetsViewToggle from "./AssetsViewToggle";
+import { AssetsViewMode, loadViewMode, saveViewMode } from "./canvasLayout";
 
 const BACKGROUND_REFRESH_INTERVAL_MS = 3000;
 
@@ -95,6 +100,12 @@ export default function OverviewContentContainer() {
   const [rangeMaskInput, setRangeMaskInput] = useState("");
   const [detailsEndpointId, setDetailsEndpointId] = useState<string | null>(null);
   const [detailsServiceId, setDetailsServiceId] = useState<string | null>(null);
+  // Presentation only: the same endpoints, either as the accordion list or as tiles on a canvas.
+  const [viewMode, setViewMode] = useState<AssetsViewMode>(loadViewMode);
+  const changeViewMode = (mode: AssetsViewMode) => {
+    setViewMode(mode);
+    saveViewMode(mode);
+  };
 
   // Prefill the Scan Network dialog's range inputs with the persisted baseline range once it's
   // loaded, so a page refresh doesn't leave them blank - but only the first time it becomes
@@ -289,7 +300,7 @@ export default function OverviewContentContainer() {
     return (
       <Centered>
         <p className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="animate-spin" /> Scanning network...
+          <WaterLoader /> Scanning network...
         </p>
       </Centered>
     );
@@ -338,7 +349,7 @@ export default function OverviewContentContainer() {
     return (
       <Centered>
         <p className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="animate-spin" /> Scanning network...
+          <WaterLoader /> Scanning network...
         </p>
       </Centered>
     );
@@ -356,20 +367,54 @@ export default function OverviewContentContainer() {
   );
   const discovered = endpoints.filter((e) => e.source !== "unidentified");
   const unidentified = endpoints.filter((e) => e.source === "unidentified");
+  const viewToggle = <AssetsViewToggle value={viewMode} onChange={changeViewMode} />;
 
   return (
     <div className="grid gap-4 pt-2">
-      <DiscoveredEndpointsCard
-        endpoints={discovered}
-        deviceId={deviceId}
-        onScan={() => setScanDialogOpen(true)}
-        isScanning={isScanning}
-        onAddEndpoint={() => setAddEndpointOpen(true)}
-        onEndpointCreated={handleRefresh}
-        onOpenDetails={setDetailsEndpointId}
-        onOpenServiceDetails={setDetailsServiceId}
-      />
-      <UnidentifiedEndpointsCard endpoints={unidentified} deviceId={deviceId} onEndpointCreated={handleRefresh} />
+      {viewMode === "list" ? (
+        <>
+          <div>
+            <DeviceGatewayCard deviceId={deviceId} />
+            <div className="ml-10 h-6 w-0.5 bg-blue-600/30" aria-hidden="true" />
+          </div>
+          <DiscoveredEndpointsCard
+            endpoints={discovered}
+            deviceId={deviceId}
+            onScan={() => setScanDialogOpen(true)}
+            isScanning={isScanning}
+            onAddEndpoint={() => setAddEndpointOpen(true)}
+            onEndpointCreated={handleRefresh}
+            onOpenDetails={setDetailsEndpointId}
+            onOpenServiceDetails={setDetailsServiceId}
+            viewToggle={viewToggle}
+          />
+          <UnidentifiedEndpointsCard endpoints={unidentified} deviceId={deviceId} onEndpointCreated={handleRefresh} />
+        </>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1.5">
+              <h2 className="text-lg font-semibold leading-none tracking-tight">Endpoints &amp; Services</h2>
+              <p className="text-sm text-muted-foreground">
+                Every endpoint as a tile - drag them to arrange your own layout. Tiles show each service and its state.
+              </p>
+            </div>
+            <EndpointActions
+              onScan={() => setScanDialogOpen(true)}
+              isScanning={isScanning}
+              onAddEndpoint={() => setAddEndpointOpen(true)}
+              leading={viewToggle}
+            />
+          </div>
+          <EndpointCanvas
+            endpoints={endpoints}
+            deviceId={deviceId}
+            onEndpointCreated={handleRefresh}
+            onOpenDetails={setDetailsEndpointId}
+            onOpenServiceDetails={setDetailsServiceId}
+          />
+        </div>
+      )}
 
       <ScanNetworkDialog
         open={scanDialogOpen}

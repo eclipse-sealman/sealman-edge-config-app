@@ -20,6 +20,9 @@ import DevicesByCountry, {
 import { useEffect, useState } from "react";
 import FilterDetails from "../features/Devices/FilterDetails";
 import useGetDevices from "@/generated/edge-administration/hooks/useGetDevices/useGetDevices";
+import PageTitle from "@/components/Typography/PageTitle";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import { getErrorMessage } from "@/lib/errors";
 
 const greenIcon = new L.Icon({
   iconUrl:
@@ -42,29 +45,6 @@ const blueIcon = new L.Icon({
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
 });
-
-function LoadingIcon() {
-  return (
-    <div>
-      <div id="wifi-loader">
-        <svg className="circle-outer" viewBox="0 0 86 86">
-          <circle className="back" cx="43" cy="43" r="40"></circle>
-          <circle className="front" cx="43" cy="43" r="40"></circle>
-          <circle className="new" cx="43" cy="43" r="40"></circle>
-        </svg>
-        <svg className="circle-middle" viewBox="0 0 60 60">
-          <circle className="back" cx="30" cy="30" r="27"></circle>
-          <circle className="front" cx="30" cy="30" r="27"></circle>
-        </svg>
-        <svg className="circle-inner" viewBox="0 0 34 34">
-          <circle className="back" cx="17" cy="17" r="14"></circle>
-          <circle className="front" cx="17" cy="17" r="14"></circle>
-        </svg>
-        <div className="text" data-text="loading"></div>
-      </div>
-    </div>
-  );
-}
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -201,16 +181,17 @@ export default function Dashboard() {
   }, [easEdgeDevices?.data, deviceOnlineFilter, countriesSelectedDict]);
 
   if (easEdgeDevices.isLoading)
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p></p>
-        <LoadingIcon></LoadingIcon>
-      </div>
-    );
+    return <LoadingState label="Loading dashboard..." className="h-full" />;
 
   if (easEdgeDevices.isError) {
     console.error(easEdgeDevices.error);
-    return <div>Error while fetching the data</div>;
+    return (
+      <ErrorState
+        title="Could not load the dashboard"
+        message={getErrorMessage(easEdgeDevices.error)}
+        onRetry={() => easEdgeDevices.refetch()}
+      />
+    );
   }
 
   const clearTableFilter = () => {
@@ -220,8 +201,9 @@ export default function Dashboard() {
   };
 
   return (
-    <>
-      <div className="flex flex-row flex-wrap">
+    <div className="h-full space-y-4 overflow-y-auto p-6">
+      <PageTitle title="Dashboard" description="Where your devices are and whether they are online." />
+      <div className="flex flex-row flex-wrap items-center gap-2 rounded-lg border bg-background px-2 py-1 shadow-xs">
         <DevicesHeader
           showGeolocationInfo
           missingGeolocationCount={missingGeolocationCount}
@@ -248,6 +230,7 @@ export default function Dashboard() {
           />
         </div>
       </div>
+      <div className="overflow-hidden rounded-lg border shadow-xs">
       <MapContainer center={initialPosition} zoom={5} scrollWheelZoom={true}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -272,7 +255,8 @@ export default function Dashboard() {
           </Marker>
         ))}
       </MapContainer>
-    </>
+      </div>
+    </div>
   );
 }
 
@@ -299,7 +283,7 @@ export function ConnectionStatusMini({ deviceId }: { deviceId: string }) {
       </div>
     );
 
-  if (isError) return <div>Error {error.message}</div>;
+  if (isError) return <div className="text-sm text-destructive">Could not load the status: {getErrorMessage(error)}</div>;
 
   if (!data) return null;
 

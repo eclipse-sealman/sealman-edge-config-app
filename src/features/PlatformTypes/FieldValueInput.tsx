@@ -1,5 +1,10 @@
 import { components } from "@/generated/edge-administration/types";
 import Toggle from "./Toggle";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+
+// Radix Select can't hold an empty-string item, so "no selection" is represented by this sentinel.
+const NO_SELECTION = "__none__";
 
 export type FieldDefinitionLike = Pick<
   components["schemas"]["FieldDefinition"],
@@ -8,8 +13,9 @@ export type FieldDefinitionLike = Pick<
 type FieldDefinition = components["schemas"]["FieldDefinition"];
 type FieldValidation = NonNullable<FieldDefinitionLike["validation"]>;
 
+// Mirrors the shadcn <Input> styles for native elements (select, textarea) that have no shadcn wrapper here.
 export const inputClass =
-  "w-full px-3 py-2 rounded-md bg-muted/30 border border-slate-200 hover:border-slate-300 focus:bg-background focus:border-primary focus:ring-2 focus:ring-primary/20 outline-hidden transition";
+  "w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Same as inputClass, but for h-8 contexts (e.g. next to a "sm" button) - py-2 doesn't leave
  * enough room for a line of text at a fixed 32px height, so this uses tighter py-1 instead. */
@@ -161,19 +167,23 @@ export default function FieldValueInput({ definition, value, onChange, placehold
 
   if (ui === "select") {
     return (
-      <select
-        value={typeof value === "string" ? value : ""}
+      <Select
+        value={typeof value === "string" && value !== "" ? value : NO_SELECTION}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className={compactInputClass}
+        onValueChange={(v) => onChange(v === NO_SELECTION ? "" : v)}
       >
-        <option value="">—</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="h-8">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_SELECTION}>—</SelectItem>
+          {options.map((opt) => (
+            <SelectItem key={opt} value={opt}>
+              {opt}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   }
 
@@ -199,7 +209,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
 
   if (ui === "textarea") {
     return (
-      <textarea
+      <Textarea
         value={typeof value === "string" ? value : ""}
         disabled={disabled}
         placeholder={placeholder}
@@ -207,7 +217,6 @@ export default function FieldValueInput({ definition, value, onChange, placehold
         rows={2}
         minLength={definition.validation?.min_length ?? undefined}
         maxLength={definition.validation?.max_length ?? undefined}
-        className={inputClass}
       />
     );
   }

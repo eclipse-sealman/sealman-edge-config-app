@@ -17,7 +17,7 @@ export function DeviceCards({
     return (
       <div
         key={device.deviceId}
-        className={`p-2 rounded-sm border border ${deviceId === device.deviceId ? "bg-gray-100" : "bg-white"}`}
+        className={`cursor-pointer rounded-lg border p-3 shadow-xs transition-colors hover:bg-slate-50 ${deviceId === device.deviceId ? "border-blue-200 bg-blue-50" : "bg-background"}`}
       >
         <div className="flex flex-row items-center gap-4">
           <div onClick={() => navigate(`/devices/${device.deviceId}`)}>
@@ -27,8 +27,8 @@ export function DeviceCards({
                 </Badge>
               <Badge>{device.deviceMetadata.customer?.value as string}</Badge>
             </div>
-            <div className="font-medium truncate">{device.deviceId}</div>
-            <div className="truncate">
+            <div className="font-semibold truncate">{device.deviceId}</div>
+            <div className="truncate text-sm text-muted-foreground">
               {device.deviceMetadata.description?.value as string}
             </div>
           </div>
@@ -38,8 +38,8 @@ export function DeviceCards({
   });
 
   return (
-    <div className="space-y-2">
-      <div className="sticky top-0 rounded-sm bg-vibrant-blue p-[9px] font-medium">
+    <div className="space-y-3 p-4">
+      <div className="sticky top-0 z-10 space-y-2 rounded-lg border bg-background p-3 shadow-xs">
         <FilterDetails
           className="pb-2"
           totalRows={data.length}

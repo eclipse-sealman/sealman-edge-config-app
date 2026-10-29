@@ -1,4 +1,6 @@
-import Button, { ButtonSize } from "@/components/Input/Button";
+import { WaterLoader } from "@/components/ui/water-loader";
+import { Button } from "@/components/ui/button";
+import { InlineAlert, LoadingState } from "@/components/ui/page-state";
 import SimpleDialog from "@/components/Modal/SimpleDialog";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
 import useGetSmartEmsSecretInfo from "@/generated/edge-administration/hooks/useGetSmartEmsSecretInfo";
@@ -19,7 +21,7 @@ export default function RenewPassword({ deviceId }: RenewPasswordParams) {
   const { postDeviceSmartEmsSecret, isPending, isError, reset } = usePostSmartEmsSecret();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <LoadingState />;
   }
 
   if (data) {
@@ -42,7 +44,7 @@ export default function RenewPassword({ deviceId }: RenewPasswordParams) {
       onSuccess: () => {
         setIsConfirmModalOpen(false);
         reset();
-        toast.success(`Success: Password for device ${deviceId} has been successfully renewed.`);
+        toast.success(`Password for device ${deviceId} renewed`);
       },
     });
   };
@@ -57,7 +59,8 @@ export default function RenewPassword({ deviceId }: RenewPasswordParams) {
           <span>Device password will be automatically renewed during next device communication.</span>
         ) : (
           <GuardedButton
-              size={ButtonSize.Small}
+              size="sm"
+              variant="outline"
               onClick={() => {
                 setIsConfirmModalOpen(true);
               }}
@@ -70,13 +73,15 @@ export default function RenewPassword({ deviceId }: RenewPasswordParams) {
       </div>
       <SimpleDialog isOpen={isConfirmModalOpen} title={`Force password renew for device ${deviceId}`}>
         <>
-          {isError ? <div className="mb-3 text-red-600 ">Error forcing password renew.</div> : null}
+          {isError ? <InlineAlert className="mb-3">Error forcing password renew.</InlineAlert> : null}
           <div className="mt-6 flex justify-center space-x-4">
-            <Button size={ButtonSize.Small} processing={isPending} onClick={renewPassword}>
+            <Button size="sm" disabled={isPending} onClick={renewPassword}>
+              {isPending && <WaterLoader />}
               OK
             </Button>
             <Button
-              size={ButtonSize.Small}
+              size="sm"
+              variant="outline"
               onClick={() => {
                 setIsConfirmModalOpen(false);
                 reset();

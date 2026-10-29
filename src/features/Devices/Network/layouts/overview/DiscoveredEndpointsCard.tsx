@@ -1,7 +1,7 @@
-import { Loader2, Plus, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import type { ReactNode } from "react";
 import { Accordion } from "@/components/ui/accordion";
 import EndpointAccordionItem from "./EndpointAccordionItem";
+import EndpointActions from "./EndpointActions";
 import { MappedEndpoint } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import { endpointListKey } from "./overviewMerge";
 
@@ -14,6 +14,7 @@ interface props {
   onEndpointCreated: () => void;
   onOpenDetails: (endpointId: string) => void;
   onOpenServiceDetails: (serviceId: string) => void;
+  viewToggle?: ReactNode;
 }
 
 export default function DiscoveredEndpointsCard({
@@ -25,25 +26,18 @@ export default function DiscoveredEndpointsCard({
   onEndpointCreated,
   onOpenDetails,
   onOpenServiceDetails,
+  viewToggle,
 }: props) {
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1.5">
-          <h2 className="text-lg font-semibold leading-none tracking-tight">Discovered Endpoints</h2>
+          <h2 className="text-lg font-semibold leading-none tracking-tight">Assets</h2>
           <p className="text-sm text-muted-foreground">
             Physical machines and systems discovered on the network. Expand each endpoint to view its services.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" onClick={onScan} disabled={isScanning}>
-            {isScanning ? <Loader2 className="animate-spin" /> : <Search />}
-            {isScanning ? "Scanning..." : "Scan Network"}
-          </Button>
-          <Button variant="outline" onClick={onAddEndpoint}>
-            <Plus /> Add Endpoint
-          </Button>
-        </div>
+        <EndpointActions onScan={onScan} isScanning={isScanning} onAddEndpoint={onAddEndpoint} leading={viewToggle} />
       </div>
 
       <div className="border rounded-lg overflow-hidden bg-background">

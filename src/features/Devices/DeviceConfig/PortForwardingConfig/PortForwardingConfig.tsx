@@ -1,7 +1,7 @@
 import { Heading } from "@/components/Typography/Heading";
 import { usePortForwardingConfig } from "./useContext";
 import PortForwardingRules from "./PortForwardingRules";
-import Button from "@/components/Input/Button";
+import { Button } from "@/components/ui/button";
 import { PlusIcon, WrenchScrewdriverIcon } from "@heroicons/react/24/outline";
 
 
@@ -28,7 +28,7 @@ export default function PortForwardingConfig() {
               })
             }
           >
-            <PlusIcon className="mr-2 w-5 h-5" />Add a rule
+            <PlusIcon />Add a rule
           </Button>
         </div>
 
