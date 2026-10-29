@@ -4,14 +4,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { EndpointStatus, Port, LastStatusChange } from "@/features/Devices/Network/components";
 import { MappedEndpoint, MappedPort } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
-import { endpointListKey, portListKey } from "./overviewMerge";
-import {
-  EndpointDialogs,
-  EndpointIdentity,
-  EndpointPrimaryAction,
-  PortActions,
-} from "./endpointShared";
+import { EndpointDialogs, EndpointIdentity, EndpointPrimaryAction, PortActions, } from "./endpointShared";
 import { BrowseTarget, portNeedsAssignment, useEndpointDisplay } from "./endpointLogic";
+import { endpointListKey, portListKey } from "./overviewMerge";
 
 interface props {
   endpoint: MappedEndpoint;
@@ -24,7 +19,6 @@ interface props {
 export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, onOpenDetails, onOpenServiceDetails }: props) {
   const display = useEndpointDisplay(endpoint);
   const { needsAssignment, isConfigured } = display;
-
   const [assignEndpointOpen, setAssignEndpointOpen] = useState(false);
   const [assignPort, setAssignPort] = useState<MappedPort | null>(null);
   const [browsing, setBrowsing] = useState<BrowseTarget | null>(null);

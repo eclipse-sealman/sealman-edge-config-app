@@ -20,6 +20,10 @@ import SealAgentSettings from "./pages/settings/SealAgentSettings";
 import DeploymentsLayout from "./pages/deployments/DeploymentsLayout";
 import AssetConfigurationLayout from "./pages/assetConfiguration/AssetConfigurationLayout";
 import { SmartEmsAuthCallback } from "./features/Devices/Network/smart_ems/pages/AuthCallback";
+import ExtensionsSettings from "./features/Extensions/ExtensionsSettings";
+import ExtensionDetail from "./features/Extensions/ExtensionDetail";
+import RegisterExtensionPage from "./features/Extensions/RegisterExtensionPage";
+import EditExtensionPage from "./features/Extensions/EditExtensionPage";
 import { useAuth } from "./auth";
 import { useEffect } from "react";
 import { NewUserCheck } from "./components/NewUserCheck";
@@ -39,6 +43,18 @@ export default function App() {
       auth.signIn();
     }
   }, [auth, auth.isAuthenticated, auth.isLoading]);
+
+  // Do not mount routes (or their react-query hooks) until OIDC has a user.
+  // Otherwise axios/openapi middleware call getAccessToken() while sessionStorage
+  // is still empty, throw "User is not authenticated", and the UI treats the
+  // backend as unauthenticated even after login completes.
+  if (auth.isLoading || !auth.isAuthenticated) {
+    return (
+      <div className="flex h-screen items-center justify-center text-sm text-gray-500">
+        {auth.isLoading ? "Loading..." : "Redirecting to sign in..."}
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -122,6 +138,16 @@ export default function App() {
                 element={<SettingsPlaceholder title="Container Registries" description="Registries used to pull container images for deployments." />}
               />
               <Route path="templates" element={<Navigate to="/platform-types/templates" replace />} />
+              <Route path="platform-types" element={<PlatformTypesSettings />} />
+              <Route path="templates" element={<TemplatesSettings />} />
+              <Route path="extensions" element={<Outlet />}>
+                <Route index element={<ExtensionsSettings />} />
+                <Route path="new" element={<RegisterExtensionPage />} />
+                <Route path=":name" element={<Outlet />}>
+                  <Route index element={<ExtensionDetail />} />
+                  <Route path="edit" element={<EditExtensionPage />} />
+                </Route>
+              </Route>
               {/* <Route path="smartems" element={<SmartEmsSettings />} /> */}
             </Route>
             <Route path="user/profile" element={<UserProfile />} />
