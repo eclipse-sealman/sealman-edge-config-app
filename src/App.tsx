@@ -24,6 +24,8 @@ import ExtensionsSettings from "./features/Extensions/ExtensionsSettings";
 import ExtensionDetail from "./features/Extensions/ExtensionDetail";
 import RegisterExtensionPage from "./features/Extensions/RegisterExtensionPage";
 import EditExtensionPage from "./features/Extensions/EditExtensionPage";
+import ExtensionAccess from "./features/Extensions/ExtensionAccess";
+import { PERMISSION_KEYS } from "./features/authorization/permissions/permission-keys";
 import { useAuth } from "./auth";
 import { useEffect } from "react";
 import { NewUserCheck } from "./components/NewUserCheck";
@@ -140,12 +142,16 @@ export default function App() {
               <Route path="templates" element={<Navigate to="/platform-types/templates" replace />} />
               <Route path="platform-types" element={<PlatformTypesSettings />} />
               <Route path="templates" element={<TemplatesSettings />} />
-              <Route path="extensions" element={<Outlet />}>
+              <Route path="extensions" element={<ExtensionAccess />}>
                 <Route index element={<ExtensionsSettings />} />
-                <Route path="new" element={<RegisterExtensionPage />} />
+                <Route element={<ExtensionAccess permissionKey={PERMISSION_KEYS.EXTENSION_REGISTER} />}>
+                  <Route path="new" element={<RegisterExtensionPage />} />
+                </Route>
                 <Route path=":name" element={<Outlet />}>
                   <Route index element={<ExtensionDetail />} />
-                  <Route path="edit" element={<EditExtensionPage />} />
+                  <Route element={<ExtensionAccess permissionKey={PERMISSION_KEYS.EXTENSION_REGISTER} />}>
+                    <Route path="edit" element={<EditExtensionPage />} />
+                  </Route>
                 </Route>
               </Route>
               {/* <Route path="smartems" element={<SmartEmsSettings />} /> */}
