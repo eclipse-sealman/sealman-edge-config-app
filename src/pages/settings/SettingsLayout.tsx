@@ -8,12 +8,10 @@ const SETTINGS_TABS = [
   { label: "SEALMAN EMS", path: "sealman-ems" },
   { label: "Container Registries", path: "container-registries" },
   { label: "Templates", path: "templates" },
-  { label: "Extensions", path: "extensions" },
 ];
 
 export default function SettingsLayout() {
   const { hasPermission } = usePermissions({ permissionKey: PERMISSION_KEYS.EXTENSION_READ });
   const tabs = hasPermission ? [...SETTINGS_TABS, { label: "Extensions", path: "extensions" }] : SETTINGS_TABS;
-  return <SectionLayout title="Platform Configuration" tabs={tabs} />;
-  return <SectionLayout tabs={SETTINGS_TABS} />;
+  return <SectionLayout tabs={tabs} />;
 }
