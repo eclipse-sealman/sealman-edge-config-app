@@ -69,6 +69,8 @@ Registration displays `internal_key` once when returned by the API. Internal rou
 
 Copy newly issued credentials before closing their dialogs: they are not saved to browser storage or query caches, and cannot be retrieved by the UI later. Device-key endpoints and registration-time keys require the corresponding local API changes; the published older API does not provide them.
 
+Extension details show initial internal-key issuance and the most recent rotation separately; rotation does not change the initial issuance timestamp. Unknown legacy issuance dates show "Not available"; before the first rotation, the UI shows "Never rotated". Device-key history includes UUIDs, optional labels/descriptions, issuance and revocation timestamps, and active/revoked status. Only one key is active per extension/device: issuing a replacement immediately revokes the previous record without removing its history. Revocation targets the selected key's UUID, not the device ID.
+
 ## Running in Docker
 
 ```bash
