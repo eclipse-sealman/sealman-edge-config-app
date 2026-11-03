@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ErrorState, LoadingState } from "@/components/ui/page-state";
 import { getErrorMessage } from "@/lib/errors";
 
-export type PresetTemplateVariable = { name: string; defaultValue: string };
+export type PresetTemplateVariable = { name: string; defaultValue: string; deleteWarning?: string };
 
 export const IOTEDGE_REGISTRY_VARIABLES: PresetTemplateVariable[] = [
   { name: "iotedge_registry_url", defaultValue: "docker.io" },
@@ -20,7 +20,13 @@ export const IOTEDGE_AGENT_VARIABLES: PresetTemplateVariable[] = [
 ];
 
 export const SEALMAN_EMS_VARIABLES: PresetTemplateVariable[] = [
-  { name: "sems_device_url", defaultValue: "sems.localhost" },
+  {
+    name: "sems_device_url",
+    defaultValue: "sems.localhost",
+    deleteWarning:
+      "Deleting this variable resets the SEMS URL on all devices to the template default. Devices may lose their connection to SEMS and can then no longer receive any configuration.",
+  },
+  { name: "sems_polling_interval", defaultValue: "600" },
 ];
 
 const PRESET_VARIABLE_NAMES: string[] = [

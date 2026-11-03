@@ -1,9 +1,19 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "react-toastify";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
 import { ErrorState, LoadingState } from "@/components/ui/page-state";
 import PageTitle from "@/components/Typography/PageTitle";
 import { getErrorMessage } from "@/lib/errors";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PresetTemplateVariable, TemplateVariableRow } from "./TemplatesSettings";
 
 export type PresetVariableSection = {
@@ -25,6 +35,7 @@ export default function PresetTemplateVariablesSettings({
 }) {
   const { variablesQuery, setVariableMutation, deleteVariableMutation } =
     edgeConfigApiHooks.useDeviceTemplateVariables();
+  const [pendingDelete, setPendingDelete] = useState<PresetTemplateVariable | null>(null);
 
   if (variablesQuery.isLoading) return <LoadingState label={`Loading ${title} settings...`} />;
   if (variablesQuery.isError) return <ErrorState title={`Could not load ${title} settings`} message={getErrorMessage(variablesQuery.error)} onRetry={() => variablesQuery.refetch()} />;
@@ -39,11 +50,20 @@ export default function PresetTemplateVariablesSettings({
     );
   };
 
-  const handleDelete = (name: string) => {
-    if (!(name in variables)) return;
+  const deleteVariable = (name: string) => {
     deleteVariableMutation.mutate(name, {
       onError: () => toast.error(`Could not reset "${name}"`),
     });
+  };
+
+  const handleDelete = (name: string) => {
+    if (!(name in variables)) return;
+    const preset = sections.flatMap((s) => s.variables).find((v) => v.name === name);
+    if (preset?.deleteWarning) {
+      setPendingDelete(preset);
+      return;
+    }
+    deleteVariable(name);
   };
 
   return (
@@ -92,6 +112,30 @@ export default function PresetTemplateVariablesSettings({
       ))}
 
       {children}
+
+      <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{pendingDelete?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>{pendingDelete?.deleteWarning}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <p className="text-sm text-muted-foreground">
+            The change is applied to all existing devices immediately.
+          </p>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingDelete) deleteVariable(pendingDelete.name);
+                setPendingDelete(null);
+              }}
+            >
+              Delete anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
