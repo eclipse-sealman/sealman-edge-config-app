@@ -55,9 +55,13 @@ Set `VITE_AUTHENTICATION_PROVIDER` to `keycloak` (default) or `entra` and fill i
 | `VITE_ENTRA_ID_REDIRECT_URI` | entra | Redirect URL after login (e.g., `http://localhost:3000`). |
 | `VITE_API_SCOPES` | entra | Comma-separated OAuth scopes requested when acquiring API tokens. |
 
+### Device metadata
+
+The gateway's device type is read-only when editing metadata. Select the type when creating the device; it cannot be changed afterward.
+
 ### API access errors
 
-Assets and the VPN endpoint list show "Not permitted" after an API 403 and hide previously loaded restricted results. The affected workflow stops automatic requests until an explicit retry or a device/account change. Gateway VPN controls remain available independently.
+Assets and the VPN endpoint list show "Not permitted" after an API 403 and hide previously loaded restricted results. In Assets, a discovery denial stops scanning but preserves the independent configured-endpoint read, showing endpoints with their last-known status. A denial of that endpoint read hides the Assets results. The affected workflow stops automatic requests until an explicit retry or a device/account change. Gateway VPN controls remain available independently.
 
 Applications stops config-status polling after HTTP 400 or 403; retry explicitly or correct the module IDs to resume. System module IDs such as `$edgeAgent` and `$edgeHub` are sent unchanged. If saving additional scan ports is denied, the custom scan can still use those ports temporarily without retrying the save in the background.
 
