@@ -91,27 +91,36 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
   onRetry: () => void;
 }) {
   const [denied, setDenied] = useState(false);
+  const [scanDenied, setScanDenied] = useState(false);
   const stopped = useRef(false);
+  const scanStopped = useRef(false);
   useEffect(() => {
     stopped.current = false;
     return () => { stopped.current = true; };
   }, []);
 
-  function assertRunning(signal: AbortSignal) {
+  function assertRunning(signal: AbortSignal, scope: "scan" | "read" = "scan") {
     signal.throwIfAborted();
-    if (stopped.current) throw new DOMException("Network workflow stopped", "AbortError");
+    if (stopped.current || (scope === "scan" && scanStopped.current)) {
+      throw new DOMException("Network workflow stopped", "AbortError");
+    }
   }
 
-  async function required<T>(signal: AbortSignal, request: () => Promise<T>): Promise<T> {
-    assertRunning(signal);
+  async function required<T>(signal: AbortSignal, request: () => Promise<T>, scope: "scan" | "read" = "scan"): Promise<T> {
+    assertRunning(signal, scope);
     try {
       const result = await request();
-      assertRunning(signal);
+      assertRunning(signal, scope);
       return result;
     } catch (error) {
       if (!signal.aborted && !stopped.current && isForbidden(error)) {
-        stopped.current = true;
-        setDenied(true);
+        if (scope === "read") {
+          stopped.current = true;
+          setDenied(true);
+        } else {
+          scanStopped.current = true;
+          setScanDenied(true);
+        }
       }
       throw error;
     }
@@ -123,7 +132,7 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
       const { data } = await client.GET("/{device}/network/scan-ports", { params: { path: { device: deviceId } }, signal });
       return data;
     }),
-    enabled: Boolean(deviceId) && !denied,
+    enabled: Boolean(deviceId) && !denied && !scanDenied,
     gcTime: 0,
   });
   // The baseline scan range is derived server-side from this device's own configured endpoints'
@@ -137,7 +146,7 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
       const { data } = await client.GET("/{device}/network/scan-range", { params: { path: { device: deviceId } }, signal });
       return data;
     }),
-    enabled: Boolean(deviceId) && !denied,
+    enabled: Boolean(deviceId) && !denied && !scanDenied,
     gcTime: 0,
   });
   const { mutateAsync: discoverAsync } = usePostDeviceNetworkDiscover();
@@ -262,11 +271,11 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
   const overviewQuery = useQuery({
     queryKey: ["network-overview", ...contextKey, catalogPortsKey, scanRangeKey],
     queryFn: ({ signal }) => required(signal, () => runDiscoverAndOverview(baselineRanges, suggestedIps, catalogPorts ?? [], signal)),
-    enabled: Boolean(deviceId) && !denied && !isPortsError && !isRangeError && !isLoadingPorts && Boolean(catalogPorts) && !isLoadingRange,
-    refetchInterval: denied ? false : BACKGROUND_REFRESH_INTERVAL_MS,
+    enabled: Boolean(deviceId) && !denied && !scanDenied && !isPortsError && !isRangeError && !isLoadingPorts && Boolean(catalogPorts) && !isLoadingRange,
+    refetchInterval: denied || scanDenied ? false : BACKGROUND_REFRESH_INTERVAL_MS,
     gcTime: 0,
   });
-  const overview = overviewQuery.data ?? undefined;
+  const overview = scanDenied ? undefined : overviewQuery.data ?? undefined;
 
   // What's actually configured for this device (endpoints/services already saved to the
   // database) is a plain backend read, independent of the device's own connectivity - unlike
@@ -276,7 +285,7 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
   // finished its first tick yet) shouldn't make already-configured endpoints disappear either.
   const offlineFallbackQuery = useQuery({
     queryKey: ["network-offline-fallback", ...contextKey],
-    queryFn: ({ signal }) => required(signal, () => buildOfflineFallbackOverview(deviceId, signal)),
+    queryFn: ({ signal }) => required(signal, () => buildOfflineFallbackOverview(deviceId, signal), "read"),
     enabled: Boolean(deviceId) && !denied,
     gcTime: 0,
   });
@@ -291,16 +300,16 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
       const ranges = extraRange ? [extraRange] : [];
       return runDiscoverAndOverview(ranges, excludeIpsCoveredByRanges(extraIps, ranges), allPorts, signal);
     }),
-    enabled: Boolean(deviceId) && !denied && (extraRange !== null || extraIps.length > 0 || extraPorts.length > 0),
+    enabled: Boolean(deviceId) && !denied && !scanDenied && (extraRange !== null || extraIps.length > 0 || extraPorts.length > 0),
     gcTime: 0,
   });
-  const extraEndpoints = extraScanQuery.data?.endpoints ?? [];
+  const extraEndpoints = scanDenied ? [] : extraScanQuery.data?.endpoints ?? [];
 
   useEffect(() => {
-    if (extraScanQuery.isError && !denied) {
+    if (extraScanQuery.isError && !denied && !scanDenied) {
       toast.error("Failed to scan the custom network range. Please try again.");
     }
-  }, [extraScanQuery.isError, denied]);
+  }, [extraScanQuery.isError, denied, scanDenied]);
 
   // Only reflects the manual one-time scan (Scan Network dialog), not the recurring background
   // autoscan - the "Scan Network" button shouldn't animate every few seconds just because the
@@ -309,8 +318,9 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
 
   const handleRefresh = () => {
     if (stopped.current) return;
-    overviewQuery.refetch();
     offlineFallbackQuery.refetch();
+    if (scanStopped.current) return;
+    overviewQuery.refetch();
     // Keep the custom scan's results fresh too, so they don't go stale after e.g. assigning one
     // of its discovered hosts to a real endpoint elsewhere on the page.
     if (extraRange || extraIps.length > 0) {
@@ -319,7 +329,7 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
   };
 
   const handleConfirmScan = async (newRange: ScanNetworkRange | null, newExtraPorts: number[], newExtraIps: string[]) => {
-    if (stopped.current) return;
+    if (stopped.current || scanStopped.current) return;
     setExtraRange(newRange);
     setExtraIps(newExtraIps);
     if (newExtraPorts.length === 0) {
@@ -331,12 +341,12 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
     // future cycle, so it no longer needs to be tracked as a separate "extra" port here.
     try {
       await addDeviceScanPortsAsync({ deviceId, body: { ports: newExtraPorts } });
-      if (stopped.current) return;
+      if (stopped.current || scanStopped.current) return;
       await refetchPorts();
-      if (stopped.current) return;
+      if (stopped.current || scanStopped.current) return;
       setExtraPorts([]);
     } catch {
-      if (stopped.current) return;
+      if (stopped.current || scanStopped.current) return;
       // Persisting failed - fall back to at least scanning them once, same as before this port
       // list was persisted server-side, rather than silently dropping them.
       toast.error("Failed to save the additional ports for this device. Scanning them once instead.");
@@ -375,7 +385,7 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
     );
   }
 
-  if (isLoadingPorts || isLoadingRange) {
+  if (!scanDenied && offlineFallbackQuery.data === undefined && (isLoadingPorts || isLoadingRange)) {
     return (
       <Centered>
         <p className="flex items-center gap-2 text-muted-foreground">
@@ -385,7 +395,7 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
     );
   }
 
-  if (isPortsError || isRangeError) {
+  if (!scanDenied && offlineFallbackQuery.data === undefined && (isPortsError || isRangeError)) {
     return (
       <Centered>
         <div className="flex flex-col items-center gap-3">
@@ -411,11 +421,11 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
   // a real failure needing a retry button; otherwise it's just the first tick still in flight.
   const hasNothingYet = overview === undefined && offlineFallbackQuery.data === undefined;
 
-  if (hasNothingYet && overviewQuery.isError && offlineFallbackQuery.isError) {
+  if (hasNothingYet && (scanDenied || overviewQuery.isError) && offlineFallbackQuery.isError) {
     return (
       <Centered>
         <div className="flex flex-col items-center gap-3">
-          <p className="text-sm text-destructive">Failed to scan the network. Please try again.</p>
+          <p className="text-sm text-destructive">Failed to load assets. Please try again.</p>
           <Button variant="outline" onClick={handleRefresh}>
             Retry
           </Button>
@@ -450,6 +460,22 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
 
   return (
     <div className="grid gap-4 pt-2">
+      {scanDenied && (
+        <ErrorState
+          title="Not permitted"
+          message="Network discovery is not permitted. Showing configured endpoints with their last-known status."
+          onRetry={onRetry}
+        />
+      )}
+      {!scanDenied && (isPortsError || isRangeError) && (
+        <ErrorState
+          title="Failed to determine what to scan for this device."
+          onRetry={() => {
+            if (isPortsError) void refetchPorts();
+            if (isRangeError) void refetchRange();
+          }}
+        />
+      )}
       {viewMode === "list" ? (
         <>
           <div>
@@ -461,6 +487,7 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
             deviceId={deviceId}
             onScan={() => setScanDialogOpen(true)}
             isScanning={isScanning}
+            scanDisabled={scanDenied}
             onAddEndpoint={() => setAddEndpointOpen(true)}
             onEndpointCreated={handleRefresh}
             onOpenDetails={setDetailsEndpointId}
@@ -479,8 +506,10 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
               </p>
             </div>
             <EndpointActions
+              deviceId={deviceId}
               onScan={() => setScanDialogOpen(true)}
               isScanning={isScanning}
+              scanDisabled={scanDenied}
               onAddEndpoint={() => setAddEndpointOpen(true)}
               leading={viewToggle}
             />
@@ -496,7 +525,7 @@ function OverviewContent({ deviceId, contextKey, onRetry }: {
       )}
 
       <ScanNetworkDialog
-        open={scanDialogOpen}
+        open={scanDialogOpen && !scanDenied}
         onOpenChange={setScanDialogOpen}
         extraPorts={extraPorts}
         extraIps={extraIps}
