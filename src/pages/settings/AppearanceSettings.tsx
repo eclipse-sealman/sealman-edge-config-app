@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { toast } from "react-toastify";
 import { CheckIcon } from "@heroicons/react/24/solid";
 import PageTitle from "@/components/Typography/PageTitle";
@@ -7,7 +7,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import defaultLogo from "@/assets/sealman_logo.png";
-import useAppearanceStore, { DEFAULT_APP_TITLE, DEFAULT_FAVICON } from "@/features/Appearance/appearanceStore";
+import { getErrorMessage } from "@/lib/errors";
+import { usePermissions } from "@/features/authorization/permissions/use-permissions";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
+import useAppearanceStore, {
+  DEFAULT_APP_TITLE,
+  DEFAULT_FAVICON,
+  type Branding,
+} from "@/features/Appearance/appearanceStore";
+import {
+  deleteBrandingAsset,
+  saveBranding,
+  uploadBrandingAsset,
+  type BrandingAssetKind,
+} from "@/features/Appearance/brandingApi";
 import {
   CUSTOM_THEME_ID,
   DEFAULT_THEME_ID,
@@ -15,9 +28,9 @@ import {
   getThemePreset,
   hexToHsl,
   hslToHex,
-  readCssVariable,
+  parseCssVariables,
+  resolveThemeVariables,
   themeToCss,
-  writeCssVariable,
   type ThemeVariables,
 } from "@/features/Appearance/themes";
 
@@ -56,30 +69,40 @@ const COLOR_GROUPS: { title: string; colors: { name: string; label: string }[] }
   },
 ];
 
-const LOGO_MAX_BYTES = 512 * 1024;
-const LOGO_TYPES = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
-const FAVICON_MAX_BYTES = 128 * 1024;
-const FAVICON_TYPES = ["image/x-icon", "image/vnd.microsoft.icon", "image/png", "image/svg+xml"];
+// Client-side checks are for quick feedback only; the API validates the actual file content.
+const ASSET_RULES: Record<BrandingAssetKind, { types: string[]; maxBytes: number; label: string }> = {
+  logo: { types: ["image/png", "image/jpeg", "image/svg+xml", "image/webp"], maxBytes: 512 * 1024, label: "PNG, JPEG, SVG or WebP" },
+  favicon: { types: ["image/x-icon", "image/vnd.microsoft.icon", "image/png", "image/svg+xml"], maxBytes: 128 * 1024, label: "ICO, PNG or SVG" },
+};
 
-function readImageFile(
-  file: File,
-  types: string[],
-  maxBytes: number,
-  typesLabel: string,
-  onLoad: (dataUrl: string) => void,
-) {
+type AssetDraft = { action: "keep" } | { action: "upload"; file: File; previewUrl: string } | { action: "remove" };
+type SettingsDraft = Pick<Branding, "themeId" | "variables" | "appTitle">;
+
+const KEEP: AssetDraft = { action: "keep" };
+
+const toDraft = (branding: Branding): SettingsDraft => ({
+  themeId: branding.themeId,
+  variables: branding.variables,
+  appTitle: branding.appTitle,
+});
+
+const assetPreviewUrl = (draft: AssetDraft, publishedUrl: string | null) =>
+  draft.action === "upload" ? draft.previewUrl : draft.action === "remove" ? null : publishedUrl;
+
+function readImageFile(file: File, kind: BrandingAssetKind, onLoad: (draft: AssetDraft) => void) {
+  const rules = ASSET_RULES[kind];
   // Some systems report .ico files without a MIME type.
   const type = file.type || (file.name.toLowerCase().endsWith(".ico") ? "image/x-icon" : "");
-  if (!types.includes(type)) {
-    toast.error(`Unsupported file type. Use ${typesLabel}.`);
+  if (!rules.types.includes(type)) {
+    toast.error(`Unsupported file type. Use ${rules.label}.`);
     return;
   }
-  if (file.size > maxBytes) {
-    toast.error(`The file must not be larger than ${maxBytes / 1024} KB.`);
+  if (file.size > rules.maxBytes) {
+    toast.error(`The file must not be larger than ${rules.maxBytes / 1024} KB.`);
     return;
   }
   const reader = new FileReader();
-  reader.onload = () => onLoad((reader.result as string).replace(/^data:[^;,]*/, `data:${type}`));
+  reader.onload = () => onLoad({ action: "upload", file, previewUrl: reader.result as string });
   reader.onerror = () => toast.error("Could not read the file.");
   reader.readAsDataURL(file);
 }
@@ -104,20 +127,23 @@ function ThemeOption({
   description,
   selected,
   onSelect,
+  disabled,
   variables,
 }: {
   name: string;
   description: string;
   selected: boolean;
   onSelect: () => void;
+  disabled?: boolean;
   variables?: ThemeVariables;
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
+      disabled={disabled}
       aria-pressed={selected}
-      className={`relative flex flex-col gap-3 rounded-lg border bg-card p-4 text-left shadow-xs transition-colors hover:bg-accent ${
+      className={`relative flex flex-col gap-3 rounded-lg border bg-card p-4 text-left shadow-xs transition-colors enabled:hover:bg-accent disabled:cursor-not-allowed ${
         selected ? "border-primary ring-1 ring-primary" : ""
       }`}
     >
@@ -131,60 +157,160 @@ function ThemeOption({
   );
 }
 
-export default function AppearanceSettings() {
-  const {
-    themeId,
-    customCss,
-    logoDataUrl,
-    appTitle,
-    faviconDataUrl,
-    setThemeId,
-    setCustomCss,
-    setLogoDataUrl,
-    setAppTitle,
-    setFaviconDataUrl,
-  } = useAppearanceStore();
-  const [cssDraft, setCssDraft] = useState(customCss);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const faviconInputRef = useRef<HTMLInputElement>(null);
-
-  const selectCustom = () => {
-    if (!customCss) {
-      // Start from the theme that is currently active so the user only tweaks what they need.
-      const template = themeToCss(getThemePreset(themeId).variables);
-      setCustomCss(template);
-      setCssDraft(template);
-    }
-    setThemeId(CUSTOM_THEME_ID);
-  };
-
-  const isCustom = themeId === CUSTOM_THEME_ID;
-  // Preset selected: the pickers show its colors, and the first change forks it into a custom theme.
-  const activeCss = isCustom ? customCss : themeToCss(getThemePreset(themeId).variables);
-
-  const setColor = (name: string, hex: string) => {
-    const value = hexToHsl(hex, readCssVariable(activeCss, name) ?? "");
-    const next = writeCssVariable(activeCss, name, value);
-    setCustomCss(next);
-    setCssDraft(next);
-    if (!isCustom) setThemeId(CUSTOM_THEME_ID);
-  };
-
-  const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
+function AssetPicker({
+  kind,
+  previewUrl,
+  fallbackUrl,
+  hasCustom,
+  disabled,
+  onChange,
+  previewClassName,
+  imageClassName,
+}: {
+  kind: BrandingAssetKind;
+  previewUrl: string | null;
+  fallbackUrl: string;
+  hasCustom: boolean;
+  disabled: boolean;
+  onChange: (draft: AssetDraft) => void;
+  previewClassName: string;
+  imageClassName: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (file) readImageFile(file, LOGO_TYPES, LOGO_MAX_BYTES, "PNG, JPEG, SVG or WebP", setLogoDataUrl);
-  };
-
-  const handleFaviconChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (file) readImageFile(file, FAVICON_TYPES, FAVICON_MAX_BYTES, "ICO, PNG or SVG", setFaviconDataUrl);
+    if (file) readImageFile(file, kind, onChange);
   };
 
   return (
-    <div className="space-y-8">
-      <PageTitle title="Appearance" description="Customize the colors, the header logo and the browser tab of the platform." />
+    <>
+      <span className={previewClassName}>
+        <img className={imageClassName} src={previewUrl ?? fallbackUrl} alt={`Current ${kind}`} />
+      </span>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={[...ASSET_RULES[kind].types, ...(kind === "favicon" ? [".ico"] : [])].join(",")}
+        className="hidden"
+        onChange={handleChange}
+      />
+      <Button type="button" variant="outline" disabled={disabled} onClick={() => inputRef.current?.click()}>
+        Upload {kind === "logo" ? "logo" : "icon"}
+      </Button>
+      <Button type="button" variant="ghost" disabled={disabled || !hasCustom} onClick={() => onChange({ action: "remove" })}>
+        Restore default
+      </Button>
+    </>
+  );
+}
+
+export default function AppearanceSettings() {
+  const published = useAppearanceStore((s) => s.published);
+  const setPreview = useAppearanceStore((s) => s.setPreview);
+  const { hasPermission: canWrite, isLoading: isPermissionLoading } = usePermissions({
+    permissionKey: PERMISSION_KEYS.PLATFORM_CONFIG_WRITE,
+  });
+  const readOnly = isPermissionLoading || !canWrite;
+
+  const [baseline, setBaseline] = useState(published);
+  const [draft, setDraft] = useState<SettingsDraft>(() => toDraft(published));
+  const [logo, setLogo] = useState<AssetDraft>(KEEP);
+  const [favicon, setFavicon] = useState<AssetDraft>(KEEP);
+  const [cssDraft, setCssDraft] = useState<string | null>(null);
+  const [cssErrors, setCssErrors] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const isDirty =
+    logo.action !== "keep" ||
+    favicon.action !== "keep" ||
+    JSON.stringify(draft) !== JSON.stringify(toDraft(baseline));
+
+  // Pick up branding that arrives after mount (first load, other admin) unless the user is editing.
+  useEffect(() => {
+    if (isDirty || published === baseline) return;
+    setBaseline(published);
+    setDraft(toDraft(published));
+  }, [published, baseline, isDirty]);
+
+  const logoUrl = assetPreviewUrl(logo, published.logoUrl);
+  const faviconUrl = assetPreviewUrl(favicon, published.faviconUrl);
+
+  useEffect(() => {
+    setPreview(isDirty ? { ...draft, logoUrl, faviconUrl } : null);
+  }, [isDirty, draft, logoUrl, faviconUrl, setPreview]);
+  useEffect(() => () => setPreview(null), [setPreview]);
+
+  const isCustom = draft.themeId === CUSTOM_THEME_ID;
+  const activeVariables = useMemo(
+    () => resolveThemeVariables(draft.themeId, draft.variables),
+    [draft.themeId, draft.variables],
+  );
+
+  const selectPreset = (themeId: string) => setDraft((d) => ({ ...d, themeId, variables: {} }));
+
+  // Starts from the currently shown theme so the user only tweaks what they need.
+  const selectCustom = () => setDraft((d) => ({ ...d, themeId: CUSTOM_THEME_ID, variables: activeVariables }));
+
+  const setColor = (name: string, hex: string) =>
+    setDraft((d) => ({
+      ...d,
+      themeId: CUSTOM_THEME_ID,
+      variables: { ...activeVariables, [name]: hexToHsl(hex, activeVariables[name] ?? "") },
+    }));
+
+  const applyCss = () => {
+    if (cssDraft === null) return;
+    const { variables, errors } = parseCssVariables(cssDraft);
+    setCssErrors(errors);
+    if (errors.length) return;
+    setDraft((d) => ({ ...d, themeId: CUSTOM_THEME_ID, variables: { ...activeVariables, ...variables } }));
+  };
+
+  const discard = () => {
+    setDraft(toDraft(published));
+    setBaseline(published);
+    setLogo(KEEP);
+    setFavicon(KEEP);
+    setCssDraft(null);
+    setCssErrors([]);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await saveBranding(draft);
+      for (const [kind, asset] of [["logo", logo], ["favicon", favicon]] as const) {
+        if (asset.action === "upload") await uploadBrandingAsset(kind, asset.file);
+        else if (asset.action === "remove") await deleteBrandingAsset(kind);
+      }
+      const latest = useAppearanceStore.getState().published;
+      setBaseline(latest);
+      setDraft(toDraft(latest));
+      setLogo(KEEP);
+      setFavicon(KEEP);
+      toast.success("Appearance saved for all users");
+    } catch (error) {
+      toast.error(`Could not save appearance: ${getErrorMessage(error)}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const disabled = readOnly || saving;
+
+  return (
+    <div className="space-y-8 pb-20">
+      <PageTitle
+        title="Appearance"
+        description="Customize the colors, the header logo and the browser tab of the platform for all users."
+      />
+
+      {!isPermissionLoading && !canWrite && (
+        <p className="rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground">
+          You can view the appearance settings, but changing them requires the platform configuration write permission.
+        </p>
+      )}
 
       <section className="space-y-3">
         <div className="space-y-1">
@@ -198,40 +324,42 @@ export default function AppearanceSettings() {
               name={preset.name}
               description={preset.description}
               variables={preset.variables}
-              selected={themeId === preset.id}
-              onSelect={() => setThemeId(preset.id)}
+              selected={!isCustom && getThemePreset(draft.themeId).id === preset.id}
+              onSelect={() => selectPreset(preset.id)}
+              disabled={disabled}
             />
           ))}
           <ThemeOption
             name="Custom"
-            description="Your own CSS variables."
-            selected={themeId === CUSTOM_THEME_ID}
+            description="Your own colors."
+            selected={isCustom}
             onSelect={selectCustom}
+            disabled={disabled}
           />
         </div>
 
         <div className="space-y-6 rounded-lg border bg-card p-4">
           <p className="text-sm text-muted-foreground">
-            Click a color swatch to change it. Changes apply immediately
-            {isCustom ? "." : " and turn the selected preset into your custom theme."}
+            Click a color swatch to change it. You see changes immediately; other users see them after saving
+            {isCustom ? "." : ". Changing a color turns the selected preset into a custom theme."}
           </p>
           {COLOR_GROUPS.map((group) => (
             <div key={group.title} className="space-y-2">
               <h4 className="text-sm font-semibold">{group.title}</h4>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 {group.colors.map(({ name, label }) => {
-                  const hex = hslToHex(readCssVariable(activeCss, name) ?? "");
+                  const hex = hslToHex(activeVariables[name] ?? "");
                   return (
                     <label
                       key={name}
-                      className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 hover:bg-accent"
+                      className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 hover:bg-accent has-disabled:cursor-not-allowed"
                     >
                       <input
                         type="color"
                         value={hex ?? "#000000"}
-                        disabled={!hex}
+                        disabled={!hex || disabled}
                         onChange={(e) => setColor(name, e.target.value)}
-                        className="h-8 w-8 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
+                        className="h-8 w-8 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0 disabled:cursor-not-allowed"
                       />
                       <span className="text-sm">{label}</span>
                     </label>
@@ -241,44 +369,40 @@ export default function AppearanceSettings() {
             </div>
           ))}
 
-          {isCustom && (
-            <details>
-              <summary className="cursor-pointer text-sm font-semibold">Advanced: edit CSS</summary>
+          {!readOnly && (
+            <details onToggle={(e) => e.currentTarget.open && setCssDraft(themeToCss(activeVariables))}>
+              <summary className="cursor-pointer text-sm font-semibold">Advanced: edit theme variables</summary>
               <div className="mt-3 space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Colors are HSL values (<code>hue saturation% lightness%</code>). The CSS is applied on top of the
-                  default theme.
+                  Only the listed variables are allowed. Colors are HSL values (<code>hue saturation% lightness%</code>,
+                  optionally <code>/ alpha</code>), <code>--radius</code> is a length in <code>rem</code> or <code>px</code>.
                 </p>
                 <Textarea
-                  aria-label="Custom theme CSS"
-                  value={cssDraft}
+                  aria-label="Theme variables"
+                  value={cssDraft ?? ""}
                   onChange={(e) => setCssDraft(e.target.value)}
                   spellCheck={false}
                   rows={18}
                   className="font-mono text-xs"
                 />
+                {cssErrors.length > 0 && (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                    <p className="font-medium">These lines are not allowed or invalid:</p>
+                    <ul className="mt-1 list-disc pl-5 font-mono text-xs">
+                      {cssErrors.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    disabled={cssDraft === customCss}
-                    onClick={() => {
-                      setCustomCss(cssDraft);
-                      toast.success("Custom theme applied");
-                    }}
-                  >
-                    Apply
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={cssDraft === customCss}
-                    onClick={() => setCssDraft(customCss)}
-                  >
-                    Discard changes
+                  <Button type="button" variant="outline" disabled={disabled} onClick={applyCss}>
+                    Apply to preview
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
+                    disabled={disabled}
                     onClick={() => setCssDraft(themeToCss(getThemePreset(DEFAULT_THEME_ID).variables))}
                   >
                     Load default template
@@ -295,25 +419,17 @@ export default function AppearanceSettings() {
           <h3 className="text-base font-semibold">Logo</h3>
           <p className="text-sm text-muted-foreground">Shown in the top left corner. PNG, JPEG, SVG or WebP, max. 512 KB.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-6 rounded-lg border bg-card p-4">
-          <div className="flex h-14 w-60 items-center justify-center rounded-md border bg-linear-to-r from-header-from via-header-via to-header-to px-3">
-            <img className="h-10 w-auto max-w-full object-contain" src={logoDataUrl ?? defaultLogo} alt="Current logo" />
-          </div>
-          <div className="flex gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={LOGO_TYPES.join(",")}
-              className="hidden"
-              onChange={handleLogoChange}
-            />
-            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-              Upload logo
-            </Button>
-            <Button type="button" variant="ghost" disabled={!logoDataUrl} onClick={() => setLogoDataUrl(null)}>
-              Restore default
-            </Button>
-          </div>
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
+          <AssetPicker
+            kind="logo"
+            previewUrl={logoUrl}
+            fallbackUrl={defaultLogo}
+            hasCustom={Boolean(logoUrl)}
+            disabled={disabled}
+            onChange={setLogo}
+            previewClassName="mr-3 flex h-14 w-60 items-center justify-center rounded-md border bg-linear-to-r from-header-from via-header-via to-header-to px-3"
+            imageClassName="h-10 w-auto max-w-full object-contain"
+          />
         </div>
       </section>
 
@@ -329,40 +445,52 @@ export default function AppearanceSettings() {
             </Label>
             <Input
               id="appTitle"
-              value={appTitle}
+              value={draft.appTitle}
               maxLength={80}
               placeholder={DEFAULT_APP_TITLE}
-              onChange={(e) => setAppTitle(e.target.value)}
+              disabled={disabled}
+              onChange={(e) => setDraft((d) => ({ ...d, appTitle: e.target.value }))}
               className="w-80"
             />
-            <Button type="button" variant="ghost" disabled={!appTitle} onClick={() => setAppTitle("")}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={disabled || !draft.appTitle}
+              onClick={() => setDraft((d) => ({ ...d, appTitle: "" }))}
+            >
               Restore default
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <span className="w-24 text-sm font-medium">Icon</span>
-            <span className="flex h-10 w-10 items-center justify-center rounded-md border bg-background">
-              <img className="h-6 w-6 object-contain" src={faviconDataUrl ?? DEFAULT_FAVICON} alt="Current tab icon" />
-            </span>
-            <input
-              ref={faviconInputRef}
-              type="file"
-              accept={[...FAVICON_TYPES, ".ico"].join(",")}
-              className="hidden"
-              onChange={handleFaviconChange}
+            <AssetPicker
+              kind="favicon"
+              previewUrl={faviconUrl}
+              fallbackUrl={DEFAULT_FAVICON}
+              hasCustom={Boolean(faviconUrl)}
+              disabled={disabled}
+              onChange={setFavicon}
+              previewClassName="flex h-10 w-10 items-center justify-center rounded-md border bg-background"
+              imageClassName="h-6 w-6 object-contain"
             />
-            <Button type="button" variant="outline" onClick={() => faviconInputRef.current?.click()}>
-              Upload icon
-            </Button>
-            <Button type="button" variant="ghost" disabled={!faviconDataUrl} onClick={() => setFaviconDataUrl(null)}>
-              Restore default
-            </Button>
             <span className="text-xs text-muted-foreground">ICO, PNG or SVG, max. 128 KB. Square images work best.</span>
           </div>
         </div>
       </section>
 
-      <p className="text-xs text-muted-foreground">Appearance settings are stored in this browser only.</p>
+      {isDirty && !readOnly && (
+        <div className="sticky bottom-0 z-10 -mx-2 flex items-center justify-end gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg">
+          <span className="mr-auto text-sm text-muted-foreground">
+            Unsaved changes - only you see them until you save.
+          </span>
+          <Button type="button" variant="outline" disabled={saving} onClick={discard}>
+            Discard
+          </Button>
+          <Button type="button" disabled={saving} onClick={save}>
+            {saving ? "Saving..." : "Save for all users"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

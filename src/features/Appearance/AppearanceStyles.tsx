@@ -1,16 +1,23 @@
 import { useEffect } from "react";
-import useAppearanceStore, { DEFAULT_APP_TITLE, DEFAULT_FAVICON } from "./appearanceStore";
+import { DEFAULT_APP_TITLE, DEFAULT_FAVICON, useActiveBranding } from "./appearanceStore";
+import { refreshBranding } from "./brandingApi";
 import { resolveThemeCss } from "./themes";
 
 const STYLE_ELEMENT_ID = "sealman-theme";
 
 /** Injects the selected theme as an unlayered stylesheet, which overrides the layered defaults in index.css. */
 export default function AppearanceStyles() {
-  const themeId = useAppearanceStore((s) => s.themeId);
-  const customCss = useAppearanceStore((s) => s.customCss);
-  const appTitle = useAppearanceStore((s) => s.appTitle);
-  const faviconDataUrl = useAppearanceStore((s) => s.faviconDataUrl);
-  const css = resolveThemeCss(themeId, customCss);
+  const { themeId, variables, appTitle, faviconUrl } = useActiveBranding();
+  const css = resolveThemeCss(themeId, variables);
+
+  useEffect(() => {
+    void refreshBranding();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refreshBranding();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   useEffect(() => {
     document.title = appTitle.trim() || DEFAULT_APP_TITLE;
@@ -23,8 +30,8 @@ export default function AppearanceStyles() {
       link.rel = "icon";
       document.head.appendChild(link);
     }
-    link.href = faviconDataUrl ?? DEFAULT_FAVICON;
-  }, [faviconDataUrl]);
+    link.href = faviconUrl ?? DEFAULT_FAVICON;
+  }, [faviconUrl]);
 
   useEffect(() => {
     let element = document.getElementById(STYLE_ELEMENT_ID) as HTMLStyleElement | null;

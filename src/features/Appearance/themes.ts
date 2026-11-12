@@ -168,22 +168,45 @@ export function hexToHsl(hex: string, previous = ""): string {
   return `${h} ${Math.round(s * 100)}% ${Math.round(l * 100)}%${alpha ? ` ${alpha}` : ""}`;
 }
 
-export function readCssVariable(css: string, name: string): string | null {
-  return new RegExp(`${name}\\s*:\\s*([^;]+);`).exec(css)?.[1].trim() ?? null;
+// Mirrors the API's validation (routers/branding/schemas.py): only known variables with plain values.
+const NUMBER = String.raw`\d{1,3}(?:\.\d{1,3})?`;
+const STRICT_HSL = new RegExp(`^${NUMBER} ${NUMBER}% ${NUMBER}%(?: / (?:0|1|0?\\.\\d{1,3}|${NUMBER}%))?$`);
+const STRICT_LENGTH = /^\d{1,2}(?:\.\d{1,3})?(?:rem|px)$/;
+
+export function isValidVariable(name: string, value: string): boolean {
+  if (!(name in DEFAULT_VARIABLES)) return false;
+  return (name === "--radius" ? STRICT_LENGTH : STRICT_HSL).test(value);
 }
 
-export function writeCssVariable(css: string, name: string, value: string): string {
-  const pattern = new RegExp(`(${name}\\s*:\\s*)[^;]+;`);
-  if (pattern.test(css)) return css.replace(pattern, `$1${value};`);
-  const rootStart = css.indexOf(":root");
-  const rootEnd = rootStart === -1 ? -1 : css.indexOf("}", rootStart);
-  if (rootEnd === -1) return `${css}\n:root {\n  ${name}: ${value};\n}\n`;
-  return `${css.slice(0, rootEnd)}  ${name}: ${value};\n${css.slice(rootEnd)}`;
+/** Parses `--name: value;` declarations; anything else is reported as an error. */
+export function parseCssVariables(css: string): { variables: ThemeVariables; errors: string[] } {
+  const variables: ThemeVariables = {};
+  const errors: string[] = [];
+  const body = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*:root\s*\{/, "").replace(/\}\s*$/, "");
+  for (const declaration of body.split(";")) {
+    if (!declaration.trim()) continue;
+    const separator = declaration.indexOf(":");
+    const name = declaration.slice(0, separator).trim();
+    const value = declaration.slice(separator + 1).trim().replace(/\s+/g, " ");
+    if (separator === -1 || !isValidVariable(name, value)) {
+      errors.push(declaration.trim());
+      continue;
+    }
+    variables[name] = value;
+  }
+  return { variables, errors };
+}
+
+/** Full variable set of a selection: presets as defined, custom on top of the defaults. */
+export function resolveThemeVariables(themeId: string, customVariables: ThemeVariables): ThemeVariables {
+  if (themeId === CUSTOM_THEME_ID) return { ...DEFAULT_VARIABLES, ...customVariables };
+  return getThemePreset(themeId).variables;
 }
 
 /** CSS to inject for the given selection; empty for the default theme (index.css already applies it). */
-export function resolveThemeCss(themeId: string, customCss: string): string {
-  if (themeId === CUSTOM_THEME_ID) return customCss;
-  const preset = getThemePreset(themeId);
-  return preset.id === DEFAULT_THEME_ID ? "" : themeToCss(preset.variables);
+export function resolveThemeCss(themeId: string, customVariables: ThemeVariables): string {
+  if (themeId !== CUSTOM_THEME_ID && getThemePreset(themeId).id === DEFAULT_THEME_ID) return "";
+  const variables = resolveThemeVariables(themeId, customVariables);
+  const safe = Object.fromEntries(Object.entries(variables).filter(([name, value]) => isValidVariable(name, value)));
+  return themeToCss(safe);
 }

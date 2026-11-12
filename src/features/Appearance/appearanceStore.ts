@@ -1,44 +1,51 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { DEFAULT_THEME_ID } from "./themes";
+import { DEFAULT_THEME_ID, type ThemeVariables } from "./themes";
 
 // Must match index.html.
 export const DEFAULT_APP_TITLE = "EdgeConfig App";
 export const DEFAULT_FAVICON = "/sealman.ico";
 
-interface AppearanceState {
+export interface Branding {
   themeId: string;
-  customCss: string;
-  /** Uploaded logo as data URL; null means the bundled Sealman logo. */
-  logoDataUrl: string | null;
-  /** Browser tab title; empty means the default from index.html. */
+  /** Only used by the custom theme. */
+  variables: ThemeVariables;
+  /** Empty means DEFAULT_APP_TITLE. */
   appTitle: string;
-  /** Uploaded tab icon as data URL; null means the bundled favicon. */
-  faviconDataUrl: string | null;
-  setThemeId: (themeId: string) => void;
-  setCustomCss: (css: string) => void;
-  setLogoDataUrl: (dataUrl: string | null) => void;
-  setAppTitle: (title: string) => void;
-  setFaviconDataUrl: (dataUrl: string | null) => void;
+  /** null means the bundled asset. */
+  logoUrl: string | null;
+  faviconUrl: string | null;
 }
 
-/** The backend has no appearance settings yet, so they're persisted locally in the browser. */
+export const DEFAULT_BRANDING: Branding = {
+  themeId: DEFAULT_THEME_ID,
+  variables: {},
+  appTitle: "",
+  logoUrl: null,
+  faviconUrl: null,
+};
+
+interface AppearanceState {
+  /** Platform-wide branding from the API, cached locally so a reload doesn't flash the default look. */
+  published: Branding;
+  /** Unsaved draft from the Appearance settings page, shown only to the editing admin. */
+  preview: Branding | null;
+  setPublished: (branding: Branding) => void;
+  setPreview: (branding: Branding | null) => void;
+}
+
 const useAppearanceStore = create<AppearanceState>()(
   persist(
     (set) => ({
-      themeId: DEFAULT_THEME_ID,
-      customCss: "",
-      logoDataUrl: null,
-      appTitle: "",
-      faviconDataUrl: null,
-      setThemeId: (themeId) => set({ themeId }),
-      setCustomCss: (customCss) => set({ customCss }),
-      setLogoDataUrl: (logoDataUrl) => set({ logoDataUrl }),
-      setAppTitle: (appTitle) => set({ appTitle }),
-      setFaviconDataUrl: (faviconDataUrl) => set({ faviconDataUrl }),
+      published: DEFAULT_BRANDING,
+      preview: null,
+      setPublished: (published) => set({ published }),
+      setPreview: (preview) => set({ preview }),
     }),
-    { name: "sealman.appearance" },
+    { name: "sealman.branding", partialize: (state) => ({ published: state.published }) },
   ),
 );
+
+export const useActiveBranding = () => useAppearanceStore((s) => s.preview ?? s.published);
 
 export default useAppearanceStore;

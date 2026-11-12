@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import SignOutButton from "../Auth/SignOutButton";
 import defaultLogo from "../../assets/sealman_logo.png";
 import { useAuth } from "@/auth";
-import useAppearanceStore from "@/features/Appearance/appearanceStore";
+import { useActiveBranding } from "@/features/Appearance/appearanceStore";
 import { Button } from "@/components/ui/button";
 
 // Docs and Help are placeholders until the targets exist.
@@ -17,7 +17,7 @@ const HEADER_LINKS = [
 
 export default function AppHeader() {
   const auth = useAuth();
-  const logo = useAppearanceStore((s) => s.logoDataUrl) ?? defaultLogo;
+  const logo = useActiveBranding().logoUrl ?? defaultLogo;
 
   const initials = useMemo(() => {
     return auth.user?.name?.split(" ").map((n) => n[0]).join("") || "";
