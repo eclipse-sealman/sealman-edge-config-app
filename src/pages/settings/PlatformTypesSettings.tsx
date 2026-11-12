@@ -3,6 +3,7 @@ import PageTitle from "@/components/Typography/PageTitle";
 import TypesManager from "@/features/PlatformTypes/TypesManager";
 import DeviceTableColumnsCard from "@/features/PlatformTypes/DeviceTableColumnsCard";
 import DefaultScanPortsCard from "@/features/PlatformTypes/DefaultScanPortsCard";
+import { useNetworkScanEnabled } from "@/features/PlatformFunctions/platformFunctionsApi";
 import ExtensionOutlet from "@/features/Extensions/outlets/ExtensionOutlet";
 import { useOutletUser } from "@/features/Extensions/outlets/useOutletUser";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
@@ -51,6 +52,8 @@ export default function PlatformTypesSettings() {
   const { postServiceType } = usePostServiceType();
   const { updateServiceType } = useUpdateServiceType();
   const { deleteServiceType } = useDeleteServiceType();
+
+  const networkScanEnabled = useNetworkScanEnabled() === true;
 
   return (
     <div className="space-y-6">
@@ -134,7 +137,7 @@ export default function PlatformTypesSettings() {
           }}
         />
 
-        <DefaultScanPortsCard />
+        {networkScanEnabled && <DefaultScanPortsCard />}
 
         {/* Extensions contribute their own platform-configuration cards here (e.g. fields they need). */}
         <ExtensionOutlet target="global" placement="section" context={{ user }} />

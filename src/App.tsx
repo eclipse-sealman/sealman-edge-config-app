@@ -17,6 +17,7 @@ import PlatformTypesSettings from "./pages/settings/PlatformTypesSettings";
 import PageTitle from "./components/Typography/PageTitle";
 import SealAgentSettings from "./pages/settings/SealAgentSettings";
 import AppearanceSettings from "./pages/settings/AppearanceSettings";
+import PlatformFunctionsSettings from "./pages/settings/PlatformFunctionsSettings";
 import PresetTemplateVariablesSettings from "./pages/settings/PresetTemplateVariablesSettings";
 import { DeviceTemplateVariablesSection, IOTEDGE_AGENT_VARIABLES, IOTEDGE_REGISTRY_VARIABLES, SEALMAN_EMS_VARIABLES } from "./pages/settings/TemplatesSettings";
 import DeploymentsLayout from "./pages/deployments/DeploymentsLayout";
@@ -137,6 +138,7 @@ export default function App() {
               <Route path="platform-types" element={<Navigate to="/platform-types/asset-types" replace />} />
               <Route path="seal-agent" element={<SealAgentSettings />} />
               <Route path="appearance" element={<AppearanceSettings />} />
+              <Route path="platform-functions" element={<PlatformFunctionsSettings />} />
               <Route
                 path="azure-iot-edge"
                 element={
