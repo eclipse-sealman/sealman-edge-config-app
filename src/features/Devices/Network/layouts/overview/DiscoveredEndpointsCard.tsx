@@ -11,6 +11,7 @@ interface props {
   onScan: () => void;
   isScanning: boolean;
   scanDisabled?: boolean;
+  scanAvailable?: boolean;
   onAddEndpoint: () => void;
   onEndpointCreated: () => void;
   onOpenDetails: (endpointId: string) => void;
@@ -24,6 +25,7 @@ export default function DiscoveredEndpointsCard({
   onScan,
   isScanning,
   scanDisabled,
+  scanAvailable,
   onAddEndpoint,
   onEndpointCreated,
   onOpenDetails,
@@ -39,7 +41,7 @@ export default function DiscoveredEndpointsCard({
             Physical machines and systems discovered on the network. Expand each endpoint to view its services.
           </p>
         </div>
-        <EndpointActions deviceId={deviceId} onScan={onScan} isScanning={isScanning} scanDisabled={scanDisabled} onAddEndpoint={onAddEndpoint} leading={viewToggle} />
+        <EndpointActions deviceId={deviceId} onScan={onScan} isScanning={isScanning} scanDisabled={scanDisabled} scanAvailable={scanAvailable} onAddEndpoint={onAddEndpoint} leading={viewToggle} />
       </div>
 
       <div className="border rounded-lg overflow-hidden bg-background">

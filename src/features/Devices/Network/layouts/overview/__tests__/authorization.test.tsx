@@ -6,6 +6,11 @@ import { queryClient } from "@/config/queryConfig";
 
 const mocks = vi.hoisted(() => ({
   deviceId: "device-a", user: "user-a", get: vi.fn(), discover: vi.fn(), overview: vi.fn(), savePorts: vi.fn(), notify: vi.fn(),
+  scanEnabled: true as boolean | undefined,
+}));
+vi.mock("@/features/PlatformFunctions/platformFunctionsApi", () => ({
+  PLATFORM_FUNCTIONS_QUERY_KEY: ["platformFunctions"],
+  useNetworkScanEnabled: () => mocks.scanEnabled,
 }));
 vi.mock("@/auth", () => ({ useAuth: () => ({ isAuthenticated: true, user: { sub: mocks.user } }) }));
 vi.mock("@/features/Devices/Network/stores", () => ({
@@ -17,8 +22,8 @@ vi.mock("@/generated/edge-administration/hooks/network/usePostNetworkOverview", 
 vi.mock("@/generated/edge-administration/hooks/network/usePostDeviceScanPorts", () => ({ default: () => ({ mutateAsync: mocks.savePorts }) }));
 vi.mock("react-toastify", () => ({ toast: { error: mocks.notify } }));
 vi.mock("../DiscoveredEndpointsCard", () => ({
-  default: ({ endpoints, onScan, scanDisabled }: { endpoints: { ip: string }[]; onScan: () => void; scanDisabled: boolean }) => (
-    <div>{endpoints.map((endpoint) => <span key={endpoint.ip}>{endpoint.ip}</span>)}<button disabled={scanDisabled} onClick={onScan}>Custom scan</button></div>
+  default: ({ endpoints, onScan, scanDisabled, scanAvailable }: { endpoints: { ip: string }[]; onScan: () => void; scanDisabled: boolean; scanAvailable?: boolean }) => (
+    <div>{endpoints.map((endpoint) => <span key={endpoint.ip}>{endpoint.ip}</span>)}{scanAvailable !== false && <button disabled={scanDisabled} onClick={onScan}>Custom scan</button>}</div>
   ),
 }));
 vi.mock("../EndpointCanvas", () => ({
@@ -47,7 +52,7 @@ describe("Assets reactive authorization", () => {
   const flush = async (ms = 50) => { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); };
   beforeEach(() => {
     vi.useFakeTimers();
-    mocks.deviceId = "device-a"; mocks.user = "user-a";
+    mocks.deviceId = "device-a"; mocks.user = "user-a"; mocks.scanEnabled = true;
     mocks.get.mockReset().mockImplementation(async (path: string) => {
       if (path.endsWith("scan-ports")) return { data: [80] };
       if (path.endsWith("scan-range")) return { data: { ...definition, suggestedIps: [] } };
@@ -60,6 +65,27 @@ describe("Assets reactive authorization", () => {
     client = new QueryClient({ defaultOptions: queryClient.getDefaultOptions() });
   });
   afterEach(() => { client.clear(); vi.useRealTimers(); });
+
+  it("never scans while the network scan is disabled platform-wide but still shows configured endpoints", async () => {
+    mocks.scanEnabled = false;
+    render(tree());
+    await flush();
+    expect(screen.getByText("10.0.0.1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Custom scan" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Not permitted")).not.toBeInTheDocument();
+    await flush(15000);
+    expect(mocks.get.mock.calls.every(([path]) => path.endsWith("last-known"))).toBe(true);
+    expect(mocks.discover).not.toHaveBeenCalled();
+    expect(mocks.overview).not.toHaveBeenCalled();
+  });
+
+  it("does not start anything before the network scan switch is known", async () => {
+    mocks.scanEnabled = undefined;
+    render(tree());
+    await flush();
+    expect(mocks.get).not.toHaveBeenCalled();
+    expect(mocks.discover).not.toHaveBeenCalled();
+  });
 
   it.each(["scan-ports", "scan-range", "discover", "overview"])(
     "stops scanning after a %s denial but preserves readable configured endpoints",

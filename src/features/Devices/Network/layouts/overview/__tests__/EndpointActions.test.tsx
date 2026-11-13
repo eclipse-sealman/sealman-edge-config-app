@@ -35,4 +35,12 @@ describe("EndpointActions", () => {
     fireEvent.click(button);
     expect(onAddEndpoint).toHaveBeenCalledTimes(1);
   });
+
+  it("does not offer Scan Network while the network scan is disabled platform-wide", () => {
+    vi.mocked(usePermissions).mockReturnValue({ hasPermission: true });
+    render(<EndpointActions deviceId="device-a" onScan={vi.fn()} isScanning={false} scanAvailable={false} onAddEndpoint={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "Scan Network" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Endpoint" })).toBeEnabled();
+  });
 });
