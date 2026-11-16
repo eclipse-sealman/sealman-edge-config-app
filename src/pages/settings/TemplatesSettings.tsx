@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ErrorState, LoadingState } from "@/components/ui/page-state";
 import { getErrorMessage } from "@/lib/errors";
 
-export type PresetTemplateVariable = { name: string; defaultValue: string; deleteWarning?: string };
+export type PresetTemplateVariable = { name: string; defaultValue: string; deleteWarning?: string; placeholder?: string };
 
 export const IOTEDGE_REGISTRY_VARIABLES: PresetTemplateVariable[] = [
   { name: "iotedge_registry_url", defaultValue: "docker.io" },
@@ -19,6 +19,10 @@ export const IOTEDGE_AGENT_VARIABLES: PresetTemplateVariable[] = [
   { name: "edge_agent_image", defaultValue: "mcr.microsoft.com/azureiotedge-agent:1.4" },
 ];
 
+export const IOTEDGE_PROVISIONING_VARIABLES: PresetTemplateVariable[] = [
+  { name: "iotedge_dps_id_scope", defaultValue: "", placeholder: "id_scope" },
+];
+
 export const SEALMAN_EMS_VARIABLES: PresetTemplateVariable[] = [
   {
     name: "sems_device_url",
@@ -27,12 +31,21 @@ export const SEALMAN_EMS_VARIABLES: PresetTemplateVariable[] = [
       "Deleting this variable resets the SEMS URL on all devices to the template default. Devices may lose their connection to SEMS and can then no longer receive any configuration.",
   },
   { name: "sems_polling_interval", defaultValue: "600" },
+  { name: "sems_edgegatewayvcc", defaultValue: "", placeholder: "true / false" },
+  { name: "sems_certificate", defaultValue: "", placeholder: "certificate" },
 ];
 
-const PRESET_VARIABLE_NAMES: string[] = [
+export const SEALMAN_EMS_REGISTRY_VARIABLES: PresetTemplateVariable[] = [
+  { name: "container_registry_address", defaultValue: "docker.io" },
+  { name: "container_registry_credentials_encoded", defaultValue: "", placeholder: "base64(username:password)" },
+];
+
+export const PRESET_VARIABLE_NAMES: string[] = [
   ...IOTEDGE_REGISTRY_VARIABLES,
   ...IOTEDGE_AGENT_VARIABLES,
+  ...IOTEDGE_PROVISIONING_VARIABLES,
   ...SEALMAN_EMS_VARIABLES,
+  ...SEALMAN_EMS_REGISTRY_VARIABLES,
 ].map((v) => v.name);
 
 export function TemplateVariableRow({

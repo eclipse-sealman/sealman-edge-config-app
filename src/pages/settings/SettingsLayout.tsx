@@ -4,8 +4,7 @@ import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission
 
 const SETTINGS_TABS = [
   { label: "Seal-Agent", path: "seal-agent" },
-  { label: "Azure IoT Edge", path: "azure-iot-edge" },
-  { label: "SEMS", path: "sealman-ems" },
+  { label: "Devices", path: "devices" },
   { label: "Appearance", path: "appearance" },
   { label: "Platform Functions", path: "platform-functions" },
 ];

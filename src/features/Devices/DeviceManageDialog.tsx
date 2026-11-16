@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import { WaterLoader } from "@/components/ui/water-loader";
 import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
+import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
+import { PRESET_VARIABLE_NAMES } from "@/pages/settings/TemplatesSettings";
 import { useQueryClient } from "@tanstack/react-query";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
 import FieldValueInput, { validateFields } from "@/features/PlatformTypes/FieldValueInput";
@@ -12,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-function Message({ kind, children }: { kind: "error" | "success"; children: React.ReactNode }) {
+function Message({ kind, children }: { kind: "error" | "success" | "warning"; children: React.ReactNode }) {
   return <InlineAlert variant={kind}>{children}</InlineAlert>;
 }
 
@@ -29,11 +31,17 @@ export default function DeviceManageDialog({ canCreate }: { canCreate: boolean }
   const [success, setSuccess] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const deviceTypesQuery = useGetDeviceTypes();
+  const { variablesQuery } = edgeConfigApiHooks.useDeviceTemplateVariables();
 
   useEffect(() => {
-    if (open) deviceTypesQuery.refetch();
+    if (open) { deviceTypesQuery.refetch(); variablesQuery.refetch(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Only block when the variables could be read; a failed read must not hide the form.
+  const platformIncomplete =
+    variablesQuery.isSuccess &&
+    PRESET_VARIABLE_NAMES.some((name) => !variablesQuery.data?.[name]?.trim());
 
   const deviceTypes = deviceTypesQuery.data ?? [];
   const selectedType = deviceTypes.find((t) => t.type_id === typeId);
@@ -62,6 +70,7 @@ export default function DeviceManageDialog({ canCreate }: { canCreate: boolean }
   };
 
   const handleCreate = async () => {
+    if (platformIncomplete) return;
     if (!deviceId.trim()) { setError("Device ID is required"); return; }
     if (!typeId) { setError("Device type is required"); return; }
     const validationError = validateFields(fieldValues, effectiveFields);
@@ -75,7 +84,7 @@ export default function DeviceManageDialog({ canCreate }: { canCreate: boolean }
       await edgeConfigApi.createDevice(
         deviceId.trim(), authType, typeId,
         Object.keys(meta).length > 0 ? meta : undefined,
-        registrationId.trim() || undefined,
+        registrationId.trim() && authType === "tpm" ? registrationId.trim() : undefined,
       );
       setSuccess(`Device "${deviceId}" created successfully.`);
       queryClient.invalidateQueries({ queryKey: ["get", "/devices", "withCountryData"] });
@@ -102,6 +111,12 @@ export default function DeviceManageDialog({ canCreate }: { canCreate: boolean }
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
+            {platformIncomplete && (
+              <Message kind="warning">
+                Devices can only be created once the platform is fully configured. The platform has not been
+                fully configured yet - please contact a platform admin.
+              </Message>
+            )}
             <div className="space-y-1.5">
               <Label>Device ID <span className="text-red-500">*</span></Label>
               <Input type="text" value={deviceId} onChange={(e) => setDeviceId(e.target.value)}
@@ -115,17 +130,19 @@ export default function DeviceManageDialog({ canCreate }: { canCreate: boolean }
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="sas">sas</SelectItem>
-                  <SelectItem value="tpm" disabled>tpm</SelectItem>
+                  <SelectItem value="tpm">tpm</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>
-                Registration ID <span className="text-muted-foreground font-normal text-xs">(optional)</span>
-              </Label>
-              <Input type="text" value={registrationId} onChange={(e) => setRegistrationId(e.target.value)}
-                placeholder="Leave blank to use Device ID" />
-            </div>
+            {authType === "tpm" && (
+              <div className="space-y-1.5">
+                <Label>
+                  Registration ID <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                </Label>
+                <Input type="text" value={registrationId} onChange={(e) => setRegistrationId(e.target.value)}
+                  placeholder="Leave blank if already provisioned" />
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label>Device Type <span className="text-red-500">*</span></Label>
@@ -182,7 +199,7 @@ export default function DeviceManageDialog({ canCreate }: { canCreate: boolean }
               {success ? "Close" : "Cancel"}
             </Button>
             {!success && (
-              <Button onClick={handleCreate} disabled={loading}>
+              <Button onClick={handleCreate} disabled={loading || platformIncomplete}>
                 {loading && <WaterLoader />}
                 {loading ? "Processing..." : "Create"}
               </Button>

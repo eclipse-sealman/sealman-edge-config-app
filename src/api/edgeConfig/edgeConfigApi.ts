@@ -354,7 +354,7 @@ const createDevice = async (
     body.meta = meta;
   }
   if (registrationId) {
-    body.registration_id_generated = registrationId;
+    body.registrationId = registrationId;
   }
   const { data } = await edgeConfigApiInstance.put(`/devices/${deviceId}`, body);
   return data;
@@ -377,6 +377,11 @@ const setDeviceTemplateVariable = async (name: string, value: string): Promise<R
 
 const deleteDeviceTemplateVariable = async (name: string): Promise<void> => {
   await edgeConfigApiInstance.delete(`/platform/device-template-variables/${encodeURIComponent(name)}`);
+};
+
+const testDeviceConfig = async (): Promise<{ valid: boolean; message: string }> => {
+  const { data } = await edgeConfigApiInstance.post('/platform/test-device-config');
+  return data;
 };
 
 
@@ -443,5 +448,6 @@ export const edgeConfigApi = {
   getDevicesWithMetaKey,
   getDeviceTemplateVariables,
   setDeviceTemplateVariable,
-  deleteDeviceTemplateVariable
+  deleteDeviceTemplateVariable,
+  testDeviceConfig
 }

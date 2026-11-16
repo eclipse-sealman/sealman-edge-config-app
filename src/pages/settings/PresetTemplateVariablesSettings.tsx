@@ -93,12 +93,12 @@ export default function PresetTemplateVariablesSettings({
                   </tr>
                 </thead>
                 <tbody>
-                  {section.variables.map(({ name, defaultValue }) => (
+                  {section.variables.map(({ name, defaultValue, placeholder }) => (
                     <TemplateVariableRow
                       key={name}
                       name={name}
                       value={variables[name] ?? ""}
-                      placeholder={defaultValue ? `Default: ${defaultValue}` : "Optional"}
+                      placeholder={placeholder ?? (defaultValue ? `Default: ${defaultValue}` : "Optional")}
                       onSave={handleSave}
                       onDelete={handleDelete}
                       saving={saving}
