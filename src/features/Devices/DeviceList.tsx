@@ -22,10 +22,11 @@ import {
   ColumnDef,
 } from "@tanstack/react-table";
 import { DeviceData } from "../../api/edgeConfig/edgeConfigApiHooks";
-import DevicesHeader, { DeviceOnlineFilterStatus } from "./DevicesHeader";
+import { DeviceOnlineFilterStatus } from "./DevicesHeader";
+import DevicesToolbar from "./DevicesToolbar";
 import FilterDetails from "./FilterDetails";
 import useDeviceStore from "./deviceStore";
-import DeviceSearchBar from "./DeviceSearch/DeviceSearchBar";
+import ColumnValueFilter from "./DeviceSearch/ColumnValueFilter";
 import DeviceMatchList from "./DeviceSearch/DeviceMatchList";
 import useDeviceSearch, { DeviceSearchState } from "./DeviceSearch/useDeviceSearch";
 import useGetDevices from "@/generated/edge-administration/hooks/useGetDevices/useGetDevices";
@@ -49,6 +50,9 @@ function formatDataForTable(data: DeviceData[] | undefined): DeviceDataDisplay[]
 }
 
 const columnHelper = createColumnHelper<DeviceDataDisplay>();
+
+// ids of the per-field metadata columns are "meta:<field key>"
+const METADATA_COLUMN_PREFIX = "meta:";
 
 const baseColumns: ColumnDef<DeviceDataDisplay, any>[] = [
   columnHelper.accessor("onlineStatusEdge", {
@@ -105,24 +109,25 @@ export default function DeviceList() {
     );
   };
 
-  const setSearchFilters = useDeviceStore.use.setSearchFilters();
+  const clearSearchFilters = useDeviceStore.use.clearSearchFilters();
   const search = useDeviceSearch();
 
   useEffect(() => {
     setGlobalFilter("");
     setColumnFiltersStore([]);
-    setSearchFilters([]);
-  }, [setColumnFiltersStore, setGlobalFilter, setSearchFilters]);
+    clearSearchFilters();
+  }, [setColumnFiltersStore, setGlobalFilter, clearSearchFilters]);
 
   const { isLoading, isError, data, error } = useGetDevices();
   const { fields: metadataFields } = useDeviceMetadataFields();
   const columnVisibilityOverrides = useDeviceTableColumnsStore((s) => s.overrides);
 
-  // With an advanced search running, only the devices the API matched are listed.
+  // With search active, the API result set is authoritative for IDs, metadata, endpoints and
+  // services. The status filter then narrows the returned devices.
   const tableData = useMemo<DeviceDataDisplay[]>(() => {
     const rows = formatDataForTable(data as DeviceData[]);
-    return search.hasTerm ? rows.filter((row) => search.matchesByDevice.has(row.deviceId)) : rows;
-  }, [data, search.hasTerm, search.matchesByDevice]);
+    return search.active ? rows.filter((row) => search.matchesByDevice.has(row.deviceId)) : rows;
+  }, [data, search.active, search.matchesByDevice]);
   const permissions = useDeviceManagementPermissions(!isLoading && !isError && data !== undefined);
   const deletableDevices = useMemo(() => new Set(permissions?.deletable_device_ids ?? []), [permissions]);
 
@@ -164,8 +169,7 @@ export default function DeviceList() {
     columns,
     state: {
       columnFilters,
-      // the quick (in-browser) search is replaced by the API search while filter chips are selected
-      globalFilter: search.active ? "" : globalFilter,
+      globalFilter: search.active ? "" : globalFilter.trim(),
       columnVisibility,
     },
     defaultColumn: {
@@ -185,7 +189,7 @@ export default function DeviceList() {
   });
 
   const calculateDeviceOnlineFilter = () => {
-    if (columnFilters.length === 1 && columnFilters[0].id === "onlineStatus") {
+    if (columnFilters.length === 1 && columnFilters[0].id === "onlineStatusEdge") {
       return columnFilters[0].value === "online"
         ? DeviceOnlineFilterStatus.Online
         : DeviceOnlineFilterStatus.Offline;
@@ -200,17 +204,13 @@ export default function DeviceList() {
   const filterByStatusFromHeader = (
     deviceOnlineFilterStatus: DeviceOnlineFilterStatus,
   ) => {
-    setGlobalFilter("");
     if (deviceOnlineFilterStatus === DeviceOnlineFilterStatus.All) {
       setColumnFilters([]);
     } else {
       setColumnFilters([
         {
-          id: "iotEdgeRuntime",
-          value:
-            deviceOnlineFilterStatus === DeviceOnlineFilterStatus.Online
-              ? "Connected"
-              : "Disconnected",
+          id: "onlineStatusEdge",
+          value: deviceOnlineFilterStatus === DeviceOnlineFilterStatus.Online ? "online" : "offline",
         },
       ]);
     }
@@ -222,29 +222,31 @@ export default function DeviceList() {
     return <ErrorState title="Could not load the devices" message={getErrorMessage(error)} />;
 
   return (
-    <div className="@container w-full p-4">
-      <div className="hidden @2xl:block">
-        <div className="overflow-hidden rounded-xl border bg-white shadow-xs">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-3">
-            <h1 className="text-lg font-semibold tracking-tight">Devices</h1>
-            <DevicesHeader
-              deviceOnlineFilter={deviceOnlineFilter}
-              setDeviceOnlineFilter={filterByStatusFromHeader}
+    <div className="@container w-full space-y-4 p-4">
+      <DevicesToolbar
+        title="Devices"
+        deviceOnlineFilter={deviceOnlineFilter}
+        setDeviceOnlineFilter={filterByStatusFromHeader}
+      >
+        <div className="flex items-center gap-3">
+          {data && (
+            <FilterDetails
+              totalRows={data.length}
+              filteredRows={table.getRowModel().rows.length}
+              className="items-center"
             />
-            {data && (
-              <FilterDetails
-                totalRows={data.length}
-                filteredRows={table.getRowModel().rows.length}
-                className="items-center"
-              />
-            )}
-            <div className="ml-auto flex items-center gap-3">
-              <DeviceSearchBar className="w-96 max-w-full" />
-              <DeviceManageDialog canCreate={permissions?.can_create ?? false} />
-            </div>
+
+          )}
+          <div className="ml-auto flex items-center gap-3">
+            <DeviceManageDialog
+              canCreate={permissions?.can_create ?? false}
+            />
           </div>
-          <DeviceTable table={table} search={search} deletableDevices={deletableDevices} />
+
         </div>
+      </DevicesToolbar>
+      <div className="hidden @2xl:block overflow-hidden rounded-xl border bg-white shadow-xs">
+        <DeviceTable table={table} search={search} deletableDevices={deletableDevices} />
       </div>
       <div className="block @2xl:hidden">
         <DeviceCards
@@ -260,10 +262,21 @@ export default function DeviceList() {
 }
 
 function DeviceTable({ table, search, deletableDevices }: DeviceListProps & { search: DeviceSearchState; deletableDevices: Set<string>; }) {
+  const { fields: metadataFields } = useDeviceMetadataFields();
+  const fieldLabels = useMemo(() => new Map(metadataFields.map(([key, field]) => [key, field.label])), [metadataFields]);
   const navigate = useNavigate();
   const { deviceId: activeDeviceId } = useParams();
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const resultIds = table.getRowModel().rows
+    .map((row) => row.original.deviceId)
+    .filter((id) => (search.matchesByDevice.get(id)?.length ?? 0) > 0);
+  const resultSignature = resultIds.join("|");
+  useEffect(() => {
+    if (search.active && !search.isFetching) setExpandedIds(new Set(resultIds));
+    else if (!search.active) setExpandedIds(new Set());
+    // The signature changes when a new search/filter operation returns a new result set.
+  }, [search.active, search.isFetching, resultSignature]);
   const toggleExpanded = (id: string) =>
     setExpandedIds((current) => {
       const next = new Set(current);
@@ -282,12 +295,17 @@ function DeviceTable({ table, search, deletableDevices }: DeviceListProps & { se
                   key={header.id}
                   className="h-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
+                  {header.isPlaceholder ? null : (
+                    <span className="inline-flex items-center gap-1">
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.id.startsWith(METADATA_COLUMN_PREFIX) && (
+                        <ColumnValueFilter
+                          field={header.column.id.slice(METADATA_COLUMN_PREFIX.length)}
+                          label={fieldLabels.get(header.column.id.slice(METADATA_COLUMN_PREFIX.length)) ?? header.column.id}
+                        />
                       )}
+                    </span>
+                  )}
                 </TableHead>
               ))}
               <TableHead className="w-28" />
@@ -309,12 +327,13 @@ function DeviceTable({ table, search, deletableDevices }: DeviceListProps & { se
           {table.getRowModel().rows.map((row) => {
             const id = row.original.deviceId;
             const matches = search.matchesByDevice.get(id) ?? [];
-            const expanded = search.hasTerm && expandedIds.has(id);
+            const expandable = search.expandable && matches.length > 0;
+            const expanded = expandable && expandedIds.has(id);
             return (
               <Fragment key={row.id}>
                 <TableRow
-                  onClick={() => (search.hasTerm ? toggleExpanded(id) : navigate(`/devices/${id}`))}
-                  aria-expanded={search.hasTerm ? expanded : undefined}
+                  onClick={() => (expandable ? toggleExpanded(id) : navigate(`/devices/${id}`))}
+                  aria-expanded={expandable ? expanded : undefined}
                   className={`group cursor-pointer ${activeDeviceId === id ? "bg-blue-50" : "hover:bg-slate-50"} ${search.isStale ? "opacity-60" : ""}`}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -324,12 +343,12 @@ function DeviceTable({ table, search, deletableDevices }: DeviceListProps & { se
                   ))}
                   <TableCell className="py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                     <DeleteDeviceButton
+                       <DeleteDeviceButton
                     deviceId={row.original.deviceId}
                     canDelete={deletableDevices.has(row.original.deviceId)}
                     onDelete={() => setDeleteTargetId(row.original.deviceId)}
                   />
-                      {search.hasTerm ? (
+                      {expandable ? (
                         <>
                           <span className="whitespace-nowrap text-xs text-muted-foreground">
                             {matches.length} {matches.length === 1 ? "match" : "matches"}
@@ -347,7 +366,7 @@ function DeviceTable({ table, search, deletableDevices }: DeviceListProps & { se
                 {expanded && (
                   <TableRow className="bg-slate-50 hover:bg-slate-50">
                     <TableCell colSpan={table.getVisibleLeafColumns().length + 1} className="p-0">
-                      <DeviceMatchList deviceId={id} matches={matches} term={search.term} />
+                      <DeviceMatchList deviceId={id} matches={matches} terms={search.terms} />
                     </TableCell>
                   </TableRow>
                 )}

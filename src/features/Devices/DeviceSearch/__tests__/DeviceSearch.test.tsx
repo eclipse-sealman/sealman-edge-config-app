@@ -37,7 +37,7 @@ describe("DeviceMatchList", () => {
     render(
       <MemoryRouter initialEntries={["/devices"]}>
         <Routes>
-          <Route path="*" element={<><DeviceMatchList deviceId="1230" matches={matches} term="machine" /><Where /></>} />
+          <Route path="*" element={<><DeviceMatchList deviceId="1230" matches={matches} terms={["machine"]} /><Where /></>} />
         </Routes>
       </MemoryRouter>,
     );
@@ -51,8 +51,8 @@ describe("DeviceMatchList", () => {
   });
 
   it.each([
-    ["Jump to Device ID page of device 1230", "/devices/1230"],
-    ["Jump to Metadata page of device 1230", "/devices/1230"],
+    ["Jump to Device ID page of device 1230", "/devices/1230/assets"],
+    ["Jump to Metadata page of device 1230", "/devices/1230/assets"],
     ["Jump to Endpoint page of device 1230", "/devices/1230/assets?highlight=e1"],
     ["Jump to Service page of device 1230", "/devices/1230/assets?highlight=e1"],
   ])("%s navigates to %s", async (label, target) => {

@@ -1377,8 +1377,42 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /** Search Devices Route */
-        get: operations["search_devices_route_devices_search_get"];
+        post: operations["search_devices_route_devices_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/search/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Search Suggestions Route */
+        get: operations["get_search_suggestions_route_devices_search_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/search/column-values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Column Values Route */
+        get: operations["get_column_values_route_devices_search_column_values_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1995,6 +2029,16 @@ export interface components {
              */
             sems: "Connected" | "Disconnected" | "Unknown";
         };
+        /**
+         * DeviceColumnFilter
+         * @description The metadata field equals ANY of the values.
+         */
+        DeviceColumnFilter: {
+            /** Field */
+            field: string;
+            /** Values */
+            values: string[];
+        };
         /** DeviceDetailConnectionStatus */
         DeviceDetailConnectionStatus: {
             /**
@@ -2102,6 +2146,18 @@ export interface components {
             /** Ports */
             ports: number[];
         };
+        /** DeviceSearchFilter */
+        DeviceSearchFilter: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "device_id" | "field" | "metadata" | "endpoint" | "service";
+            /** Field */
+            field?: string | null;
+            /** Value */
+            value: string;
+        };
         /**
          * DeviceSearchMatch
          * @description What matched on a device. `endpoint_*` and `service_id` are set for endpoint and service
@@ -2133,6 +2189,16 @@ export interface components {
             /** Value */
             value: string;
         };
+        /**
+         * DeviceSearchRequest
+         * @description A device matches when it satisfies ALL filters AND ALL column filters.
+         */
+        DeviceSearchRequest: {
+            /** Filters */
+            filters?: components["schemas"]["DeviceSearchFilter"][];
+            /** Column Filters */
+            column_filters?: components["schemas"]["DeviceColumnFilter"][];
+        };
         /** DeviceSearchResponse */
         DeviceSearchResponse: {
             /** Total */
@@ -2146,6 +2212,16 @@ export interface components {
             device_id: string;
             /** Matches */
             matches: components["schemas"]["DeviceSearchMatch"][];
+        };
+        /** DeviceSearchValuesResponse */
+        DeviceSearchValuesResponse: {
+            /** Values */
+            values: string[];
+            /**
+             * Has More
+             * @default false
+             */
+            has_more: boolean;
         };
         /** DeviceSecretInformation */
         DeviceSecretInformation: {
@@ -8033,17 +8109,46 @@ export interface operations {
             };
         };
     };
-    search_devices_route_devices_search_get: {
+    search_devices_route_devices_search_post: {
         parameters: {
-            query?: {
-                /** @description Match device ids */
-                device_id?: string[] | null;
-                /** @description Match metadata values */
-                metadata?: string[] | null;
-                /** @description Match endpoint values */
-                endpoint?: string[] | null;
-                /** @description Match service values */
-                service?: string[] | null;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceSearchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_search_suggestions_route_devices_search_suggestions_get: {
+        parameters: {
+            query: {
+                type: "device_id" | "field" | "metadata" | "endpoint" | "service";
+                /** @description At least 3 characters */
+                q: string;
+                field?: string | null;
             };
             header?: never;
             path?: never;
@@ -8057,7 +8162,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DeviceSearchResponse"];
+                    "application/json": components["schemas"]["DeviceSearchValuesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_column_values_route_devices_search_column_values_get: {
+        parameters: {
+            query: {
+                field: string;
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSearchValuesResponse"];
                 };
             };
             /** @description Validation Error */

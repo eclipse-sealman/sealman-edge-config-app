@@ -4,7 +4,7 @@ import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DeviceSearchMatch } from "@/generated/edge-administration/hooks/devices/useSearchDevices";
-import { getDeviceSearchJumpPath, splitByTerm } from "./deviceSearch";
+import { getDeviceSearchJumpPath, splitByTerms } from "./deviceSearch";
 
 const KIND_LABEL: Record<DeviceSearchMatch["kind"], string> = {
   device_id: "Device ID",
@@ -13,10 +13,10 @@ const KIND_LABEL: Record<DeviceSearchMatch["kind"], string> = {
   service: "Service",
 };
 
-function Highlighted({ text, term }: { text: string; term: string }) {
+function Highlighted({ text, terms }: { text: string; terms: string[] }) {
   return (
     <>
-      {splitByTerm(text, term).map((part, index) =>
+      {splitByTerms(text, terms).map((part, index) =>
         part.match ? (
           <mark key={index} className="rounded-xs bg-yellow-200 px-0.5 text-inherit">
             {part.text}
@@ -42,11 +42,12 @@ function matchTitle(match: DeviceSearchMatch): string | null {
 export default function DeviceMatchList({
   deviceId,
   matches,
-  term,
+  terms,
 }: {
   deviceId: string;
   matches: DeviceSearchMatch[];
-  term: string;
+  /** The filters' values: marked in what matched. */
+  terms: string[];
 }) {
   const navigate = useNavigate();
 
@@ -66,7 +67,7 @@ export default function DeviceMatchList({
                   <div key={`${field.key ?? "type"}:${fieldIndex}`} className="flex gap-1.5">
                     <dt className="text-muted-foreground">{field.label}:</dt>
                     <dd className="break-all">
-                      <Highlighted text={field.value} term={term} />
+                      <Highlighted text={field.value} terms={terms} />
                     </dd>
                   </div>
                 ))}

@@ -4,7 +4,7 @@ import { DeviceCardsProps } from "./Devices.types";
 import FilterDetails from "./FilterDetails";
 import DebouncedInput from "@/components/Input/DebouncedInput";
 import DeviceManageDialog from "./DeviceManageDialog";
-import { useState } from "react";
+import { useState , useEffect } from "react";
 import DeviceSearchBar from "./DeviceSearch/DeviceSearchBar";
 import DeviceMatchList from "./DeviceSearch/DeviceMatchList";
 
@@ -17,6 +17,14 @@ export function DeviceCards({
   const navigate = useNavigate();
   const { deviceId } = useParams();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const resultIds = table.getRowModel().rows
+    .map((row) => row.original.deviceId)
+    .filter((id) => (search.matchesByDevice.get(id)?.length ?? 0) > 0);
+  const resultSignature = resultIds.join("|");
+  useEffect(() => {
+    if (search.active && !search.isFetching) setExpandedIds(new Set(resultIds));
+    else if (!search.active) setExpandedIds(new Set());
+  }, [search.active, search.isFetching, resultSignature]);
   const toggleExpanded = (id: string) =>
     setExpandedIds((current) => {
       const next = new Set(current);
@@ -27,7 +35,8 @@ export function DeviceCards({
   const deviceItems = table.getRowModel().rows.map((row) => {
     const device = row.original;
     const matches = search.matchesByDevice.get(device.deviceId) ?? [];
-    const expanded = search.hasTerm && expandedIds.has(device.deviceId);
+    const expandable = search.expandable && matches.length > 0;
+    const expanded = expandable && expandedIds.has(device.deviceId);
     return (
       <div
         key={device.deviceId}
@@ -35,8 +44,8 @@ export function DeviceCards({
       >
         <div className="flex flex-row items-center gap-4">
           <div
-            onClick={() => (search.hasTerm ? toggleExpanded(device.deviceId) : navigate(`/devices/${device.deviceId}`))}
-            aria-expanded={search.hasTerm ? expanded : undefined}
+            onClick={() => (expandable ? toggleExpanded(device.deviceId) : navigate(`/devices/${device.deviceId}`))}
+            aria-expanded={expandable ? expanded : undefined}
           >
             <div className="flex flex-row gap-1">
                 <Badge color={device.deviceStatus === "Connected" ? BadgeColor.Green : BadgeColor.Red}>
@@ -52,7 +61,7 @@ export function DeviceCards({
         </div>
         {expanded && (
           <div className="-mx-3 mt-3 -mb-3 border-t bg-slate-50">
-            <DeviceMatchList deviceId={device.deviceId} matches={matches} term={search.term} />
+            <DeviceMatchList deviceId={device.deviceId} matches={matches} terms={search.terms} />
           </div>
         )}
       </div>
@@ -60,18 +69,7 @@ export function DeviceCards({
   });
 
   return (
-    <div className="space-y-3 p-4">
-      <div className="sticky top-0 z-10 space-y-2 rounded-lg border bg-background p-3 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <FilterDetails
-            totalRows={data.length}
-            filteredRows={table.getRowModel().rows.length}
-          />
-          <DeviceManageDialog canCreate={canCreate} />
-        </div>
-
-        <DeviceSearchBar className="w-full" />
-      </div>
+    <div className="space-y-3">
       {deviceItems}
     </div>
   );
