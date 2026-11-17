@@ -13,7 +13,7 @@ import useSmartEmsStatusPolling from "./useSmartEmsStatusPolling";
 
 const TABS = [
   { title: "Network Interfaces", path: "network-interfaces" },
-  { title: "Firmware", path: "firmware" },
+  // { title: "Firmware", path: "firmware" },
   { title: "NAT", path: "nat" },
   { title: "Port Forwarding", path: "port-forwarding" },
   { title: "Security", path: "security" },

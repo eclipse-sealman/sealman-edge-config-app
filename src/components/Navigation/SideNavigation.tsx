@@ -52,12 +52,10 @@ export default function SideNavigation() {
     const items: INavigation[] = [
       { name: "Dashboard", href: "/", icon: HomeIcon, end: true },
       { name: "Devices", href: "/devices", icon: CpuChipIcon },
-      { name: "Asset Modelling", href: "/platform-types", icon: Squares2X2Icon, separatorBefore: true },
-      { name: "Deployments", href: "/deployments", icon: RocketLaunchIcon },
     ];
 
     if (!isAssetConfigPermissionsLoading && hasAssetConfigReadPermission) {
-      items.push({ name: "Asset Configuration", href: "/platform-types", icon: Squares2X2Icon });
+      items.push({ name: "Asset Modelling", href: "/platform-types", icon: Squares2X2Icon });
     }
 
     items.push({ name: "Deployments", href: "/deployments", icon: RocketLaunchIcon });
