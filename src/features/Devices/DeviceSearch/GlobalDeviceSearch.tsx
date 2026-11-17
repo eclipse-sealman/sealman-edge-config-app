@@ -17,8 +17,8 @@ export default function GlobalDeviceSearch() {
             name="device-search"
             value={globalFilter}
             onChange={(value) => setGlobalFilter(value as string)}
-            placeholder="Search devices, metadata, endpoints, services"
-            aria-label="Search devices, metadata, endpoints and services"
+            placeholder="Search devices, endpoints, services"
+            aria-label="Search devices, endpoints and services"
             maxLength={100}
             className="h-8 w-full min-w-0 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
           />

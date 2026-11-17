@@ -13,7 +13,7 @@ export const ASSETS_HIGHLIGHT_PARAM = "highlight";
 /** A search filter chip: "<label>: <value>". A device has to match all chips. */
 export interface SearchChip {
   type: DeviceSearchFilterType;
-  /** The metadata field, for a chip of type "field" (e.g. "city"). */
+  /** The field, for a chip of type "field" (e.g. "city") or an endpoint / service chip on one field. */
   field?: string;
   /** What the chip shows in front of the value (e.g. "City"). */
   label: string;
@@ -29,14 +29,15 @@ export interface SearchParameter {
   /** The value has to equal the device's value (ignoring case); otherwise it only has to be
    * contained in one of them. */
   exact: boolean;
+  /** Offers to pick one field of the endpoints / services before entering the value. */
+  fieldPicker?: "endpoint" | "service";
 }
 
-/** Device ID, Metadata (any metadata value), one entry per metadata field (Country, City, ...),
- * Endpoints and Services. */
+/** Device ID, one entry per metadata field (Country, City, ...), Endpoints and Services. The
+ * "metadata" filter type still exists in the API but is not offered. */
 export function buildSearchParameters(fields: [string, { label: string }][]): SearchParameter[] {
   return [
     { id: "device_id", type: "device_id", label: "Device ID", exact: true },
-    { id: "metadata", type: "metadata", label: "Metadata", exact: false },
     ...fields.map(([key, field]): SearchParameter => ({
       id: `field:${key}`,
       type: "field",
@@ -44,8 +45,8 @@ export function buildSearchParameters(fields: [string, { label: string }][]): Se
       label: field.label,
       exact: true,
     })),
-    { id: "endpoint", type: "endpoint", label: "Endpoints", exact: false },
-    { id: "service", type: "service", label: "Services", exact: false },
+    { id: "endpoint", type: "endpoint", label: "Endpoints", exact: false, fieldPicker: "endpoint" },
+    { id: "service", type: "service", label: "Services", exact: false, fieldPicker: "service" },
   ];
 }
 
@@ -63,7 +64,7 @@ export function addSearchChip(chips: SearchChip[], chip: SearchChip): SearchChip
 export function chipsToFilters(chips: SearchChip[]): DeviceSearchFilter[] {
   return chips.map((chip) => ({
     type: chip.type,
-    ...(chip.type === "field" ? { field: chip.field } : {}),
+    ...(chip.field ? { field: chip.field } : {}),
     value: chip.value,
   }));
 }

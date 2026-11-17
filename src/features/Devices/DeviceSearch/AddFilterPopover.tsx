@@ -1,9 +1,10 @@
 import { useId, useMemo, useState } from "react";
-import { ArrowLeftIcon, FunnelIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ChevronRightIcon, FunnelIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import useDeviceMetadataFields from "@/features/PlatformTypes/useDeviceMetadataFields";
+import useSearchKeys from "@/generated/edge-administration/hooks/devices/useSearchKeys";
 import useSearchSuggestions, { MIN_SUGGESTION_LENGTH } from "@/generated/edge-administration/hooks/devices/useSearchSuggestions";
 import { getErrorMessage } from "@/lib/errors";
 import useDeviceStore from "../deviceStore";
@@ -19,19 +20,39 @@ export default function AddFilterPopover({ hasFilters }: { hasFilters: boolean }
 
   const [open, setOpen] = useState(false);
   const [parameter, setParameter] = useState<SearchParameter | null>(null);
+  // The field picked for endpoints / services; `field` is undefined for "Any field".
+  const [pickedField, setPickedField] = useState<{ field?: string; label: string } | null>(null);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
-    if (!next) setParameter(null);
+    if (!next) {
+      setParameter(null);
+      setPickedField(null);
+    }
   };
 
   const addFilter = (value: string) => {
     if (!parameter) return;
     setSearchChips(
-      addSearchChip(chips, { type: parameter.type, field: parameter.field, label: parameter.label, value }),
+      addSearchChip(chips, {
+        type: parameter.type,
+        field: pickedField?.field ?? parameter.field,
+        label: pickedField?.field ? `${parameter.label} › ${pickedField.label}` : parameter.label,
+        value,
+      }),
     );
     handleOpenChange(false);
   };
+
+  const needsFieldPick = parameter?.fieldPicker !== undefined && pickedField === null;
+  const goBack = () => {
+    if (parameter?.fieldPicker && pickedField) setPickedField(null);
+    else setParameter(null);
+  };
+  const valueParameter =
+    parameter && pickedField?.field
+      ? { ...parameter, field: pickedField.field, label: `${parameter.label} › ${pickedField.label}` }
+      : parameter;
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -45,26 +66,109 @@ export default function AddFilterPopover({ hasFilters }: { hasFilters: boolean }
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-0">
-        {parameter ? (
-          <ValueStep parameter={parameter} onBack={() => setParameter(null)} onSubmit={addFilter} />
+        {parameter && needsFieldPick && parameter.fieldPicker ? (
+          <FieldStep parameter={parameter} kind={parameter.fieldPicker} onBack={goBack} onPick={setPickedField} />
+        ) : valueParameter ? (
+          <ValueStep parameter={valueParameter} onBack={goBack} onSubmit={addFilter} />
         ) : (
           <div role="menu" aria-label="Filter by" className="max-h-72 overflow-y-auto p-1">
             <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by</p>
-            {parameters.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                role="menuitem"
-                onClick={() => setParameter(item)}
-                className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent focus-visible:bg-accent focus-visible:outline-hidden"
-              >
-                {item.label}
-              </button>
-            ))}
+            {parameters.map((item) =>
+              item.fieldPicker ? (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  onClick={() => setParameter(item)}
+                  className="mt-1 flex w-full items-center justify-between rounded-sm border border-blue-100 bg-blue-50/60 px-2 py-1.5 text-left text-sm font-medium text-blue-700 hover:bg-blue-100 focus-visible:bg-blue-100 focus-visible:outline-hidden"
+                >
+                  {item.label}
+                  <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
+                </button>
+              ) : (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => setParameter(item)}
+                  className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent focus-visible:bg-accent focus-visible:outline-hidden"
+                >
+                  {item.label}
+                </button>
+              ),
+            )}
           </div>
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Second step for endpoints / services: which field to search (or any of them). */
+function FieldStep({
+  parameter,
+  kind,
+  onBack,
+  onPick,
+}: {
+  parameter: SearchParameter;
+  kind: "endpoint" | "service";
+  onBack: () => void;
+  onPick: (picked: { field?: string; label: string }) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const debounced = useDebouncedValue(search, 250);
+  const keys = useSearchKeys(kind, debounced);
+  const items = keys.data?.keys ?? [];
+  const itemClass =
+    "flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent focus-visible:bg-accent focus-visible:outline-hidden";
+
+  return (
+    <div className="space-y-2 p-3">
+      <div className="flex items-center gap-2">
+        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} aria-label="Back to filter list">
+          <ArrowLeftIcon />
+        </Button>
+        <span className="text-sm font-medium">{parameter.label}</span>
+      </div>
+      <Input
+        autoFocus
+        value={search}
+        maxLength={MAX_SEARCH_VALUE_LENGTH}
+        placeholder="Find a field"
+        aria-label={`Find a ${parameter.label} field`}
+        onChange={(event) => setSearch(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          if (items[0]) onPick({ field: items[0].key, label: items[0].label });
+        }}
+      />
+      <div role="menu" aria-label={`${parameter.label} field`} className="max-h-60 overflow-y-auto">
+        <button type="button" role="menuitem" className={itemClass} onClick={() => onPick({ label: "Any field" })}>
+          Any field
+        </button>
+        {items.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => onPick({ field: item.key, label: item.label })}
+          >
+            <span className="truncate">{item.label}</span>
+            {item.label !== item.key && <span className="truncate text-xs text-muted-foreground">{item.key}</span>}
+          </button>
+        ))}
+      </div>
+      <div className="min-h-5 text-xs text-muted-foreground" aria-live="polite">
+        {keys.isLoading && "Loading fields..."}
+        {keys.isError && <span className="text-destructive">Could not load fields: {getErrorMessage(keys.error)}</span>}
+        {keys.data && items.length === 0 && "No matching fields."}
+        {keys.data?.has_more && `Showing the ${items.length} most used fields - type to narrow down.`}
+      </div>
+    </div>
   );
 }
 

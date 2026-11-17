@@ -102,7 +102,7 @@ describe("device list without search filters", () => {
     const table = renderList();
     expect(rowIds(table)).toEqual(["1230", "4560", "7890"]);
     expect(enabledFlags().every((enabled) => enabled === false)).toBe(true);
-    expect(screen.getByPlaceholderText("Search devices, metadata, endpoints, services")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search devices, endpoints, services")).toBeInTheDocument();
   });
 
   it("puts 'Add Filter' next to the status pills", () => {

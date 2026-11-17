@@ -1404,6 +1404,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/devices/search/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Search Keys Route */
+        get: operations["get_search_keys_route_devices_search_keys_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/devices/search/column-values": {
         parameters: {
             query?: never;
@@ -2157,6 +2174,23 @@ export interface components {
             field?: string | null;
             /** Value */
             value: string;
+        };
+        /** DeviceSearchKey */
+        DeviceSearchKey: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /** DeviceSearchKeysResponse */
+        DeviceSearchKeysResponse: {
+            /** Keys */
+            keys: components["schemas"]["DeviceSearchKey"][];
+            /**
+             * Has More
+             * @default false
+             */
+            has_more: boolean;
         };
         /**
          * DeviceSearchMatch
@@ -8163,6 +8197,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeviceSearchValuesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_search_keys_route_devices_search_keys_get: {
+        parameters: {
+            query: {
+                type: "endpoint" | "service";
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSearchKeysResponse"];
                 };
             };
             /** @description Validation Error */

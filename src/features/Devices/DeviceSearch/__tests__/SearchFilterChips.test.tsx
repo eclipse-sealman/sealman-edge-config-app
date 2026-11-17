@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SearchFilterChips from "../SearchFilterChips";
 import useDeviceStore from "../../deviceStore";
@@ -8,6 +8,20 @@ const suggestions = vi.hoisted(() => vi.fn());
 vi.mock("@/generated/edge-administration/hooks/devices/useSearchSuggestions", () => ({
   default: suggestions,
   MIN_SUGGESTION_LENGTH: 3,
+}));
+vi.mock("@/generated/edge-administration/hooks/devices/useSearchKeys", () => ({
+  default: (_type: string, query: string) => ({
+    data: {
+      keys: [
+        { key: "serial", label: "Serial Number" },
+        { key: "ip", label: "ip" },
+      ].filter((item) => item.key.includes(query) || item.label.toLowerCase().includes(query.toLowerCase())),
+      has_more: query === "capped",
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
 }));
 vi.mock("@/features/PlatformTypes/useDeviceMetadataFields", () => ({
   default: () => ({
@@ -40,12 +54,35 @@ describe("Add Filter", () => {
     await user.click(screen.getByRole("button", { name: "Apply Filters" }));
     expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
       "Device ID",
-      "Metadata",
       "Country Code",
       "City",
       "Endpoints",
       "Services",
     ]);
+  });
+
+  it("marks Endpoints and Services as opening more options", async () => {
+    const user = userEvent.setup();
+    render(<SearchFilterChips />);
+    await user.click(screen.getByRole("button", { name: "Apply Filters" }));
+    expect(screen.getByRole("menuitem", { name: "Endpoints" })).toHaveAttribute("aria-haspopup", "menu");
+    expect(screen.getByRole("menuitem", { name: "Services" })).toHaveAttribute("aria-haspopup", "menu");
+    expect(screen.getByRole("menuitem", { name: "City" })).not.toHaveAttribute("aria-haspopup");
+  });
+
+  it("narrows the field list down by typing and says when it is capped", async () => {
+    const user = userEvent.setup();
+    render(<SearchFilterChips />);
+    await user.click(screen.getByRole("button", { name: "Apply Filters" }));
+    await user.click(screen.getByRole("menuitem", { name: "Endpoints" }));
+    await user.type(screen.getByRole("textbox", { name: "Find a Endpoints field" }), "numb");
+    await waitFor(() => expect(screen.getAllByRole("menuitem")).toHaveLength(2));
+    expect(screen.getByRole("menuitem", { name: /Serial Number/ })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "ip" })).not.toBeInTheDocument();
+
+    await user.clear(screen.getByRole("textbox", { name: "Find a Endpoints field" }));
+    await user.type(screen.getByRole("textbox", { name: "Find a Endpoints field" }), "capped");
+    expect(await screen.findByText(/most used fields - type to narrow down/)).toBeInTheDocument();
   });
 
   it("asks for a value and hints at the 3 character minimum - no suggestions before that", async () => {
@@ -128,7 +165,41 @@ describe("Add Filter", () => {
     expect(screen.getByText("Matches the whole value, ignoring case.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back to filter list" }));
     await user.click(screen.getByRole("menuitem", { name: "Endpoints" }));
+    await user.click(screen.getByRole("menuitem", { name: "Any field" }));
     expect(screen.getByText("Matches values containing the text.")).toBeInTheDocument();
+  });
+
+  it("lets you pick a field of the endpoints and searches that field only", async () => {
+    const user = userEvent.setup();
+    render(<SearchFilterChips />);
+    await user.click(screen.getByRole("button", { name: "Apply Filters" }));
+    await user.click(screen.getByRole("menuitem", { name: "Endpoints" }));
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+      "Any field",
+      "Serial Numberserial",
+      "ip",
+    ]);
+    await user.click(screen.getByRole("menuitem", { name: /Serial Number/ }));
+
+    const input = screen.getByRole("combobox", { name: "Endpoints \u203a Serial Number value" });
+    await user.type(input, "123456{Enter}");
+    expect(suggestions).toHaveBeenCalledWith("endpoint", "serial", expect.any(String));
+    expect(screen.getByText("Endpoints \u203a Serial Number: 123456")).toBeInTheDocument();
+    expect(useDeviceStore.getState().searchChips).toEqual([
+      { type: "endpoint", field: "serial", label: "Endpoints \u203a Serial Number", value: "123456" },
+    ]);
+  });
+
+  it("goes back from the value to the field list", async () => {
+    const user = userEvent.setup();
+    render(<SearchFilterChips />);
+    await user.click(screen.getByRole("button", { name: "Apply Filters" }));
+    await user.click(screen.getByRole("menuitem", { name: "Services" }));
+    await user.click(screen.getByRole("menuitem", { name: "Any field" }));
+    await user.click(screen.getByRole("button", { name: "Back to filter list" }));
+    expect(screen.getByRole("menuitem", { name: "Any field" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Back to filter list" }));
+    expect(screen.getByRole("menuitem", { name: "Device ID" })).toBeInTheDocument();
   });
 
   it("does not add the same filter twice", async () => {

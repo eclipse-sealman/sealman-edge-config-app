@@ -13,25 +13,25 @@ import {
 const city: SearchChip = { type: "field", field: "city", label: "City", value: "Berlin" };
 
 describe("buildSearchParameters", () => {
-  it("offers Device ID, Metadata, every metadata field, Endpoints and Services - in that order", () => {
+  it("offers Device ID, every metadata field, Endpoints and Services - in that order", () => {
     const parameters = buildSearchParameters([
       ["country_code", { label: "Country Code" }],
       ["city", { label: "City" }],
     ]);
     expect(parameters.map((p) => p.label)).toEqual([
       "Device ID",
-      "Metadata",
       "Country Code",
       "City",
       "Endpoints",
       "Services",
     ]);
-    expect(parameters[2]).toMatchObject({ type: "field", field: "country_code", exact: true });
+    expect(parameters[1]).toMatchObject({ type: "field", field: "country_code", exact: true });
+    expect(parameters.filter((p) => p.fieldPicker).map((p) => p.fieldPicker)).toEqual(["endpoint", "service"]);
   });
 
   it("matches ids and fields exactly, everything else by containing", () => {
     const exact = Object.fromEntries(buildSearchParameters([["city", { label: "City" }]]).map((p) => [p.id, p.exact]));
-    expect(exact).toEqual({ device_id: true, metadata: false, "field:city": true, endpoint: false, service: false });
+    expect(exact).toEqual({ device_id: true, "field:city": true, endpoint: false, service: false });
   });
 });
 
@@ -59,6 +59,12 @@ describe("request building", () => {
       { type: "field", field: "city", value: "Berlin" },
       { type: "endpoint", value: "press" },
     ]);
+  });
+
+  it("sends the field of an endpoint chip on one field", () => {
+    expect(
+      chipsToFilters([{ type: "endpoint", field: "serial", label: "Endpoints \u203a Serial", value: "123456" }]),
+    ).toEqual([{ type: "endpoint", field: "serial", value: "123456" }]);
   });
 
   it("turns column selections into column filters, leaving out empty ones", () => {
