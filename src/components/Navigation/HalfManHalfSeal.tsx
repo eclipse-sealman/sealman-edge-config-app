@@ -11,7 +11,7 @@ export default function HalfManHalfSeal({ collapsed = false }: { collapsed?: boo
         type="button"
         onClick={() => setPlaying(true)}
         className={`flex w-full items-center rounded text-[10px] font-bold uppercase select-none transition-opacity hover:opacity-90 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-white/70 ${
-          collapsed ? "justify-center gap-1 tracking-[0.04em]" : "justify-start gap-1.5 tracking-[0.12em]"
+          collapsed ? "justify-center gap-1 tracking-[0.04em]" : "justify-center gap-1.5 tracking-[0.12em]"
         }`}
         aria-label="Half man, half seal"
         title="Half Man, Half Seal"

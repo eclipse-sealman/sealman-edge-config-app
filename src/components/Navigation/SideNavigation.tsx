@@ -51,7 +51,7 @@ export default function SideNavigation() {
   const navigation: INavigation[] = useMemo(() => {
     const items: INavigation[] = [
       { name: "Dashboard", href: "/", icon: HomeIcon, end: true },
-      { name: "Devices", href: "/devices", icon: CpuChipIcon },
+      { name: "Devices", href: "/devices", icon: CpuChipIcon, separatorAfter: true },
     ];
 
     if (!isAssetConfigPermissionsLoading && hasAssetConfigReadPermission) {
@@ -93,6 +93,10 @@ export default function SideNavigation() {
   return (
     <aside className={`flex h-full shrink-0 flex-col bg-[#0f1f47] transition-[width] duration-200 ease-in-out ${collapsed ? "w-16" : "w-16 lg:w-60"}`}>
       <div className={`flex h-11 shrink-0 items-center border-b border-white/10 px-2 ${collapsed ? "justify-center" : "justify-end"}`}>
+        {!collapsed && (
+          <span className="hidden min-w-0 flex-1 truncate text-center text-base font-bold tracking-wide text-slate-100 lg:inline">IIoT Platform</span>
+        )}
+
         <button
           type="button"
           onClick={() => setCollapsed((value) => !value)}
