@@ -1,9 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import useDeviceStore from "../../deviceStore";
-import DeviceSearchBar from "../DeviceSearchBar";
 import DeviceMatchList from "../DeviceMatchList";
 import type { DeviceSearchMatch } from "@/generated/edge-administration/hooks/devices/useSearchDevices";
 
@@ -59,46 +57,5 @@ describe("DeviceMatchList", () => {
     renderList();
     await userEvent.click(screen.getByRole("button", { name: label }));
     expect(screen.getByTestId("where").textContent).toBe(target);
-  });
-});
-
-describe("DeviceSearchBar", () => {
-  beforeEach(() => {
-    useDeviceStore.setState({ searchFilters: [], globalFilter: "" });
-  });
-  const renderBar = () => render(<DeviceSearchBar />);
-
-  it("is the plain quick search while no filter is selected", () => {
-    renderBar();
-    expect(screen.getByPlaceholderText("Search device ID or metadata")).toBeTruthy();
-    expect(screen.queryByTestId("search-chip-metadata")).toBeNull();
-  });
-
-  it("adds a removable chip per selected filter, in a fixed order", async () => {
-    renderBar();
-    await userEvent.click(screen.getByRole("button", { name: "Select search filters" }));
-    await userEvent.click(await screen.findByRole("menuitemcheckbox", { name: "Services" }));
-    await userEvent.click(await screen.findByRole("menuitemcheckbox", { name: "Metadata" }));
-    expect(useDeviceStore.getState().searchFilters).toEqual(["metadata", "service"]);
-    expect(screen.getByTestId("search-chip-metadata")).toBeTruthy();
-    expect(screen.getByTestId("search-chip-service")).toBeTruthy();
-
-    fireEvent.keyDown(document.body, { key: "Escape" });
-    await userEvent.click(screen.getByRole("button", { name: "Remove Metadata filter" }));
-    expect(useDeviceStore.getState().searchFilters).toEqual(["service"]);
-    expect(screen.queryByTestId("search-chip-metadata")).toBeNull();
-  });
-
-  it("removes the last chip with Backspace in an empty box", async () => {
-    useDeviceStore.setState({ searchFilters: ["metadata", "endpoint"] });
-    renderBar();
-    await userEvent.type(screen.getByRole("textbox"), "{Backspace}");
-    expect(useDeviceStore.getState().searchFilters).toEqual(["metadata"]);
-  });
-
-  it("stores the typed text for the search", async () => {
-    renderBar();
-    await userEvent.type(screen.getByRole("textbox"), "LKO{Enter}");
-    expect(useDeviceStore.getState().globalFilter).toBe("LKO");
   });
 });

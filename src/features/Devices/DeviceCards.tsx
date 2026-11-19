@@ -1,17 +1,11 @@
 import Badge, { BadgeColor } from "../../components/Typography/Badge";
 import { useNavigate, useParams } from "react-router-dom";
 import { DeviceCardsProps } from "./Devices.types";
-import FilterDetails from "./FilterDetails";
-import DebouncedInput from "@/components/Input/DebouncedInput";
-import DeviceManageDialog from "./DeviceManageDialog";
 import { useState , useEffect } from "react";
-import DeviceSearchBar from "./DeviceSearch/DeviceSearchBar";
 import DeviceMatchList from "./DeviceSearch/DeviceMatchList";
 
 export function DeviceCards({
   table,
-  data,
-  canCreate,
   search,
 }: DeviceCardsProps) {
   const navigate = useNavigate();

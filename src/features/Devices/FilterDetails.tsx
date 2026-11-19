@@ -1,6 +1,3 @@
-import { Button } from "@/components/ui/button";
-import Badge, { BadgeColor } from "../../components/Typography/Badge";
-
 interface FilterDetailsProps {
   totalRows: number;
   filteredRows: number;
@@ -11,7 +8,7 @@ interface FilterDetailsProps {
   className?: string;
 }
 
-export default function FilterDetails({ totalRows, filteredRows, clearTableFilter, className }: FilterDetailsProps) {
+export default function FilterDetails({ totalRows, filteredRows, className }: FilterDetailsProps) {
   return (
     <>
       {totalRows !== filteredRows ? (

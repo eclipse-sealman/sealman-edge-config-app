@@ -14,7 +14,6 @@ import FieldsEditor, {
   rowsFromFields,
 } from "./FieldsEditor";
 import type { RoleOption } from "./typeRoles";
-import FieldInfoTooltip from "./FieldInfoTooltip";
 
 // Radix Select can't hold an empty-string item, so "no browse action" is represented by this sentinel.
 const NO_BROWSER_KIND = "__none__";
