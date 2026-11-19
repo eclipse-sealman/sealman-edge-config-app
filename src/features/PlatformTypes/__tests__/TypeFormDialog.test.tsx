@@ -40,6 +40,65 @@ describe("TypeFormDialog roles", () => {
     expect(screen.getByLabelText("Role of field name")).toHaveValue("name");
   });
 
+  describe("TypeFormDialog list fields", () => {
+    const equipment: FieldDefinition = {
+      ...stringField("Equipment"), type: "list", ui: null,
+      item_fields: { identifier: stringField("Identifier"), quantity: stringField("Quantity") },
+      item_order: ["quantity", "identifier"],
+    };
+    function renderList(fields: Record<string, FieldDefinition> = { equipment }, supportsListFields = true) {
+      const onSubmit = vi.fn().mockResolvedValue(undefined);
+      render(<TypeFormDialog isOpen onClose={() => {}} onSubmit={onSubmit} singularLabel="Endpoint Type"
+        initial={{ type_id: "t1", label: "Machine", description: null, fields }}
+        supportsListFields={supportsListFields} roleOptions={ENDPOINT_ROLE_OPTIONS}
+      />);
+      return onSubmit;
+    }
+
+    it("edits ordered scalar columns and removes columns explicitly in the patch", async () => {
+      const onSubmit = renderList();
+      expect(screen.getAllByPlaceholderText("field_key").map((input) => (input as HTMLInputElement).value))
+        .toEqual(["equipment", "quantity", "identifier"]);
+      await userEvent.click(screen.getAllByRole("button", { name: "Remove field" })[1]);
+      await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
+      expect(onSubmit.mock.calls[0][0].fields.equipment).toMatchObject({
+        item_fields: { quantity: null, identifier: stringField("Identifier") },
+      });
+      expect(onSubmit.mock.calls[0][0].fields.equipment).not.toHaveProperty("item_order");
+    });
+
+    it("blocks duplicate row field keys instead of silently overwriting one", async () => {
+      const onSubmit = renderList();
+      const key = screen.getAllByPlaceholderText("field_key")[1];
+      await userEvent.clear(key);
+      await userEvent.type(key, "identifier");
+      await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText(/needs unique, non-empty row field keys/)).toBeInTheDocument();
+    });
+
+    it.each([
+      ["empty", { ...equipment, item_fields: {} }, /needs at least one row field/],
+      ["reserved id", { ...equipment, item_fields: { id: stringField("ID") } }, /other than "id"/],
+      ["nested list", { ...equipment, item_fields: { nested: equipment } }, /needs a label and a scalar type/],
+      ["invalid column pattern", {
+        ...equipment, item_fields: { identifier: { ...stringField("Identifier"), validation: { pattern: "[", exclusive_minimum: false, exclusive_maximum: false } } },
+      }, /invalid regex pattern/],
+    ] as const)("rejects %s definitions", async (_name, definition, message) => {
+      const onSubmit = renderList({ equipment: definition });
+      await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText(message)).toBeInTheDocument();
+    });
+
+    it("rejects list definitions outside endpoint types", async () => {
+      const onSubmit = renderList({ equipment }, false);
+      await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText("List fields are only supported on endpoint types")).toBeInTheDocument();
+    });
+  });
+
   it("sends the pre-filled fields as optional and their roles as mapping", async () => {
     const onSubmit = renderEndpointCreate();
     await userEvent.type(screen.getByPlaceholderText("Human readable name"), "PLC");

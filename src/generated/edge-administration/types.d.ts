@@ -904,6 +904,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/{device}/password/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Device Password Info */
+        get: operations["get_device_password_info__device__password_info_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/password/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Device Password Request */
+        post: operations["post_device_password_request__device__password_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/password/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Device Password Renew */
+        post: operations["post_device_password_renew__device__password_renew_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/{device}/smartems/secret/info": {
         parameters: {
             query?: never;
@@ -2279,6 +2330,7 @@ export interface components {
             secretCreatedAt?: string | null;
             /** Secretupdatedat */
             secretUpdatedAt?: string | null;
+            renewalTask?: components["schemas"]["PasswordRenewalTaskInformation"] | null;
         };
         /** DeviceSecretValue */
         DeviceSecretValue: {
@@ -2286,6 +2338,45 @@ export interface components {
             id: number;
             /** Secretvalue */
             secretValue: string;
+            renewalTask?: components["schemas"]["PasswordRenewalTaskInformation"] | null;
+        };
+        /** PasswordRenewalTaskInformation */
+        PasswordRenewalTaskInformation: {
+            /** Taskid */
+            taskId: string;
+            /**
+             * Scheduledtime
+             * Format: date-time
+             */
+            scheduledTime: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "Pending" | "Canceled" | "Completed" | "Error";
+            /** Errorcount */
+            errorCount: number;
+            /** Latesterror */
+            latestError?: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** PasswordRenewalAccepted */
+        PasswordRenewalAccepted: {
+            /**
+             * Requestaccepted
+             * @default true
+             * @constant
+             */
+            requestAccepted: true;
         };
         /** DeviceTypeCreate */
         DeviceTypeCreate: {
@@ -2626,7 +2717,11 @@ export interface components {
              * @description Data type of the field value
              * @enum {string}
              */
-            type: "string" | "boolean" | "integer" | "number";
+            type: "string" | "boolean" | "integer" | "number" | "list";
+            /** Scalar columns for endpoint list fields. */
+            item_fields?: { [key: string]: components["schemas"]["FieldDefinition"] } | null;
+            /** Response-only column order. Do not send on writes. */
+            item_order?: string[] | null;
             /**
              * Label
              * @description Human-readable label for UI display
@@ -2678,7 +2773,11 @@ export interface components {
              * Type
              * @description Data type of the field value
              */
-            type?: ("string" | "boolean" | "integer" | "number") | null;
+            type?: ("string" | "boolean" | "integer" | "number" | "list") | null;
+            /** Complete scalar column definitions; null removes a column. */
+            item_fields?: { [key: string]: components["schemas"]["FieldDefinition"] | null } | null;
+            /** Response-only; only null is accepted on writes. */
+            item_order?: null;
             /**
              * Label
              * @description Human-readable label for UI display
@@ -4514,6 +4613,99 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_device_password_info__device__password_info_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSecretInformation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_device_password_request__device__password_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSecretValue"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_device_password_renew__device__password_renew_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordRenewalAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_roles_auth_roles_get: {
         parameters: {
             query?: never;

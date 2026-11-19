@@ -101,6 +101,7 @@ describe("EndpointDetailsPage reacts to extension data changes", () => {
 
   it("keeps panel changes and removals when saving the host form afterwards", async () => {
     mocks.endpoint = endpointWith({ name: "orig", ext_id: "x1", gone: "g" });
+    mocks.updateEndpoint.mockResolvedValue(endpointWith({ name: "edited", ext_id: "x2" }));
     mocks.refetch.mockResolvedValue({ data: endpointWith({ name: "orig", ext_id: "x2" }) });
     renderPage();
     fireEvent.click(screen.getByText("panel-changed"));

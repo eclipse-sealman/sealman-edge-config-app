@@ -40,6 +40,7 @@ Copy `env.local.example` to `.env.local` and fill in the values.
 | `VITE_WEBVNC_URI` | No | Base URL of the WebVNC API. Required for the WebVNC feature. |
 | `VITE_WEBVNC_API_KEY` | No | API key for the WebVNC API. |
 | `VITE_SEMS_API_URL` | Yes | Base URL of the Smart EMS API. |
+| `VITE_DEVICE_PASSWORD_ENABLED` | No | Set to `true` to enable the core device password UI. Disabled by default. |
 
 ### Authentication
 
@@ -59,11 +60,33 @@ Set `VITE_AUTHENTICATION_PROVIDER` to `keycloak` (default) or `entra` and fill i
 
 The gateway's device type is read-only when editing metadata. Select the type when creating the device; it cannot be changed afterward.
 
+### Endpoint list fields
+
+Asset Configuration > Endpoint Types supports **List** fields with one or more scalar row fields (text, boolean, integer, or number). Nested lists and the reserved row-field key `id` are not supported. Lists have no widget, default, options, or list-level validation; configure constraints and defaults on their row fields instead. Required lists need at least one row.
+
+Endpoint assignment and details support adding, editing, and removing rows. Saving replaces the whole list, preserving server row IDs and unknown row properties; new rows receive IDs from the API. Removing all rows clears an optional list. Row-field `changeable` flags are not enforced by the API and do not lock row inputs. Fields marked **Show in list** display labeled row values in configured column order in both endpoint overview views.
+
 ### API access errors
 
 Assets and the VPN endpoint list show "Not permitted" after an API 403 and hide previously loaded restricted results. In Assets, a discovery denial stops scanning but preserves the independent configured-endpoint read, showing endpoints with their last-known status. A denial of that endpoint read hides the Assets results. The affected workflow stops automatic requests until an explicit retry or a device/account change. Gateway VPN controls remain available independently.
 
 Applications stops config-status polling after HTTP 400 or 403; retry explicitly or correct the module IDs to resume. System module IDs such as `$edgeAgent` and `$edgeHub` are sent unchanged. If saving additional scan ports is denied, the custom scan can still use those ports temporarily without retrying the save in the background.
+
+### Device passwords
+
+Device Config > Security is a core feature, not an extension. Set `VITE_DEVICE_PASSWORD_ENABLED=true` to enable it. Otherwise the Security navigation, direct route, and password queries are disabled. The API determines device-type eligibility.
+
+`.env` values are strings: use the canonical syntax `VITE_DEVICE_PASSWORD_ENABLED=true` or `VITE_DEVICE_PASSWORD_ENABLED=false` (no spaces around `=`). Only `true` enables this flag, ignoring case and surrounding whitespace; runtime boolean `true` is also accepted. False, missing, empty, malformed, `1`/`0`, and `yes`/`no` values all leave it disabled.
+
+For local development, set it in `.env.local` and restart `npm run dev` after changing environment values. Docker defaults it to `false` and reads an override from the container environment at startup: recreate the container with the new value and reload the page. A deployed image must include this flag-handling code; changing only a runtime value cannot patch an older image.
+
+Password information requires `device.read`; revealing a password requires `device.password.read`, and requesting renewal requires `device.password.write`. The UI uses the core `/{device}/password/info`, `/request`, and `/renew` endpoints. Deploy it with an API providing these endpoints; legacy SmartEMS routes remain a backend compatibility concern.
+
+Revealing a password explicitly requests its value and shows the persisted one-time automatic renewal schedule. The UI displays backend timestamps in UTC without calculating or configuring schedules. Task `Completed` means the renewal request was accepted, not that the device password rotated. Manual renewal also waits for device communication and does not require config activation. Password information refreshes every ten seconds on active supported-device pages only while live renewal or an automatic task is pending. Idle pages retain normal focus/manual refresh, and reveal or renewal always refreshes information.
+
+Plaintext is held only in the open reveal dialog, not in browser storage or query/mutation caches. Closing the dialog, starting renewal, changing device/account/permissions, or detecting a password update clears it. Reveal requests are never automatically retried or repeated on refocus/reconnect; retry a failed request explicitly.
+
+Security shows password reveal, the password service's created/updated date, and a short renewal status/action. Active automatic renewal shows its approximate UTC time; a failure stays visible with guidance to try manual renewal. Historical tasks, diagnostics, and implementation details are not shown on the page or reveal dialog. Canceled/completed tasks never appear as upcoming renewals or confirmation of a password change.
 
 ### Extension credentials
 

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import FieldsEditor, { FieldDefinition, FieldRow, buildMappingPayload, rowsFromFields } from "../FieldsEditor";
+import FieldsEditor, { FieldDefinition, FieldRow, buildFieldsPayload, buildMappingPayload, rowsFromFields } from "../FieldsEditor";
 import { ENDPOINT_ROLE_OPTIONS, SERVICE_ROLE_OPTIONS } from "../typeRoles";
 
 function stringField(label: string): FieldDefinition {
@@ -137,5 +137,52 @@ describe("FieldsEditor list visibility", () => {
         definition: expect.objectContaining({ show_in_list: false }),
       }),
     ]);
+  });
+
+  describe("FieldsEditor list definitions", () => {
+    it("only offers lists when supported and clears incompatible scalar settings and roles", async () => {
+      Element.prototype.hasPointerCapture ??= () => false;
+      Element.prototype.setPointerCapture ??= () => {};
+      Element.prototype.releasePointerCapture ??= () => {};
+      Element.prototype.scrollIntoView ??= () => {};
+      const onChange = vi.fn();
+      const props = {
+        rows: rowsFromFields({ addr: { ...stringField("Address"), changeable: false, default: "A" } }, { addr: "ip" }),
+        onChange, roleOptions: ENDPOINT_ROLE_OPTIONS,
+      };
+      const { rerender } = render(<FieldsEditor {...props} />);
+      await userEvent.click(screen.getAllByRole("combobox")[0]);
+      expect(screen.queryByRole("option", { name: "List" })).not.toBeInTheDocument();
+      await userEvent.keyboard("{Escape}");
+      rerender(<FieldsEditor {...props} supportsListFields />);
+      await userEvent.click(screen.getAllByRole("combobox")[0]);
+      await userEvent.click(screen.getByRole("option", { name: "List" }));
+      expect(onChange).toHaveBeenCalledWith([expect.objectContaining({
+        role: null,
+        definition: expect.objectContaining({
+          type: "list", ui: null, options: null, default: null, validation: null, changeable: true, item_fields: {},
+        }),
+      })]);
+    });
+
+    it("strips response-only ordering and sends column deletion tombstones alongside complete definitions", () => {
+      const original: FieldDefinition = {
+        ...stringField("Equipment"), type: "list", ui: null,
+        item_fields: { old: stringField("Old"), kept: stringField("Kept") },
+        item_order: ["old", "kept"],
+      };
+      const current: FieldDefinition = {
+        ...original, item_fields: { kept: { ...stringField("Renamed label"), item_order: null }, added: stringField("Added") },
+        item_order: ["kept", "added"],
+      };
+      const payload = buildFieldsPayload(rowsFromFields({ equipment: current }), ["equipment"], { equipment: original });
+      expect(payload.equipment).not.toHaveProperty("item_order");
+      expect(payload.equipment?.item_fields).toEqual({
+        old: null, kept: stringField("Renamed label"), added: stringField("Added"),
+      });
+      expect(buildFieldsPayload(rowsFromFields({ equipment: stringField("Scalar") }), ["equipment"], {
+        equipment: original,
+      }).equipment).toMatchObject({ type: "string", item_fields: null });
+    });
   });
 });

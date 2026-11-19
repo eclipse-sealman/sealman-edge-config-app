@@ -14,7 +14,7 @@ import FieldsEditor, {
   rowsFromFields,
 } from "./FieldsEditor";
 import type { RoleOption } from "./typeRoles";
-import FieldInfoTooltip from "./FieldInfoTooltip";
+import type { FieldDefinitionWrite } from "./listFields";
 
 // Radix Select can't hold an empty-string item, so "no browse action" is represented by this sentinel.
 const NO_BROWSER_KIND = "__none__";
@@ -36,7 +36,7 @@ export interface TypeRecord {
 export interface TypeFormResult {
   label: string;
   description: string | null;
-  fields: Record<string, FieldDefinition | null>;
+  fields: Record<string, FieldDefinitionWrite | null>;
   browser_kind: string | null;
   /** The type's {field_key: role} mapping, or null for types without roles (device types). */
   mapping: Record<string, string> | null;
@@ -67,6 +67,7 @@ interface TypeFormDialogProps {
   /** When set, each field row gets a "Show in list" toggle controlling whether its value appears
    * in the corresponding device or endpoint list. */
   supportsListVisibility?: boolean;
+  supportsListFields?: boolean;
 }
 
 export default function TypeFormDialog({
@@ -82,6 +83,7 @@ export default function TypeFormDialog({
   defaultMapping,
   roleOptions,
   supportsListVisibility,
+  supportsListFields,
 }: TypeFormDialogProps) {
   const isEdit = Boolean(initial);
 
@@ -124,7 +126,8 @@ export default function TypeFormDialog({
       return;
     }
 
-    for (const row of rows) {
+    const allRows = rows.flatMap((row) => [row, ...(row.itemRows ?? rowsFromFields(row.definition.item_fields ?? {}))]);
+    for (const row of allRows) {
       if (!row.key.trim()) {
         setError("Every field needs a key");
         return;
@@ -132,6 +135,29 @@ export default function TypeFormDialog({
       if (!row.definition.label.trim()) {
         setError(`Field "${row.key.trim()}" needs a label`);
         return;
+      }
+      if (row.definition.type === "list") {
+        if (!supportsListFields) {
+          setError("List fields are only supported on endpoint types");
+          return;
+        }
+        const columns = row.definition.item_fields ?? {};
+        const itemRows = row.itemRows ?? rowsFromFields(columns);
+        const keys = itemRows.map((item) => item.key.trim());
+        if (keys.length === 0) {
+          setError(`Field "${row.key.trim()}" needs at least one row field`);
+          return;
+        }
+        if (keys.some((key) => !key.trim() || key === "id") || new Set(keys.map((key) => key.toLowerCase())).size !== keys.length) {
+          setError(`Field "${row.key.trim()}" needs unique, non-empty row field keys other than "id"`);
+          return;
+        }
+        for (const [key, column] of Object.entries(columns)) {
+          if (column.type === "list" || !column.label.trim()) {
+            setError(`Row field "${key}" needs a label and a scalar type`);
+            return;
+          }
+        }
       }
       const ui = row.definition.ui;
       if ((ui === "select" || ui === "radio") && (row.definition.options ?? []).length === 0) {
@@ -174,7 +200,7 @@ export default function TypeFormDialog({
     }
 
     const originalKeys = Object.keys(initial?.fields ?? {});
-    const fields = buildFieldsPayload(rows, originalKeys);
+    const fields = buildFieldsPayload(rows, originalKeys, initial?.fields);
 
     try {
       await onSubmit({
@@ -259,6 +285,7 @@ export default function TypeFormDialog({
               duplicateKeys={duplicateKeys}
               showListVisibility={supportsListVisibility}
               roleOptions={roleOptions}
+              supportsListFields={supportsListFields}
             />
           </div>
 

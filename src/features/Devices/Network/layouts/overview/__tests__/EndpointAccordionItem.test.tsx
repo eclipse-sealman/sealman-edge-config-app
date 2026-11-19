@@ -68,7 +68,28 @@ describe("EndpointAccordionItem", () => {
       endpoint_id: "e3", type_id: "plc", type_label: "PLC", ip: "10.0.0.3", status: "online", source: "configured", ports: [],
       endpoint_data: { title: { value: "Press 3", field: { ...STRING, label: "Title" } }, addr: { value: "10.0.0.3", field: { ...STRING, label: "Address" } } },
     });
+
     expect(screen.queryByText(/Press 3 ·/)).not.toBeInTheDocument();
+  });
+
+  it("shows ordered list row values instead of object coercions and hides lists with show_in_list off", () => {
+    const equipment = {
+      ...STRING, type: "list" as const, label: "Equipment", ui: null,
+      item_order: ["quantity", "identifier"],
+      item_fields: {
+        identifier: { ...STRING, label: "Identifier" },
+        quantity: { ...STRING, type: "integer" as const, ui: "number" as const, label: "Quantity" },
+      },
+    };
+    renderItem({
+      endpoint_id: "list-endpoint", type_id: "sensor", type_label: "Sensor", status: "unknown", source: "configured", ports: [],
+      endpoint_data: {
+        equipment: { value: [{ id: "row-id", identifier: "SEP-00412", quantity: 0 }], field: equipment },
+        hidden: { value: [{ identifier: "HIDDEN" }], field: { ...equipment, show_in_list: false } },
+      },
+    });
+    expect(screen.getByText("Quantity: 0, Identifier: SEP-00412")).toBeInTheDocument();
+    expect(screen.queryByText(/object Object|HIDDEN/)).not.toBeInTheDocument();
   });
 
   it("lists an endpoint without IP with the type label as title and unknown services", () => {

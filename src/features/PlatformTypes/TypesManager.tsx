@@ -10,6 +10,7 @@ import { ApiError } from "@/generated/edge-administration/api";
 import TypeFormDialog, { BrowserKindOption, TypeFormResult, TypeRecord } from "./TypeFormDialog";
 import { FieldDefinition } from "./FieldsEditor";
 import type { RoleOption } from "./typeRoles";
+import type { FieldDefinitionWrite } from "./listFields";
 
 export interface TypesManagerProps {
   title: string;
@@ -31,6 +32,7 @@ export interface TypesManagerProps {
   /** When set, each field row gets a "Show in list" toggle controlling whether its value appears
    * in the corresponding device or endpoint list. */
   supportsListVisibility?: boolean;
+  supportsListFields?: boolean;
   /** Type ID that can't be deleted (its delete button is hidden entirely) - used for the
    * "default" device type, which the backend also rejects deleting. */
   protectedTypeId?: string;
@@ -56,7 +58,7 @@ export interface TypesManagerProps {
     body: {
       label: string;
       description: string | null;
-      fields: Record<string, FieldDefinition | null>;
+      fields: Record<string, FieldDefinitionWrite | null>;
       browser_kind?: string | null;
       mapping?: Record<string, string>;
     }
@@ -64,9 +66,21 @@ export interface TypesManagerProps {
   onDelete: (typeId: string) => Promise<unknown>;
 }
 
-function nonNullFields(fields: Record<string, FieldDefinition | null>): Record<string, FieldDefinition> {
+function nonNullFields(fields: Record<string, FieldDefinitionWrite | null>): Record<string, FieldDefinition> {
   return Object.fromEntries(
-    Object.entries(fields).filter((entry): entry is [string, FieldDefinition] => entry[1] !== null)
+    Object.entries(fields)
+      .filter((entry): entry is [string, FieldDefinitionWrite] => entry[1] !== null)
+      .map(([key, field]) => {
+        const { item_fields, ...definition } = field;
+        return [key, {
+          ...definition,
+          ...(item_fields ? {
+            item_fields: Object.fromEntries(
+              Object.entries(item_fields).filter((entry): entry is [string, FieldDefinition] => entry[1] !== null),
+            ),
+          } : {}),
+        }];
+      }),
   );
 }
 
@@ -82,6 +96,7 @@ export default function TypesManager({
   defaultMapping,
   roleOptions,
   supportsListVisibility,
+  supportsListFields,
   protectedTypeId,
   cascadeDelete,
   onCreate,
@@ -248,6 +263,7 @@ export default function TypesManager({
         defaultMapping={defaultMapping}
         roleOptions={roleOptions}
         supportsListVisibility={supportsListVisibility}
+        supportsListFields={supportsListFields}
       />
 
       <SimpleDialog

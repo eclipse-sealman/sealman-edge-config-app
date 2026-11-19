@@ -138,12 +138,21 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
       for (const key of deletedKeys) {
         payload[key] = null;
       }
-      await updateEndpoint({ endpointId, body: { endpoint_data: payload } });
+      const saved = await updateEndpoint({ endpointId, body: { endpoint_data: payload } });
       toast.success("Endpoint updated");
-      setDeletedKeys(new Set());
-      setIsDirty(false);
-      const saved = await refetch();
-      if (saved?.data) baselineRef.current = toValues(saved.data.endpoint_data);
+      if (initializedForRef.current === `${saved.endpoint_id}:${saved.type_id}`) {
+        setDeletedKeys(new Set());
+        setIsDirty(false);
+        const fresh = toValues(saved.endpoint_data);
+        baselineRef.current = fresh;
+        // Use the write response so row IDs survive even if the following refetch fails.
+        setValues((current) => Object.fromEntries(
+          [...new Set([...Object.keys(current), ...Object.keys(fresh)])].map((key) => [
+            key, deepEqual(current[key], values[key]) ? fresh[key] ?? null : current[key],
+          ]),
+        ));
+      }
+      await refetch();
       onUpdated();
     } catch {
       toast.error("Failed to update endpoint");
@@ -303,6 +312,7 @@ export default function EndpointDetailsPage({ endpointId, onBack, onOpenServiceD
                   values={values}
                   onChange={setFieldValue}
                   onDelete={deleteFieldValue}
+                  disabled={isSaving || !canWrite}
                 />
               )}
 

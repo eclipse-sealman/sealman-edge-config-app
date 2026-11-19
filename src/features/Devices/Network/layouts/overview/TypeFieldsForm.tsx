@@ -22,6 +22,7 @@ interface props {
   /** When provided, shows a delete action next to every non-required, unlocked field, letting its
    * stored value be cleared entirely rather than just edited. */
   onDelete?: (key: string) => void;
+  disabled?: boolean;
 }
 
 export default function TypeFieldsForm({
@@ -31,6 +32,7 @@ export default function TypeFieldsForm({
   lockedFieldKey,
   lockSavedValues = true,
   onDelete,
+  disabled = false,
 }: props) {
   const entries = Object.entries(fields);
 
@@ -59,7 +61,7 @@ export default function TypeFieldsForm({
                   definition={definition}
                   value={values[key] ?? null}
                   onChange={(value) => onChange(key, value)}
-                  disabled={isLocked}
+                  disabled={disabled || isLocked}
                 />
               </div>
               {canDelete && (
@@ -70,6 +72,7 @@ export default function TypeFieldsForm({
                   className="shrink-0 text-destructive hover:text-destructive"
                   onClick={() => onDelete?.(key)}
                   title={`Clear "${definition.label}"`}
+                  disabled={disabled}
                 >
                   <Trash2 />
                 </Button>

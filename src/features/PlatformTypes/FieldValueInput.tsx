@@ -2,13 +2,15 @@ import { components } from "@/generated/edge-administration/types";
 import Toggle from "./Toggle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { isListRow, orderedItemFields } from "./listFields";
 
 // Radix Select can't hold an empty-string item, so "no selection" is represented by this sentinel.
 const NO_SELECTION = "__none__";
 
 export type FieldDefinitionLike = Pick<
   components["schemas"]["FieldDefinition"],
-  "type" | "ui" | "options" | "validation"
+  "type" | "ui" | "options" | "validation" | "item_fields" | "item_order"
 >;
 type FieldDefinition = components["schemas"]["FieldDefinition"];
 type FieldValidation = NonNullable<FieldDefinitionLike["validation"]>;
@@ -22,8 +24,22 @@ export const inputClass =
 export const compactInputClass = inputClass.replace("py-2", "py-1") + " h-8";
 
 /** Read-only counterpart to the input widget above: formats a value for display, driven by the same FieldDefinition. */
-export function formatMetadataValue(value: unknown, definition: Pick<FieldDefinitionLike, "type">): string {
-  if (value === null || value === undefined || value === "") return "";
+export function formatMetadataValue(
+  value: unknown,
+  definition: Pick<FieldDefinitionLike, "type" | "item_fields" | "item_order">,
+): string {
+  if (value === null || value === undefined || (value === "" && definition.type !== "list")) return "";
+  if (definition.type === "list") {
+    if (!Array.isArray(value) || !value.every(isListRow)) return `Invalid list value: ${JSON.stringify(value)}`;
+    return value.map((row) => orderedItemFields(definition)
+      .map(([key, column]) => {
+        const text = formatMetadataValue(row[key] ?? column.default, column);
+        return text ? `${column.label}: ${text}` : "";
+      })
+      .filter(Boolean)
+      .join(", ") || "(empty row)")
+      .join("; ");
+  }
   if (definition.type === "boolean") return value ? "Yes" : "No";
   return String(value);
 }
@@ -36,9 +52,22 @@ export function formatMetadataValue(value: unknown, definition: Pick<FieldDefini
  * pattern/length/bounds violation.
  */
 export function validateFieldValue(label: string, value: unknown, definition: FieldDefinitionLike): string | null {
-  if (value === null || value === undefined || value === "") return null;
+  if (value === null || value === undefined || (value === "" && definition.type !== "list")) return null;
 
   const { type } = definition;
+  if (type === "list") {
+    if (!Array.isArray(value) || !value.every(isListRow)) return `"${label}" must be a list of rows`;
+    const ids = new Set<string>();
+    for (const [index, row] of value.entries()) {
+      if (row.id != null) {
+        if (typeof row.id !== "string" || ids.has(row.id)) return `"${label}" has an invalid or duplicate row ID`;
+        ids.add(row.id);
+      }
+      const error = validateFields(row, definition.item_fields ?? {});
+      if (error) return `"${label}", row ${index + 1}: ${error}`;
+    }
+    return null;
+  }
   if (type === "boolean" && typeof value !== "boolean") return `"${label}" must be a boolean`;
   if (type === "integer" && (typeof value !== "number" || !Number.isInteger(value))) {
     return `"${label}" must be an integer`;
@@ -108,7 +137,9 @@ export function validateFields(
 ): string | null {
   for (const [key, definition] of Object.entries(fields)) {
     const value = values[key];
-    const isEmpty = value === null || value === undefined || value === "";
+    const isEmpty = value === null || value === undefined || (definition.type === "list"
+      ? Array.isArray(value) && value.length === 0
+      : value === "");
     if (definition.required && isEmpty) {
       return `"${definition.label}" is required`;
     }
@@ -138,6 +169,62 @@ interface FieldValueInputProps {
   onChange: (value: unknown) => void;
   placeholder?: string;
   disabled?: boolean;
+  "aria-label"?: string;
+}
+
+function ListValueInput({ definition, value, onChange, disabled }: FieldValueInputProps) {
+  const isEmpty = value === null || value === undefined;
+  const valid = isEmpty || (Array.isArray(value) && value.every(isListRow));
+  const rows = Array.isArray(value) && value.every(isListRow) ? value : [];
+  const columns = orderedItemFields(definition);
+
+  if (!valid) {
+    return (
+      <div className="space-y-2">
+        <p role="alert" className="text-sm text-destructive">Stored value is not a list of rows. Replace it before saving.</p>
+        <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(value, null, 2)}</pre>
+        <Button type="button" variant="outline" disabled={disabled} onClick={() => onChange([])}>
+          Replace with empty list
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {rows.length === 0 && <p className="text-xs text-muted-foreground">No rows.</p>}
+      {rows.map((row, index) => (
+        <fieldset key={typeof row.id === "string" ? row.id : index} disabled={disabled} aria-label={`Row ${index + 1}`} className="min-w-0 rounded-md border p-3 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {columns.map(([key, column]) => (
+              <fieldset key={key} className="min-w-0 space-y-1">
+                <legend className="text-xs text-muted-foreground">{column.label}{column.required ? " *" : ""}</legend>
+                <FieldValueInput
+                  definition={column}
+                  value={row[key] ?? null}
+                  disabled={disabled}
+                  aria-label={`${column.label}, row ${index + 1}`}
+                  onChange={(next) => onChange(rows.map((item, i) => i === index ? { ...item, [key]: next } : item))}
+                />
+                {column.description && <p className="text-xs text-muted-foreground">{column.description}</p>}
+              </fieldset>
+            ))}
+          </div>
+          <Button type="button" variant="outline" size="sm" disabled={disabled}
+            aria-label={`Remove row ${index + 1}`}
+            onClick={() => onChange(rows.filter((_, i) => i !== index))}>
+            Remove row
+          </Button>
+        </fieldset>
+      ))}
+      <Button type="button" variant="outline" size="sm" disabled={disabled}
+        onClick={() => onChange([...rows, Object.fromEntries(columns.map(([key, column]) => [
+          key, column.default ?? (column.type === "boolean" ? false : null),
+        ]))])}>
+        Add row
+      </Button>
+    </div>
+  );
 }
 
 /**
@@ -145,18 +232,20 @@ interface FieldValueInputProps {
  * FieldDefinition's `type`/`ui`/`options` — the single source of truth for
  * how any platform-type field should be edited.
  */
-export default function FieldValueInput({ definition, value, onChange, placeholder, disabled }: FieldValueInputProps) {
+export default function FieldValueInput({ definition, value, onChange, placeholder, disabled, "aria-label": ariaLabel }: FieldValueInputProps) {
+  if (definition.type === "list") return <ListValueInput definition={definition} value={value} onChange={onChange} disabled={disabled} />;
   const ui = definition.ui ?? defaultUiFor(definition.type);
   const options = definition.options ?? [];
 
   if (ui === "toggle") {
-    return <Toggle checked={Boolean(value)} onChange={onChange} disabled={disabled} />;
+    return <Toggle checked={Boolean(value)} onChange={onChange} disabled={disabled} aria-label={ariaLabel} />;
   }
 
   if (ui === "checkbox") {
     return (
       <input
         type="checkbox"
+        aria-label={ariaLabel}
         checked={Boolean(value)}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
@@ -172,7 +261,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
         disabled={disabled}
         onValueChange={(v) => onChange(v === NO_SELECTION ? "" : v)}
       >
-        <SelectTrigger className="h-8">
+        <SelectTrigger className="h-8" aria-label={ariaLabel}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -210,6 +299,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
   if (ui === "textarea") {
     return (
       <Textarea
+        aria-label={ariaLabel}
         value={typeof value === "string" ? value : ""}
         disabled={disabled}
         placeholder={placeholder}
@@ -225,6 +315,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
     return (
       <input
         type="password"
+        aria-label={ariaLabel}
         value={typeof value === "string" ? value : ""}
         disabled={disabled}
         placeholder={placeholder}
@@ -245,6 +336,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
       <div className="flex items-center gap-2">
         <input
           type="range"
+          aria-label={ariaLabel}
           min={min}
           max={max}
           step={definition.validation?.multiple_of ?? (definition.type === "integer" ? 1 : "any")}
@@ -262,6 +354,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
     return (
       <input
         type="number"
+        aria-label={ariaLabel}
         step={definition.validation?.multiple_of ?? (definition.type === "integer" ? 1 : "any")}
         min={definition.validation?.minimum ?? undefined}
         max={definition.validation?.maximum ?? undefined}
@@ -278,6 +371,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
   return (
     <input
       type="text"
+      aria-label={ariaLabel}
       value={typeof value === "string" ? value : ""}
       disabled={disabled}
       placeholder={placeholder}

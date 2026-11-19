@@ -10,6 +10,7 @@ import Firmware from "./Firmware";
 import CommandHistory from "./CommandHistory";
 import { ActivateConfigButton } from "./ActivateConfigButton";
 import useSmartEmsStatusPolling from "./useSmartEmsStatusPolling";
+import { isDevicePasswordEnabled } from "@/config/devicePassword";
 
 const TABS = [
   { title: "Network Interfaces", path: "network-interfaces" },
@@ -24,6 +25,7 @@ export default function DeviceConfig() {
   const { deviceId = "" } = useParams<{ deviceId: string }>();
   const base = `/devices/${deviceId}/device-config`;
   const { data: status } = useSmartEmsStatusPolling(deviceId);
+  const passwordEnabled = isDevicePasswordEnabled();
 
   return (
     <div className="rounded-lg border bg-background shadow-xs">
@@ -31,7 +33,7 @@ export default function DeviceConfig() {
         <div className="space-y-1.5">
           <h2 className="text-lg font-semibold leading-none tracking-tight">Device Configuration</h2>
           <p className="text-sm text-muted-foreground">
-            Firmware, security and network settings. Saved changes take effect once the config is activated.
+            Firmware, security and network settings. Network changes require config activation.
           </p>
         </div>
         <div className="shrink-0">
@@ -44,7 +46,7 @@ export default function DeviceConfig() {
           aria-label="Device configuration"
           className="flex w-52 shrink-0 flex-col gap-1 self-stretch border-r p-3 text-sm font-medium text-muted-foreground"
         >
-          {TABS.map((tab) => (
+          {TABS.filter((tab) => tab.path !== "security" || passwordEnabled).map((tab) => (
             <NavLink
               key={tab.path}
               to={`${base}/${tab.path}`}
@@ -65,7 +67,7 @@ export default function DeviceConfig() {
           <Route path="firmware" element={<Firmware />} />
           <Route path="config-activity" element={<CommandHistory />} />
           <Route path="command-history" element={<Navigate to={`${base}/config-activity`} replace />} />
-          <Route path="security" element={<SecurityInformation />} />
+          <Route path="security" element={passwordEnabled ? <SecurityInformation /> : <Navigate to={`${base}/network-interfaces`} replace />} />
           <Route
             path="network-interfaces"
             element={
