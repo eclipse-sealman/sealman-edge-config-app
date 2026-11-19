@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import Badge from "../../components/Typography/Badge";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronDownIcon, ChevronRightIcon, CpuChipIcon, TrashIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, ChevronRightIcon, CpuChipIcon } from "@heroicons/react/24/outline";
 import {
   Table,
   TableBody,
