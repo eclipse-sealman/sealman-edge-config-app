@@ -372,7 +372,7 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
       </Box>
 
       <Box label="Template endpoint slots" title="Endpoint slots"
-           description="The endpoint (and service) dropdowns shown when applying, one per endpoint name used in the template. Nothing to declare: write ${endpoint.ip} or ${service.port}.">
+           description="The endpoint (and service) dropdowns shown when applying, one per endpoint name used in the template. Nothing to declare: write ${endpoint.ip}, ${service.port} or ${endpoint.equipment.identifier}.">
         {endpointSlots.length === 0 && !lists.some((l) => l.blocks.some((b) => b.inputs.endpoints.length > 0)) ? (
           <p className="text-sm text-muted-foreground">This {noun} uses no endpoint fields.</p>
         ) : (
@@ -381,10 +381,12 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
               <tr className="text-left text-xs text-muted-foreground"><th className="py-1 pr-4 font-medium">Slot</th><th className="py-1 font-medium">Fields read from the chosen endpoint</th></tr>
             </thead>
             <tbody>
-              {endpointSlots.map(({ key, fields, service_fields = [] }) => (
+              {endpointSlots.map(({ key, fields, service_fields = [], row_fields = {} }) => (
                 <tr key={key} className="border-t">
                   <td className="py-1.5 pr-4 font-medium">{copyLabel(key)}</td>
                   <td className="py-1.5">{fields.map((f) => <code key={f} className="mr-1 rounded bg-purple-100 px-1 text-purple-900">{f}</code>)}
+                    {Object.entries(row_fields).flatMap(([field, subs]) => subs.map((sub) => `${field}.${sub}`))
+                      .map((f) => <code key={`row-${f}`} className="mr-1 rounded bg-purple-100 px-1 text-purple-900">{f}</code>)}
                     {service_fields.length > 0 && (
                       <div className="mt-1 text-xs text-muted-foreground">
                         service: {service_fields.map((f) => <code key={f} className="mr-1 rounded bg-purple-100 px-1 text-purple-900">{f}</code>)}

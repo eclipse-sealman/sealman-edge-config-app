@@ -194,6 +194,43 @@ describe("TemplatePage", () => {
     localStorage.removeItem("moduleTemplatePreviewCollapsed");
   });
 
+  it("shows the row fields of a slot and previews with the chosen row", async () => {
+    localStorage.setItem("moduleTemplatePreviewCollapsed", "0");
+    const slot = { key: "endpoint", slot: "endpoint", copy: null, fields: [], service_fields: [], row_fields: { equipment: ["identifier"] } };
+    const base = http.get.getMockImplementation()!;
+    http.get.mockImplementation(async (url: string) => {
+      if (url === "/module-config-templates/1/versions/2") return { data: { ...version(2), body: { m: "${endpoint.equipment.identifier}" } } };
+      if (url === "/module-config-template-groups/1/example-devices") return { data: [{ device_id: "dev-1", device_data: { description: "Test bench" } }] };
+      if (url === "/dev-1/config/endpoints") {
+        return { data: [{ endpoint_id: "e1", type_id: "t", type_label: "PLC", name: "plc-1",
+          fields: { equipment: [{ id: "r1", identifier: 41233 }, { id: "r2", identifier: 41234 }] } }] };
+      }
+      return base(url);
+    });
+    const post = http.post.getMockImplementation()!;
+    http.post.mockImplementation(async (url: string, payload: unknown) =>
+      url.endsWith("/lint")
+        ? { data: { ok: true, findings: [], references: { variables: [], device: [] }, inputs: { variables: [], endpoints: [slot], device: [], copies: [], lists: [] } } }
+        : post(url, payload));
+    renderAt("/module-templates/1/templates/1");
+    const slots = await screen.findByRole("region", { name: "Template endpoint slots" });
+    const row = (await within(slots).findByText("endpoint", { selector: "td" })).closest("tr")!;
+    expect(within(row).getByText("equipment.identifier")).toBeInTheDocument();
+
+    const before = await screen.findByRole("region", { name: "Preview" });
+    fireEvent.click(within(before).getByRole("combobox"));
+    fireEvent.click(await screen.findByText("dev-1 · Test bench"));
+    const preview = await screen.findByRole("region", { name: "Preview" });
+    fireEvent.click(await within(preview).findByRole("combobox", { name: "Endpoint: endpoint" }));
+    fireEvent.click(await screen.findByText("plc-1", { selector: "span.block" }));
+    fireEvent.click(await within(preview).findByRole("combobox", { name: "equipment: endpoint" }));
+    fireEvent.click(await screen.findByText("2: identifier 41234"));
+    await waitFor(() => expect(http.post).toHaveBeenLastCalledWith("/module-config-templates/preview", expect.objectContaining({
+      endpoints: { endpoint: "e1" }, rows: { endpoint: { equipment: "r2" } },
+    })), { timeout: 2000 });
+    localStorage.removeItem("moduleTemplatePreviewCollapsed");
+  });
+
   it("says so for an unknown template", async () => {
     renderAt("/module-templates/1/templates/99");
     expect(await screen.findByText("This template does not exist (any more).")).toBeInTheDocument();

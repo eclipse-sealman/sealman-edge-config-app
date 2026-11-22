@@ -52,6 +52,7 @@ export default function TemplateHelp({ kind }: { kind: "template" | "block" }) {
               [<C t="endpoint">{"${service.port}"}</C>, "port of a service on that endpoint", "a service dropdown under it"],
               [<><C t="endpoint">{"${endpoint[plc].ip}"}</C><br /><C t="endpoint">{"${service[plc].port}"}</C></>,
                "the same, when you need more than one endpoint: give each a name", "one dropdown per name"],
+              [<C t="endpoint">{"${endpoint.equipment.identifier}"}</C>, "field of one row of a list field of the chosen endpoint", "a row dropdown under it when the endpoint has several rows"],
             ]} />
             <Section title="Reusable parts" rows={[
               [<C t="ref">{'{ "$ref": "Client" }'}</C>, "the content of the block “Client”", "the block's own inputs"],
