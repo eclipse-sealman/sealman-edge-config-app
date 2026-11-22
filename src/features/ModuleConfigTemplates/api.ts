@@ -135,6 +135,8 @@ export interface InputEndpoint {
   fields: string[];
   /** fields read from the slot's chosen service (`${service[slot].field}`); empty if no service is used */
   service_fields?: string[];
+  /** sub-fields read from rows of list fields (`${endpoint[slot].list.sub}`), by list field; the row is chosen when applying */
+  row_fields?: Record<string, string[]>;
 }
 
 /** Everything a rendering needs, the body's own and every block copy's. */
@@ -155,6 +157,9 @@ export interface InputList {
   path: string;
   blocks: { block_id: number; name?: string | null; inputs: Inputs }[];
 }
+
+/** Slot key -> list field -> id of the chosen row, as sent on preview/render/apply. */
+export type RowChoices = Record<string, Record<string, string>>;
 
 /** List key -> its entries, as sent on render/apply and stored under `values.$lists`. */
 export type ListsPayload = Record<string, { name: string; block_id: number }[]>;
@@ -268,7 +273,7 @@ export const moduleConfigApi = {
     (await edgeConfigApiInstance.post<Template>(`${BASE}/${id}/duplicate`, payload)).data,
   preview: async (payload: {
     body: unknown; variables: VariableDecl[]; values: Values; device?: Values; device_id?: string; group_id?: number; kind?: TemplateKind;
-    endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload;
+    endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices;
   }) => (await edgeConfigApiInstance.post<RenderResult>(`${BASE}/preview`, payload)).data,
   lint: async (payload: { body: unknown; variables: VariableDecl[]; kind: TemplateKind; group_id?: number }) =>
     (await edgeConfigApiInstance.post<LintResult>(`${BASE}/lint`, payload)).data,
@@ -282,11 +287,11 @@ export const moduleConfigApi = {
   listEndpointServices: async (deviceId: string, endpointId: string) =>
     (await edgeConfigApiInstance.get<DeviceService[]>(`/${enc(deviceId)}/config/endpoints/${enc(endpointId)}/services`)).data,
   render: async (deviceId: string, module: string, payload: {
-    template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload;
+    template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices;
   }) =>
     (await edgeConfigApiInstance.post<RenderResult>(`/${enc(deviceId)}/modules/${enc(module)}/config/render`, payload)).data,
   apply: async (deviceId: string, module: string, payload: {
-    template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; comment?: string;
+    template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices; comment?: string;
   }) =>
     (await edgeConfigApiInstance.post<ApplyResult>(`/${enc(deviceId)}/modules/${enc(module)}/config/apply`, payload)).data,
   getReported: async (deviceId: string, module: string) =>
@@ -402,7 +407,7 @@ export const invalidateDeviceModuleConfig = (deviceId: string, module: string) =
 export const useApplyTemplate = (deviceId: string, module: string) =>
   useMutation({
     mutationFn: (payload: {
-      template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; comment?: string;
+      template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices; comment?: string;
     }) =>
       moduleConfigApi.apply(deviceId, module, payload),
     onSuccess: () => invalidateDeviceModuleConfig(deviceId, module),
