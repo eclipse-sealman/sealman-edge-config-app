@@ -120,10 +120,10 @@ function ApplyTemplate({ deviceId, moduleName, blocked, templates, prefill }: {
     : inGroup.length === 1 ? inGroup[0].id : undefined;
   const template = templates.find((t) => t.id === templateId);
 
-  // A revision stores its endpoint and service choices and list entries with the values, under "$endpoints", "$services" and "$lists".
+  // A revision stores its endpoint, service and row choices and list entries with the values, under "$endpoints", "$services", "$rows" and "$lists".
   const loaded = useTemplateVersion(templateId, "latest");
   const form = useTemplateInputs(deviceId, loaded.data, template?.group_id, prefill?.values);
-  const { sent, listsValid, servicesChosen } = form;
+  const { sent, listsValid, servicesChosen, rowsChosen } = form;
   const [comment, setComment] = useState("");
   const [showResult, setShowResult] = useState(false);
   const apply = useApplyTemplate(deviceId, moduleName);
@@ -235,7 +235,7 @@ function ApplyTemplate({ deviceId, moduleName, blocked, templates, prefill }: {
                   <GuardedButton
                     deviceId={deviceId}
                     permissionKey={PERMISSION_KEYS.DEVICE_MODULE_CONFIG_APPLY}
-                    disabled={apply.isPending || !render.data?.ok || !listsValid || !servicesChosen}
+                    disabled={apply.isPending || !render.data?.ok || !listsValid || !servicesChosen || !rowsChosen}
                     onClick={onApply}
                   >
                     Apply to {moduleName}

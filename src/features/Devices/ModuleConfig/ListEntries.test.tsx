@@ -2,7 +2,9 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { InputList } from "@/features/ModuleConfigTemplates/api";
 import ModuleConfigTab from "./ModuleConfigTab";
+import { cardsValid, entriesToPayload, splitRevisionValues } from "./ListEntries";
 
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }));
 vi.mock("@/api/edgeConfig/edgeConfigApi", () => ({ edgeConfigApiInstance: http }));
@@ -132,5 +134,29 @@ describe("ListEntries", () => {
 
     fireEvent.click(within(card).getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(applyButton()).toBeEnabled(), { timeout: 2000 });
+  });
+
+  it("sends and restores the row choice of a list entry under the entry's prefix", () => {
+    const [block] = VERSION.inputs.lists[0].blocks;
+    const list = {
+      ...VERSION.inputs.lists[0],
+      blocks: [{ ...block, inputs: { ...block.inputs, endpoints: [{ ...block.inputs.endpoints[0], row_fields: { equipment: ["crm_id", "identifier"] } }] } }],
+    } as InputList;
+    const card = {
+      id: "c1", name: "sep1", blockId: 1, values: {}, endpoints: { machine: "ep-many" }, services: { machine: "s1" },
+      rows: { machine: { equipment: "r2" } },
+    };
+    expect(entriesToPayload(list, [card]).rows).toEqual({ "clients/sep1/machine": { equipment: "r2" } });
+
+    const split = splitRevisionValues({
+      $lists: { clients: [{ name: "sep1", block_id: 1 }] }, $endpoints: { "clients/sep1/machine": "ep-many" },
+      $rows: { "clients/sep1/machine": { equipment: "r2" }, plc: { equipment: "r1" } },
+    });
+    expect(split.rows).toEqual({ plc: { equipment: "r1" } });
+    expect(split.cards.clients[0].rows).toEqual({ machine: { equipment: "r2" } });
+    expect(split.values).not.toHaveProperty("$rows");
+
+    expect(cardsValid(list, [card])).toBe(true);
+    expect(cardsValid(list, [{ ...card, rows: {} }])).toBe(false);
   });
 });

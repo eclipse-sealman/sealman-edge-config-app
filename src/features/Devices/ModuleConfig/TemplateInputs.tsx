@@ -2,10 +2,10 @@ import { useState } from "react";
 import { InlineAlert } from "@/components/ui/page-state";
 import { getErrorMessage } from "@/lib/errors";
 import {
-  useBlocks, useDeviceEndpoints, type Copy, type EndpointChoices, type Finding, type InputEndpoint, type InputVariable, type ServiceChoices,
-  type TemplateVersion, type Values,
+  useBlocks, useDeviceEndpoints, type Copy, type EndpointChoices, type Finding, type InputEndpoint, type InputVariable, type RowChoices,
+  type ServiceChoices, type TemplateVersion, type Values,
 } from "@/features/ModuleConfigTemplates/api";
-import { InputsSection, needsService } from "./ConfigInputs";
+import { InputsSection, needsService, rowsChosen as allRowsChosen } from "./ConfigInputs";
 import { ListEntries, cardsValid, entriesToPayload, splitRevisionValues, type ListCards, type ListEntryRef } from "./ListEntries";
 
 /** What the form needs of a template: a saved version, or the server's view of an unsaved body (lint). */
@@ -23,11 +23,11 @@ function inputsOf(version?: TemplateInputsSource) {
   const inputs = version?.inputs;
   if (!version) return { topVariables: [] as InputVariable[], topSlots: [] as InputEndpoint[], groups: [] as CopyGroup[], slots: [] as InputEndpoint[] };
   if (!inputs) {
-    // No block copies: the template's own variables and endpoint slots.
+    // No block copies: the template's own variables and endpoint slots (`<list>.<sub>` reads a row, not a field).
     const used = version.references.endpoint_fields ?? [];
     const topSlots = (version.references.endpoints ?? []).map((slot) => ({
       key: slot, slot, copy: null,
-      fields: used.filter((f) => f.startsWith(`${slot}.`)).map((f) => f.slice(slot.length + 1)),
+      fields: used.filter((f) => f.startsWith(`${slot}.`)).map((f) => f.slice(slot.length + 1)).filter((f) => !f.includes(".")),
     }));
     return { topVariables: version.variables.map((v) => ({ ...v, key: v.name })), topSlots, groups: [], slots: topSlots };
   }
@@ -52,14 +52,15 @@ function inputsOf(version?: TemplateInputsSource) {
 }
 
 /**
- * The state of the inputs form for a template on a device: values, endpoint and service choices, list cards, and the
- * payload (`sent`) for render/preview/apply. `stored` starts it from a revision's values ("$endpoints", "$services", "$lists").
+ * The state of the inputs form for a template on a device: values, endpoint, service and row choices, list cards, and the
+ * payload (`sent`) for render/preview/apply. `stored` starts it from a revision's values ("$endpoints", "$services", "$rows", "$lists").
  */
 export function useTemplateInputs(deviceId: string | undefined, source: TemplateInputsSource | undefined, groupId: number | null | undefined, stored?: Values) {
   const [initial] = useState(() => splitRevisionValues(stored ?? {}));
   const [values, setValues] = useState<Values>(initial.values);
   const [endpoints, setEndpoints] = useState<EndpointChoices>(initial.endpoints);
   const [services, setServices] = useState<ServiceChoices>(initial.services);
+  const [rows, setRows] = useState<RowChoices>(initial.rows);
   const [cards, setCards] = useState<ListCards>(initial.cards);
 
   const { topVariables, topSlots, groups: copyGroups, slots } = inputsOf(source);
@@ -73,25 +74,29 @@ export function useTemplateInputs(deviceId: string | undefined, source: Template
   const listsValid = lists.every((l) => cardsValid(l, cards[l.key] ?? []));
   // A slot that reads a service needs one chosen (the server would say `missing-service`).
   const servicesChosen = slots.every((s) => !needsService(s) || services[s.key]);
+  // A slot that reads rows of a list field needs one chosen for each (the server would say so if there are several).
+  const rowsChosen = allRowsChosen(slots, rows);
   // Stored entries of lists the template no longer has: not applied, so say so.
   const dropped = source ? Object.entries(cards).filter(([key, c]) => c.length > 0 && !lists.some((l) => l.key === key)) : [];
 
-  // Entries go in "lists"; their values, endpoint and service choices join the top-level ones under prefixed keys.
+  // Entries go in "lists"; their values, endpoint, service and row choices join the top-level ones under prefixed keys.
   const parts = lists.map((l) => entriesToPayload(l, cards[l.key] ?? []));
   const allEndpoints: EndpointChoices = Object.assign({ ...endpoints }, ...parts.map((p) => p.endpoints));
   const allServices: ServiceChoices = Object.assign({ ...services }, ...parts.map((p) => p.services));
+  const allRows: RowChoices = Object.assign({ ...rows }, ...parts.map((p) => p.rows));
   const sent = {
     values: Object.assign({ ...values }, ...parts.map((p) => p.values)) as Values,
     ...(Object.keys(allEndpoints).length > 0 && { endpoints: allEndpoints }),
     ...(Object.keys(allServices).length > 0 && { services: allServices }),
+    ...(Object.keys(allRows).length > 0 && { rows: allRows }),
     ...(lists.length > 0 && { lists: Object.assign({}, ...parts.map((p) => p.lists)) as Record<string, ListEntryRef[]> }),
   };
 
-  const reset = () => { setValues({}); setEndpoints({}); setServices({}); setCards({}); };
+  const reset = () => { setValues({}); setEndpoints({}); setServices({}); setRows({}); setCards({}); };
 
   return {
-    deviceId: deviceId ?? "", sent, listsValid, servicesChosen, reset,
-    values, setValues, endpoints, setEndpoints, services, setServices, cards, setCards,
+    deviceId: deviceId ?? "", sent, listsValid, servicesChosen, rowsChosen, reset,
+    values, setValues, endpoints, setEndpoints, services, setServices, rows, setRows, cards, setCards,
     topVariables, topSlots, copyGroups, lists, deviceMeta, dropped, activeBlockIds, deviceEndpoints,
   };
 }
@@ -103,8 +108,10 @@ export function TemplateInputs({ form, findings, blocked }: { form: TemplateInpu
   const { deviceEndpoints } = form;
   const sectionProps = {
     deviceId: form.deviceId, values: form.values, setValues: form.setValues, endpoints: form.endpoints, services: form.services,
-    setServices: form.setServices, findings, blocked,
-    setEndpoints: (nextEndpoints: EndpointChoices, nextServices: ServiceChoices) => { form.setEndpoints(nextEndpoints); form.setServices(nextServices); },
+    setServices: form.setServices, rows: form.rows, setRows: form.setRows, findings, blocked,
+    setEndpoints: (nextEndpoints: EndpointChoices, nextServices: ServiceChoices, nextRows: RowChoices) => {
+      form.setEndpoints(nextEndpoints); form.setServices(nextServices); form.setRows(nextRows);
+    },
     deviceEndpoints: deviceEndpoints.data, endpointsLoading: deviceEndpoints.isLoading,
     endpointsError: deviceEndpoints.isError ? getErrorMessage(deviceEndpoints.error) : undefined,
   };

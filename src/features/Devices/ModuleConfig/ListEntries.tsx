@@ -3,10 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InlineAlert } from "@/components/ui/page-state";
 import SearchableSelect from "@/components/Input/SearchableSelect";
-import type { DeviceEndpoint, EndpointChoices, Finding, InputList, ServiceChoices, Values } from "@/features/ModuleConfigTemplates/api";
-import { InputsSection, needsService } from "./ConfigInputs";
+import type { DeviceEndpoint, EndpointChoices, Finding, InputList, RowChoices, ServiceChoices, Values } from "@/features/ModuleConfigTemplates/api";
+import { InputsSection, needsService, rowsChosen } from "./ConfigInputs";
 
-/** One entry of a list as edited in the form. Values, endpoint and service choices are keyed relative to the entry;
+/** One entry of a list as edited in the form. Values, endpoint, service and row choices are keyed relative to the entry;
  * the `<list key>/<name>/` prefix is added only when sending (so renaming keeps them). */
 export interface ListCard {
   id: string;
@@ -15,6 +15,7 @@ export interface ListCard {
   values: Values;
   endpoints: EndpointChoices;
   services: ServiceChoices;
+  rows: RowChoices;
 }
 
 /** List key -> its cards. */
@@ -45,11 +46,12 @@ function unprefixed<T>(prefix: string, map: Record<string, T>) {
   return Object.fromEntries(Object.entries(map).filter(([k]) => k.startsWith(prefix)).map(([k, v]) => [k.slice(prefix.length), v]));
 }
 
-/** What the request needs for one list: its entries, and their values, endpoint and service choices under prefixed keys. */
+/** What the request needs for one list: its entries, and their values, endpoint, service and row choices under prefixed keys. */
 export function entriesToPayload(list: InputList, cards: ListCard[]) {
   const values: Values = {};
   const endpoints: EndpointChoices = {};
   const services: ServiceChoices = {};
+  const rows: RowChoices = {};
   const entries: ListEntryRef[] = [];
   for (const card of cards) {
     if (card.blockId === undefined) continue;
@@ -62,32 +64,34 @@ export function entriesToPayload(list: InputList, cards: ListCard[]) {
     for (const [k, v] of Object.entries(card.values)) if (!varKeys || varKeys.has(k)) values[prefix + k] = v;
     for (const [k, v] of Object.entries(card.endpoints)) if (!slotKeys || slotKeys.has(k)) endpoints[prefix + k] = v;
     for (const [k, v] of Object.entries(card.services)) if (!slotKeys || slotKeys.has(k)) services[prefix + k] = v;
+    for (const [k, v] of Object.entries(card.rows)) if (!slotKeys || slotKeys.has(k)) rows[prefix + k] = v;
   }
-  return { lists: { [list.key]: entries }, values, endpoints, services };
+  return { lists: { [list.key]: entries }, values, endpoints, services, rows };
 }
 
-/** The cards of one list, from a revision's stored values (`$lists`, prefixed values, `$endpoints` and `$services`). */
+/** The cards of one list, from a revision's stored values (`$lists`, prefixed values, `$endpoints`, `$services` and `$rows`). */
 export function cardsFromRevision(list: Pick<InputList, "key">, stored: Values): ListCard[] {
   const lists = (stored.$lists ?? {}) as Record<string, ListEntryRef[]>;
   const storedEndpoints = (stored.$endpoints ?? {}) as EndpointChoices;
   const storedServices = (stored.$services ?? {}) as ServiceChoices;
+  const storedRows = (stored.$rows ?? {}) as RowChoices;
   return (lists[list.key] ?? []).map((entry) => {
     const prefix = `${list.key}/${entry.name}/`;
     return { id: newId(), name: entry.name, blockId: entry.block_id, values: unprefixed(prefix, stored),
-             endpoints: unprefixed(prefix, storedEndpoints), services: unprefixed(prefix, storedServices) };
+             endpoints: unprefixed(prefix, storedEndpoints), services: unprefixed(prefix, storedServices), rows: unprefixed(prefix, storedRows) };
   });
 }
 
-/** Splits a revision's stored values: the top-level values, endpoint and service choices, and the cards of every list. */
+/** Splits a revision's stored values: the top-level values, endpoint, service and row choices, and the cards of every list. */
 export function splitRevisionValues(stored: Values) {
-  const { $endpoints, $services, $lists, ...rest } = stored as Values & {
-    $endpoints?: EndpointChoices; $services?: ServiceChoices; $lists?: Record<string, ListEntryRef[]>;
+  const { $endpoints, $services, $rows, $lists, ...rest } = stored as Values & {
+    $endpoints?: EndpointChoices; $services?: ServiceChoices; $rows?: RowChoices; $lists?: Record<string, ListEntryRef[]>;
   };
   const cards: ListCards = Object.fromEntries(Object.keys($lists ?? {}).map((key) => [key, cardsFromRevision({ key }, stored)]));
   const prefixes = Object.entries($lists ?? {}).flatMap(([key, entries]) => entries.map((e) => `${key}/${e.name}/`));
   const top = <T,>(map: Record<string, T>) =>
     Object.fromEntries(Object.entries(map).filter(([k]) => !k.startsWith("$") && !prefixes.some((p) => k.startsWith(p))));
-  return { values: top(rest), endpoints: top($endpoints ?? {}), services: top($services ?? {}), cards };
+  return { values: top(rest), endpoints: top($endpoints ?? {}), services: top($services ?? {}), rows: top($rows ?? {}), cards };
 }
 
 function nameError(card: ListCard, cards: ListCard[]) {
@@ -95,11 +99,13 @@ function nameError(card: ListCard, cards: ListCard[]) {
   if (cards.some((c) => c !== card && c.name === card.name)) return "Name already used";
 }
 
-/** Whether the cards can be applied: valid unique names, a type the list still offers, and a service for each slot that reads one. */
+/** Whether the cards can be applied: valid unique names, a type the list still offers, and a service for each slot that
+ * reads one and a row for each list field it reads rows of. */
 export function cardsValid(list: InputList, cards: ListCard[]) {
   return cards.every((c) => {
     const block = list.blocks.find((b) => b.block_id === c.blockId);
-    return !nameError(c, cards) && block && block.inputs.endpoints.every((e) => !needsService(e) || c.services[e.key]);
+    return !nameError(c, cards) && block && block.inputs.endpoints.every((e) => !needsService(e) || c.services[e.key])
+      && rowsChosen(block.inputs.endpoints, c.rows);
   });
 }
 
@@ -128,7 +134,7 @@ export function ListEntries({ deviceId, list, cards, onChange, activeBlockIds, f
       const taken = new Set(all.map((c) => c.name));
       let n = all.length + 1;
       while (taken.has(`${baseName}${n}`)) n++;
-      return [...all, { id: newId(), name: `${baseName}${n}`, values: {}, endpoints: {}, services: {} }];
+      return [...all, { id: newId(), name: `${baseName}${n}`, values: {}, endpoints: {}, services: {}, rows: {} }];
     });
   };
   // Server findings on entries point at their index among the sent ones (those with a type).
@@ -184,9 +190,13 @@ export function ListEntries({ deviceId, list, cards, onChange, activeBlockIds, f
                 values={prefixed(prefix, card.values)}
                 setValues={(next) => update(card, { values: unprefixed(prefix, next) })}
                 endpoints={prefixed(prefix, card.endpoints)}
-                setEndpoints={(next, services) => update(card, { endpoints: unprefixed(prefix, next), services: unprefixed(prefix, services) })}
+                setEndpoints={(next, services, rows) => update(card, {
+                  endpoints: unprefixed(prefix, next), services: unprefixed(prefix, services), rows: unprefixed(prefix, rows),
+                })}
                 services={prefixed(prefix, card.services)}
                 setServices={(next) => update(card, { services: unprefixed(prefix, next) })}
+                rows={prefixed(prefix, card.rows)}
+                setRows={(next) => update(card, { rows: unprefixed(prefix, next) })}
                 findings={findings}
                 blocked={blocked}
                 deviceEndpoints={deviceEndpoints}
