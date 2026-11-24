@@ -9,8 +9,6 @@ type DeviceDetailConnectionStatus = components["schemas"]["DeviceDetailConnectio
 interface DeviceHeaderProps {
   deviceId?: string;
   connectionStatus?: DeviceDetailConnectionStatus;
-  customer?: unknown;
-  connectedMachines?: string[];
   isLoading: boolean;
   isError: boolean;
   error?: unknown;
@@ -103,11 +101,9 @@ function StatusOrb({ state }: { state: HeaderState }) {
   );
 }
 
-export default function DeviceHeader({ deviceId, connectionStatus, customer, connectedMachines = [], isLoading, isError, error }: DeviceHeaderProps) {
+export default function DeviceHeader({ deviceId, connectionStatus, isLoading, isError, error }: DeviceHeaderProps) {
   const state = overallState(connectionStatus);
   const style = STATE_STYLE[state];
-  const customerText = customer == null || customer === "" ? "-" : String(customer);
-  const connectedText = connectedMachines.length ? connectedMachines.join(", ") : "-";
 
   return (
     <div className={`flex flex-wrap items-center justify-between gap-x-6 gap-y-3 overflow-hidden rounded-md border border-l-4 bg-white px-4 py-3 ${
@@ -126,16 +122,6 @@ export default function DeviceHeader({ deviceId, connectionStatus, customer, con
             </span>
           )}
         </div>
-        <dl className="mt-2 flex flex-wrap gap-x-7 gap-y-1 text-xs">
-          <div className="flex items-baseline gap-1.5">
-            <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Customer</dt>
-            <dd className="font-medium text-slate-800">{customerText}</dd>
-          </div>
-          <div className="flex min-w-0 items-baseline gap-1.5">
-            <dt className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Connected machines</dt>
-            <dd className="min-w-0 font-medium text-slate-800">{connectedText}</dd>
-          </div>
-        </dl>
       </div>
 
       {isLoading && <div className="h-7 w-32 animate-pulse rounded bg-slate-200" />}

@@ -46,7 +46,7 @@ describe("EndpointAccordionItem highlight", () => {
     render(
       <Accordion type="single" collapsible>
         <EndpointAccordionItem
-          endpoint={endpoint} deviceId="dev-1" onCreated={() => {}} onOpenDetails={() => {}} onOpenServiceDetails={() => {}}
+          endpoint={endpoint} deviceId="dev-1" onCreated={() => {}} onOpenDetails={() => {}}
           highlighted={highlighted} onHighlightDone={onHighlightDone}
         />
       </Accordion>,

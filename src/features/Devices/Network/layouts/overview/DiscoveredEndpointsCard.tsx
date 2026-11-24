@@ -1,22 +1,13 @@
-import type { ReactNode } from "react";
 import { Accordion } from "@/components/ui/accordion";
 import EndpointAccordionItem from "./EndpointAccordionItem";
-import EndpointActions from "./EndpointActions";
 import { MappedEndpoint } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import { endpointListKey } from "./overviewMerge";
 
 interface props {
   endpoints: MappedEndpoint[];
   deviceId: string;
-  onScan: () => void;
-  isScanning: boolean;
-  scanDisabled?: boolean;
-  scanAvailable?: boolean;
-  onAddEndpoint: () => void;
-  onEndpointCreated: () => void;
+  onEndpointCreated: () => void | Promise<unknown>;
   onOpenDetails: (endpointId: string) => void;
-  onOpenServiceDetails: (serviceId: string) => void;
-  viewToggle?: ReactNode;
   // The endpoint to scroll to and flash (e.g. when arriving from the device search).
   highlightedEndpointId?: string | null;
   onHighlightDone?: () => void;
@@ -25,28 +16,20 @@ interface props {
 export default function DiscoveredEndpointsCard({
   endpoints,
   deviceId,
-  onScan,
-  isScanning,
-  scanDisabled,
-  scanAvailable,
-  onAddEndpoint,
   onEndpointCreated,
   onOpenDetails,
-  onOpenServiceDetails,
-  viewToggle,
   highlightedEndpointId,
   onHighlightDone,
 }: props) {
   return (
     <div className="space-y-3 px-3">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-t border-slate-100 pt-3.5">
+      <div className="border-t border-slate-100 pt-3.5">
         <div className="min-w-0">
           <span className="block text-[10px] font-semibold uppercase tracking-wider text-blue-700">Endpoints</span>
           <p className="mt-[3px] text-xs text-muted-foreground">
             Physical machines and systems discovered on the network. Expand each endpoint to view its services.
           </p>
         </div>
-        <EndpointActions deviceId={deviceId} onScan={onScan} isScanning={isScanning} scanDisabled={scanDisabled} scanAvailable={scanAvailable} onAddEndpoint={onAddEndpoint} leading={viewToggle} />
       </div>
 
       <div>
@@ -64,7 +47,6 @@ export default function DiscoveredEndpointsCard({
                 deviceId={deviceId}
                 onCreated={onEndpointCreated}
                 onOpenDetails={onOpenDetails}
-                onOpenServiceDetails={onOpenServiceDetails}
                 highlighted={endpoint.endpoint_id != null && endpoint.endpoint_id === highlightedEndpointId}
                 onHighlightDone={onHighlightDone}
               />

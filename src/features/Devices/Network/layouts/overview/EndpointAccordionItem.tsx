@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, HelpCircle, Pencil, Plus, Server, Trash2 } from "lucide-react";
+import { ChevronDown, HelpCircle, Pencil, Plus, Repeat, Server, Trash2 } from "lucide-react";
 import { EndpointStatus } from "@/features/Devices/Network/components";
 import { MappedEndpoint, MappedPort } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import { EndpointDialogs, EndpointPrimaryAction, PortActions, } from "./endpointShared";
@@ -23,13 +23,15 @@ import { withPermissionRequiredTooltip } from "@/features/authorization/permissi
 import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 import AssignServiceDialog from "./AssignServiceDialog";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
+import ReassignEndpointDialog from "./ReassignEndpointDialog";
 
 interface props {
   endpoint: MappedEndpoint;
   deviceId: string;
-  onCreated: () => void;
+  onCreated: () => void | Promise<unknown>;
   onOpenDetails: (endpointId: string) => void;
-  onOpenServiceDetails: (serviceId: string) => void;
+  /** The service tab to select initially. */
+  initialServiceId?: string | null;
   highlighted?: boolean;
   onHighlightDone?: () => void;
 }
@@ -41,7 +43,7 @@ function readValues(data: Record<string, { value?: unknown }> | null | undefined
   return Object.fromEntries(Object.entries(data ?? {}).map(([key, resolved]) => [key, resolved.value ?? null]));
 }
 
-export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, onOpenDetails, onOpenServiceDetails, highlighted = false, onHighlightDone }: props) {
+export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, onOpenDetails, initialServiceId = null, highlighted = false, onHighlightDone }: props) {
   const display = useEndpointDisplay(endpoint);
   const showState = useShowConnectionState();
   const { data: endpointTypes } = useGetEndpointTypes();
@@ -55,7 +57,10 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
   const [assignPort, setAssignPort] = useState<MappedPort | null>(null);
   const [browsing, setBrowsing] = useState<BrowseTarget | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [activePortKey, setActivePortKey] = useState<string | null>(null);
+  const [activePortKey, setActivePortKey] = useState<string | null>(() => {
+    const initialPort = initialServiceId ? endpoint.ports.find((port) => port.service_id === initialServiceId) : undefined;
+    return initialPort ? portListKey(initialPort) : null;
+  });
   const [editingEndpoint, setEditingEndpoint] = useState(false);
   const [endpointValues, setEndpointValues] = useState<Record<string, unknown>>({});
   const [deletedEndpointKeys, setDeletedEndpointKeys] = useState<Set<string>>(new Set());
@@ -65,6 +70,7 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
   const [addServiceOpen, setAddServiceOpen] = useState(false);
   const [deleteEndpointOpen, setDeleteEndpointOpen] = useState(false);
   const [deleteServiceOpen, setDeleteServiceOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const onHighlightDoneRef = useRef(onHighlightDone);
   const activePort = endpoint.ports.find((port) => portListKey(port) === activePortKey) ?? endpoint.ports[0];
@@ -75,6 +81,9 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
   const servicePortKey = Object.entries(serviceType?.mapping ?? {}).find(([, role]) => role === "port")?.[0];
   const servicePortField = servicePortKey ? serviceFields[servicePortKey] : undefined;
   const ipFieldKey = Object.entries(endpointType?.mapping ?? {}).find(([, role]) => role === "ip")?.[0];
+  const ipField = ipFieldKey ? endpointFields[ipFieldKey] : undefined;
+  const storedIp = ipFieldKey ? endpoint.endpoint_data?.[ipFieldKey]?.value : undefined;
+  const ipEditable = ipField?.changeable !== false || storedIp === null || storedIp === undefined || storedIp === "";
   const servicePortData = servicePortKey ? activePort?.service_data?.[servicePortKey] : undefined;
   const serviceCustomFields = Object.entries(activePort?.service_data ?? {}).filter(([key]) => !(key in serviceFields));
   const endpointDraftCustomFields = editingEndpoint
@@ -89,12 +98,12 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
       .map(([key, resolved]) => [key, { ...resolved, field: resolved.field ?? endpointFields[key] ?? null }] as const)
       .filter(([key, resolved]) =>
         key !== ipFieldKey && (
-          endpointFields[key]?.type === "list" ||
+          key in endpointFields ||
           (resolved.value !== null && resolved.value !== undefined && resolved.value !== "")
         ),
       ),
     ...Object.entries(endpointFields)
-      .filter(([key, definition]) => key !== ipFieldKey && definition.type === "list" && !(key in endpointData))
+      .filter(([key]) => key !== ipFieldKey && !(key in endpointData))
       .map(([key, field]) => [key, { value: null, field }] as const),
   ];
   const subtitleParts = display.subtitle.split(" · ").filter((part) => part && part !== endpoint.type_label);
@@ -322,6 +331,16 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                     <GuardedButton
                       deviceId={deviceId}
                       permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                      variant="outline"
+                      size="sm"
+                      aria-label="Reassign endpoint"
+                      onClick={() => setReassignOpen(true)}
+                    >
+                      <Repeat /> Reassign
+                    </GuardedButton>
+                    <GuardedButton
+                      deviceId={deviceId}
+                      permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
                       variant="destructive"
                       size="sm"
                       aria-label="Remove endpoint"
@@ -352,10 +371,20 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                 <dt className="text-[11px] text-muted-foreground">Endpoint type</dt>
                 <dd className="mt-1 min-h-8 pt-1 text-[13px] font-medium">{endpoint.type_label ?? "Unidentified"}</dd>
               </div>
-              <div className="min-w-0">
-                <dt className="text-[11px] text-muted-foreground">IP address</dt>
-                <dd className="mt-1 min-h-8 break-all pt-1 font-mono text-xs">{endpoint.ip ?? "-"}</dd>
-              </div>
+              {ipField ? (
+                <InlineMetadataField
+                  label="IP address"
+                  value={editingEndpoint ? (ipFieldKey! in endpointValues ? endpointValues[ipFieldKey!] : endpoint.ip) : endpoint.ip}
+                  definition={ipField}
+                  editing={editingEndpoint && ipEditable}
+                  onChange={(value) => setEndpointValue(ipFieldKey!, value)}
+                />
+              ) : (
+                <div className="min-w-0">
+                  <dt className="text-[11px] text-muted-foreground">IP address</dt>
+                  <dd className="mt-1 min-h-8 break-all pt-1 font-mono text-xs">{endpoint.ip ?? "-"}</dd>
+                </div>
+              )}
               {showState && (
                 <div className="min-w-0">
                   <dt className="text-[11px] text-muted-foreground">Last status change</dt>
@@ -370,7 +399,7 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                   definition={resolved.field}
                   editing={editingEndpoint}
                   onChange={(value) => setEndpointValue(key, value)}
-                  onDelete={editingEndpoint && !resolved.field?.required ? () => deleteEndpointValue(key) : undefined}
+                  onDelete={editingEndpoint && !(key in endpointFields) ? () => deleteEndpointValue(key) : undefined}
                 />
               ))}
               {endpointDraftCustomFields.map(([key, value]) => (
@@ -444,52 +473,7 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                     <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#5b96ee]">Service · {activePort.type_label ?? "Unidentified"}</span>
                     <strong className="block text-[13px] font-semibold">{activePort.type_label ?? "Unidentified"}</strong>
                   </div>
-                  {activePort.service_id && (
-                    editingServiceId === activePort.service_id ? (
-                      <>
-                        <Button variant="outline" size="sm" disabled={isSavingService} onClick={cancelServiceEdit}>
-                          Cancel
-                        </Button>
-                        <GuardedButton
-                          deviceId={deviceId}
-                          permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
-                          size="sm"
-                          disabled={isSavingService}
-                          onClick={saveServiceEdit}
-                        >
-                          {isSavingService ? "Saving..." : "Save"}
-                        </GuardedButton>
-                        <GuardedButton
-                          deviceId={deviceId}
-                          permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
-                          variant="destructive"
-                          size="sm"
-                          aria-label="Remove service"
-                          onClick={() => setDeleteServiceOpen(true)}
-                        >
-                          <Trash2 /> Remove
-                        </GuardedButton>
-                      </>
-                    ) : activePort.source === "configured" ? (
-                      <GuardedButton
-                        deviceId={deviceId}
-                        permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
-                        variant="outline"
-                        size="sm"
-                        aria-label="Edit service"
-                        disabled={!serviceType}
-                        onClick={() => startServiceEdit(activePort)}
-                      >
-                        <Pencil /> Edit
-                      </GuardedButton>
-                    ) : null
-                  )}
                   {showState && <EndpointStatus value={endpoint.status} type="text" />}
-                  {activePort.service_id && editingServiceId !== activePort.service_id && (
-                    <Button variant="ghost" size="sm" onClick={() => onOpenServiceDetails(activePort.service_id!)}>
-                      Details
-                    </Button>
-                  )}
                   {portNeedsAssignment(activePort) && isConfigured && (
                     <Badge variant="outline" className="border-amber-400 bg-amber-100 text-amber-700">Not assigned</Badge>
                   )}
@@ -502,6 +486,51 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                     onBrowse={setBrowsing}
                   />
                 </header>
+                {activePort.service_id && (editingServiceId === activePort.service_id || activePort.source === "configured") && (
+                  <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#5b96ee]">Service details</span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {editingServiceId === activePort.service_id ? (
+                        <>
+                          <Button variant="outline" size="sm" disabled={isSavingService} onClick={cancelServiceEdit}>
+                            Cancel
+                          </Button>
+                          <GuardedButton
+                            deviceId={deviceId}
+                            permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                            size="sm"
+                            disabled={isSavingService}
+                            onClick={saveServiceEdit}
+                          >
+                            {isSavingService ? "Saving..." : "Save"}
+                          </GuardedButton>
+                          <GuardedButton
+                            deviceId={deviceId}
+                            permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                            variant="destructive"
+                            size="sm"
+                            aria-label="Remove service"
+                            onClick={() => setDeleteServiceOpen(true)}
+                          >
+                            <Trash2 /> Remove
+                          </GuardedButton>
+                        </>
+                      ) : (
+                        <GuardedButton
+                          deviceId={deviceId}
+                          permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+                          variant="outline"
+                          size="sm"
+                          aria-label="Edit service"
+                          disabled={!serviceType}
+                          onClick={() => startServiceEdit(activePort)}
+                        >
+                          <Pencil /> Edit
+                        </GuardedButton>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <dl className="grid grid-cols-1 gap-x-6 gap-y-3 pt-3 sm:grid-cols-2 lg:grid-cols-4">
                   <InlineMetadataField label="Service type" value={activePort.type_label ?? "Unidentified"} editing={false} />
                   <InlineMetadataField
@@ -525,7 +554,6 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                           definition={definition}
                           editing={editingServiceId === activePort.service_id}
                           onChange={(value) => setServiceValue(key, value)}
-                          onDelete={editingServiceId === activePort.service_id && !definition.required ? () => deleteServiceValue(key) : undefined}
                         />
                       );
                     })}
@@ -577,6 +605,19 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
           onOpenChange={setAddServiceOpen}
           endpointId={endpoint.endpoint_id}
           onCreated={onCreated}
+        />
+      )}
+      {endpoint.endpoint_id && (
+        <ReassignEndpointDialog
+          open={reassignOpen}
+          onOpenChange={setReassignOpen}
+          endpointId={endpoint.endpoint_id}
+          currentTypeId={endpoint.type_id ?? ""}
+          currentData={endpoint.endpoint_data ?? {}}
+          onReassigned={() => {
+            cancelEndpointEdit();
+            onCreated();
+          }}
         />
       )}
       <ConfirmDeleteDialog

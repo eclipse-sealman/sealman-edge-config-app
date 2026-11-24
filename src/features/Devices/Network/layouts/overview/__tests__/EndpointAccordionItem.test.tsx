@@ -45,7 +45,7 @@ const STRING = { type: "string", ui: "input", required: false, changeable: true,
 function renderItem(endpoint: MappedEndpoint) {
   return render(
     <Accordion type="single" defaultValue={endpointListKey(endpoint)}>
-      <EndpointAccordionItem endpoint={endpoint} deviceId="dev-1" onCreated={() => {}} onOpenDetails={() => {}} onOpenServiceDetails={() => {}} />
+      <EndpointAccordionItem endpoint={endpoint} deviceId="dev-1" onCreated={() => {}} onOpenDetails={() => {}} />
     </Accordion>
   );
 }
@@ -294,7 +294,7 @@ describe("EndpointAccordionItem", () => {
       ports: [{ status: "unknown", source: "configured", service_id: "s1", type_label: "Modbus" }],
     });
     expect(screen.getAllByText("Sensor")).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "Details" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Details" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit endpoint details" })).toBeInTheDocument();
     expect(screen.getAllByText("Unknown")).toHaveLength(2);
     expect(screen.getByRole("tab", { name: /Modbus/ })).toBeInTheDocument();
@@ -432,7 +432,7 @@ describe("EndpointAccordionItem", () => {
               endpoint_id: "e9", type_id: "sensor", type_label: "Sensor", ip: "10.0.0.9", status: "offline", source: "configured", endpoint_data: {},
               ports: [{ port: 4840, status: "offline", source: "configured", service_id: "s9", type_label: "OPC UA", browser_kind: "opcua" }],
             }}
-            deviceId="dev-1" onCreated={() => {}} onOpenDetails={() => {}} onOpenServiceDetails={() => {}}
+            deviceId="dev-1" onCreated={() => {}} onOpenDetails={() => {}}
           />
         </Accordion>
       </ShowConnectionStateContext.Provider>

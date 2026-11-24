@@ -7,7 +7,7 @@ import { endpointListKey } from "./overviewMerge";
 interface props {
   endpoints: MappedEndpoint[];
   deviceId: string;
-  onEndpointCreated: () => void;
+  onEndpointCreated: () => void | Promise<unknown>;
 }
 
 export default function UnidentifiedEndpointsCard({ endpoints, deviceId, onEndpointCreated }: props) {
@@ -37,7 +37,6 @@ export default function UnidentifiedEndpointsCard({ endpoints, deviceId, onEndpo
               deviceId={deviceId}
               onCreated={onEndpointCreated}
               onOpenDetails={() => {}}
-              onOpenServiceDetails={() => {}}
             />
           ))}
         </Accordion>
