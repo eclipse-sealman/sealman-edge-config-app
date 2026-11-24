@@ -44,12 +44,18 @@ const EDGE_COLORS: Record<MappedEndpoint["status"], string> = {
 
 const NEUTRAL_COLOR = "#94a3b8";
 
+const LEGEND: { status: MappedEndpoint["status"]; label: string }[] = [
+  { status: "online", label: "Online" },
+  { status: "unknown", label: "Unknown" },
+  { status: "offline", label: "Offline" },
+];
+
 const noop = () => {};
 
 interface props {
   endpoints: MappedEndpoint[];
   deviceId: string;
-  onEndpointCreated: () => void;
+  onEndpointCreated: () => void | Promise<unknown>;
   onOpenDetails: (endpointId: string) => void;
   onOpenServiceDetails: (serviceId: string) => void;
 }
@@ -187,6 +193,22 @@ function CanvasInner({ endpoints, deviceId, onEndpointCreated, onOpenDetails, on
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#cbd5e1" />
         <Controls showInteractive={false} />
         <MiniMap pannable zoomable nodeColor={(node) => miniMapColor(node, showState)} className="hidden lg:block" />
+        {showState && (
+          // Sits right of the zoom controls (which occupy the corner's first ~40px).
+          <Panel position="bottom-left" style={{ marginLeft: 56 }}>
+            <ul
+              aria-label="Status legend"
+              className="flex items-center gap-3 rounded-md border bg-background px-2.5 py-1.5 text-xs text-muted-foreground shadow-sm"
+            >
+              {LEGEND.map(({ status, label }) => (
+                <li key={status} className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: EDGE_COLORS[status] }} aria-hidden="true" />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        )}
         <Panel position="top-right">
           <Button variant="outline" size="sm" onClick={resetLayout} className="bg-background">
             <LayoutGrid /> Reset layout

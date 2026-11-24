@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import { components } from "@/generated/edge-administration/types";
@@ -37,7 +38,8 @@ interface props {
   ip?: string;
   defaultTypeId?: string | null;
   existingEndpoint?: ExistingEndpoint | null;
-  onCreated: () => void;
+  /** May return a promise; the dialog stays busy until it settles, i.e. until the change is visible. */
+  onCreated: () => void | Promise<unknown>;
 }
 
 export default function AssignEndpointDialog({
@@ -53,6 +55,8 @@ export default function AssignEndpointDialog({
   const { postEndpoint, isPending: isCreating } = usePostEndpoint();
   const { updateEndpoint, isPending: isUpdating } = useUpdateEndpoint();
   const isPending = isCreating || isUpdating;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isBusy = isPending || isRefreshing;
   const isEdit = Boolean(existingEndpoint);
 
   const [typeId, setTypeId] = useState("");
@@ -127,11 +131,17 @@ export default function AssignEndpointDialog({
         });
         toast.success(`Endpoint "${selectedType.label}" created${ip ? ` for ${ip}` : ""}`);
       }
-      onCreated();
-      onOpenChange(false);
     } catch {
       setError("Failed to save endpoint");
+      return;
     }
+    setIsRefreshing(true);
+    try {
+      await onCreated();
+    } finally {
+      setIsRefreshing(false);
+    }
+    onOpenChange(false);
   };
 
   const title = isEdit ? "Edit Endpoint" : ip ? "Assign Endpoint" : "Add Endpoint";
@@ -180,11 +190,12 @@ export default function AssignEndpointDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isRefreshing}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending || !selectedType}>
-            {isPending ? "Saving..." : isEdit ? "Save Changes" : "Create Endpoint"}
+          <Button onClick={handleSubmit} disabled={isBusy || !selectedType}>
+            {isBusy && <WaterLoader />}
+            {isBusy ? "Saving..." : isEdit ? "Save Changes" : "Create Endpoint"}
           </Button>
         </DialogFooter>
       </DialogContent>

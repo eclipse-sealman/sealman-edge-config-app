@@ -18,7 +18,7 @@ import { useShowConnectionState } from "./connectionStateContext";
 export interface EndpointNodeData extends Record<string, unknown> {
   endpoint: MappedEndpoint;
   deviceId: string;
-  onCreated: () => void;
+  onCreated: () => void | Promise<unknown>;
   onOpenDetails: (endpointId: string) => void;
   onOpenServiceDetails: (serviceId: string) => void;
 }
