@@ -12,6 +12,12 @@ vi.mock("@/components/Input/JsonEditor", () => ({
     <div data-testid={`editor-${label}`} className={className}>{value}</div>
   ),
 }));
+vi.mock("@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes", () => ({
+  default: () => ({ data: [{ type_id: "plc", label: "PLC" }, { type_id: "modbus", label: "Modbus device" }] }),
+}));
+vi.mock("@/generated/edge-administration/hooks/service_types/useGetServiceTypes", () => ({
+  default: () => ({ data: [{ type_id: "opcua", label: "OPC UA" }] }),
+}));
 vi.mock("react-toastify", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const GROUP = {
@@ -229,6 +235,30 @@ describe("TemplatePage", () => {
       endpoints: { endpoint: "e1" }, rows: { endpoint: { equipment: "r2" } },
     })), { timeout: 2000 });
     localStorage.removeItem("moduleTemplatePreviewCollapsed");
+  });
+
+  it("saves the allowed types of a slot and drops declarations of slots the body no longer uses", async () => {
+    const base = http.get.getMockImplementation()!;
+    http.get.mockImplementation(async (url: string) =>
+      url.includes("/versions/")
+        ? { data: { ...version(2), body: { a: "${endpoint.ip}" }, slots: [
+          { name: "endpoint", endpoint_types: ["plc"], service_types: [] },
+          { name: "gone", endpoint_types: ["plc"], service_types: [] },
+        ] } }
+        : base(url));
+    renderAt("/module-templates/1/templates/1");
+    const slots = await screen.findByRole("region", { name: "Template endpoint slots" });
+    const row = (await within(slots).findByText("endpoint", { selector: "td" })).closest("tr")!;
+    expect(within(row).getByText("PLC")).toBeInTheDocument();
+    // no service field is read, so the services cannot be restricted
+    expect(within(row).queryByRole("button", { name: "Add service type" })).not.toBeInTheDocument();
+    fireEvent.click(within(row).getByRole("button", { name: "Add endpoint type" }));
+    fireEvent.click(await screen.findByText("Modbus device"));
+    expect(within(row).getByText("Modbus device")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save new version" }));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith("/module-config-templates/1/versions", expect.objectContaining({
+      slots: [{ name: "endpoint", endpoint_types: ["plc", "modbus"], service_types: [] }],
+    })));
   });
 
   it("says so for an unknown template", async () => {

@@ -39,6 +39,16 @@ export function ScopeBadge({ name, onRemove, className }: { name: string; onRemo
   );
 }
 
+/** An endpoint or service type a slot accepts. */
+export function TypeBadge({ name, onRemove, className }: { name: string; onRemove?: () => void; className?: string }) {
+  return (
+    <span className={cn(BASE, "border-purple-200 bg-purple-100 text-purple-900", className)}>
+      <span className="truncate">{name}</span>
+      {onRemove && <RemoveButton name={name} onRemove={onRemove} />}
+    </span>
+  );
+}
+
 /** What a template group is tied to: its modules and scopes (or the note that it is open to every device). */
 export function GroupBadges({ modules, scopes, className }: { modules: string[]; scopes: ScopeRef[]; className?: string }): ReactNode {
   return (

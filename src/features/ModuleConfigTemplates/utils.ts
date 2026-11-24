@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { JsonEditorAnnotation, JsonEditorMarker } from "@/components/Input/JsonEditor";
-import type { ExampleDevice, VariableDecl, VariableType } from "./api";
+import type { ExampleDevice, SlotDecl, VariableDecl, VariableType } from "./api";
 
 /**
  * Height of an editor the user works in: the viewport below the page header (never less than ~28 lines, never more
@@ -120,6 +120,16 @@ export function endpointReferences(body: unknown): {
       service_fields: [...e.service].sort(),
       row_fields: Object.fromEntries([...e.rows].sort(([a], [b]) => a.localeCompare(b)).map(([f, subs]) => [f, [...subs].sort()])),
     }));
+}
+
+/** The slot declarations to send: only slots the body still uses (the server rejects the others), only those that
+ * restrict something, and no service types for a slot that reads no service field. */
+export function sentSlots(slots: SlotDecl[], body: unknown): SlotDecl[] {
+  const used = new Map(endpointReferences(body).map((e) => [e.slot, e.service_fields.length > 0]));
+  return slots
+    .filter((s) => used.has(s.name))
+    .map((s) => ({ name: s.name, endpoint_types: s.endpoint_types, service_types: used.get(s.name) ? s.service_types : [] }))
+    .filter((s) => s.endpoint_types.length > 0 || s.service_types.length > 0);
 }
 
 /** JSON with sorted keys, to compare values regardless of key order. */

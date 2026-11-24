@@ -15,6 +15,13 @@ export interface VariableDecl {
   description?: string | null;
 }
 
+/** The endpoint and service types a slot accepts (type ids); empty means any. */
+export interface SlotDecl {
+  name: string;
+  endpoint_types: string[];
+  service_types: string[];
+}
+
 export interface Finding {
   path: string;
   level: "error" | "warning" | "hint";
@@ -137,6 +144,9 @@ export interface InputEndpoint {
   service_fields?: string[];
   /** sub-fields read from rows of list fields (`${endpoint[slot].list.sub}`), by list field; the row is chosen when applying */
   row_fields?: Record<string, string[]>;
+  /** accepted endpoint / service types (type ids); empty means any */
+  endpoint_types?: string[];
+  service_types?: string[];
 }
 
 /** Everything a rendering needs, the body's own and every block copy's. */
@@ -167,6 +177,7 @@ export type ListsPayload = Record<string, { name: string; block_id: number }[]>;
 export interface TemplateVersion extends TemplateVersionSummary {
   body: Record<string, unknown> | unknown[];
   variables: VariableDecl[];
+  slots?: SlotDecl[];
   references: References;
   inputs?: Inputs;
 }
@@ -174,6 +185,7 @@ export interface TemplateVersion extends TemplateVersionSummary {
 export interface TemplateContent {
   body: unknown;
   variables: VariableDecl[];
+  slots?: SlotDecl[];
   comment?: string;
 }
 
@@ -272,10 +284,10 @@ export const moduleConfigApi = {
   duplicate: async (id: number, payload: { name: string; version?: number; group_id?: number }) =>
     (await edgeConfigApiInstance.post<Template>(`${BASE}/${id}/duplicate`, payload)).data,
   preview: async (payload: {
-    body: unknown; variables: VariableDecl[]; values: Values; device?: Values; device_id?: string; group_id?: number; kind?: TemplateKind;
+    body: unknown; variables: VariableDecl[]; slots?: SlotDecl[]; values: Values; device?: Values; device_id?: string; group_id?: number; kind?: TemplateKind;
     endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices;
   }) => (await edgeConfigApiInstance.post<RenderResult>(`${BASE}/preview`, payload)).data,
-  lint: async (payload: { body: unknown; variables: VariableDecl[]; kind: TemplateKind; group_id?: number }) =>
+  lint: async (payload: { body: unknown; variables: VariableDecl[]; slots?: SlotDecl[]; kind: TemplateKind; group_id?: number }) =>
     (await edgeConfigApiInstance.post<LintResult>(`${BASE}/lint`, payload)).data,
   listExampleDevices: async (groupId: number, q?: string) =>
     (await edgeConfigApiInstance.get<ExampleDevice[]>(`${GROUPS}/${groupId}/example-devices`, {
