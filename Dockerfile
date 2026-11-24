@@ -17,7 +17,7 @@ RUN npm run build
 # Prune dev dependencies to keep build stage output clean
 RUN npm prune --omit=dev
 
-FROM nginx:1.29.8-trixie
+FROM nginx:1.30.7-trixie
 
 ARG VITE_VERSION
 ENV VITE_VERSION=${VITE_VERSION}
