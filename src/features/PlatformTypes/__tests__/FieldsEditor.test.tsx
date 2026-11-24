@@ -171,3 +171,84 @@ describe("FieldsEditor list visibility", () => {
     ]);
   });
 });
+
+describe("FieldsEditor file type", () => {
+  function openTypeSelect() {
+    Element.prototype.hasPointerCapture ??= () => false;
+    Element.prototype.setPointerCapture ??= () => {};
+    Element.prototype.releasePointerCapture ??= () => {};
+    Element.prototype.scrollIntoView ??= () => {};
+    return userEvent.click(screen.getAllByRole("combobox")[0]);
+  }
+
+  it("offers File on every type kind but not as a sub-field", async () => {
+    const rows = rowsFromFields({ addr: stringField("A") });
+    const { unmount } = render(<FieldsEditor rows={rows} onChange={() => {}} />);
+    await openTypeSelect();
+    expect(screen.getByRole("option", { name: "File" })).toBeInTheDocument();
+    unmount();
+
+    render(<FieldsEditor rows={rows} onChange={() => {}} supportsFileFields={false} />);
+    await openTypeSelect();
+    expect(screen.queryByRole("option", { name: "File" })).not.toBeInTheDocument();
+  });
+
+  it("switching a string row with options to File drops everything a file cannot have", async () => {
+    const onChange = vi.fn();
+    const rows = rowsFromFields({
+      cert: { ...stringField("Cert"), ui: "select", options: ["a", "b"], default: "a", required: true, changeable: false, validation: { pattern: "x", exclusive_minimum: false, exclusive_maximum: false } },
+    });
+    render(<FieldsEditor rows={rows} onChange={onChange} />);
+    await openTypeSelect();
+    await userEvent.click(await screen.findByRole("option", { name: "File" }));
+    const [next] = onChange.mock.calls[0][0] as FieldRow[];
+    expect(next.optionsText).toBe("");
+    expect(next.definition).toEqual({
+      type: "file",
+      label: "Cert",
+      required: false,
+      changeable: true,
+      show_in_list: true,
+      secret: false,
+    });
+  });
+
+  it("shows only the controls a file field has", () => {
+    const rows = rowsFromFields({
+      key: { type: "file", label: "Key", required: false, changeable: true, show_in_list: true, secret: true },
+    });
+    render(<FieldsEditor rows={rows} onChange={() => {}} showListVisibility />);
+    expect(screen.getByText("Secret")).toBeInTheDocument();
+    expect(screen.getByText("Show in list")).toBeInTheDocument();
+    for (const gone of ["Widget", "Required", "Changeable", "Default value", "Validation options", "Options (comma separated)"]) {
+      expect(screen.queryByText(gone)).not.toBeInTheDocument();
+    }
+    expect(screen.queryByText("Test this field")).not.toBeInTheDocument();
+  });
+
+  it("sends only what a file field has", () => {
+    const rows = rowsFromFields({
+      key: {
+        type: "file",
+        label: "Key",
+        description: "Private key",
+        required: true,
+        changeable: false,
+        show_in_list: false,
+        secret: true,
+        ui: "input",
+        options: ["x"],
+        default: "x",
+        validation: { exclusive_minimum: false, exclusive_maximum: false },
+      },
+    });
+    expect(buildFieldsPayload(rows, ["key"]).key).toEqual({
+      type: "file",
+      label: "Key",
+      description: "Private key",
+      secret: true,
+      required: false,
+      show_in_list: false,
+    });
+  });
+});

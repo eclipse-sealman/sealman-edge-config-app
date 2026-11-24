@@ -2626,7 +2626,7 @@ export interface components {
              * @description Data type of the field value
              * @enum {string}
              */
-            type: "string" | "boolean" | "integer" | "number" | "list";
+            type: "string" | "boolean" | "integer" | "number" | "list" | "file";
             /**
              * Label
              * @description Human-readable label for UI display
@@ -2677,6 +2677,11 @@ export interface components {
             } | null;
             /** Server-provided display order of list item fields. */
             item_order?: string[] | null;
+            /**
+             * Secret
+             * @description type=file only: a secret file can be replaced or removed, never downloaded
+             */
+            secret?: boolean | null;
         };
         /** FieldDefinitionUpdate */
         FieldDefinitionUpdate: {
@@ -2684,7 +2689,7 @@ export interface components {
              * Type
              * @description Data type of the field value
              */
-            type?: ("string" | "boolean" | "integer" | "number" | "list") | null;
+            type?: ("string" | "boolean" | "integer" | "number" | "list" | "file") | null;
             /**
              * Label
              * @description Human-readable label for UI display
@@ -2730,6 +2735,11 @@ export interface components {
             } | null;
             /** Server-maintained; accepted only as null so response definitions can be echoed. */
             item_order?: string[] | null;
+            /**
+             * Secret
+             * @description type=file only: a secret file can be replaced or removed, never downloaded
+             */
+            secret?: boolean | null;
         };
         /**
          * FieldValidation
