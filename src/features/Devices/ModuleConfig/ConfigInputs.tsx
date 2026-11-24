@@ -3,6 +3,8 @@ import { Label } from "@/components/ui/label";
 import { InlineAlert, LoadingState } from "@/components/ui/page-state";
 import SearchableSelect from "@/components/Input/SearchableSelect";
 import { getErrorMessage } from "@/lib/errors";
+import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes";
+import useGetServiceTypes from "@/generated/edge-administration/hooks/service_types/useGetServiceTypes";
 import {
   useEndpointServices, type DeviceEndpoint, type EndpointChoices, type Finding, type InputEndpoint, type InputVariable, type RowChoices,
   type ServiceChoices, type Values,
@@ -32,6 +34,13 @@ function withRow(rows: RowChoices, slotKey: string, field: string, rowId: string
   const rest = without(rows, slotKey);
   return Object.keys(slotRows).length > 0 ? { ...rest, [slotKey]: slotRows } : rest;
 }
+
+/** Whether a type is allowed by a slot's list of type ids (empty or missing means any). */
+const typeFits = (allowed: string[] | undefined, typeId: string) => !allowed?.length || allowed.includes(typeId);
+
+/** The labels of the allowed types, in the slot's order; a type that no longer exists is shown by its id. */
+const typeLabels = (allowed: string[], types?: { type_id: string; label: string }[]) =>
+  allowed.map((id) => types?.find((t) => t.type_id === id)?.label ?? id).join(", ");
 
 /** Endpoint dropdowns, then the variable inputs, of the top level or of one copy group. */
 export function InputsSection({
@@ -87,19 +96,45 @@ export function EndpointSlots({ deviceId, slots, endpoints, loading, error, valu
   onRowsChange: (next: RowChoices) => void;
   disabled: boolean;
 }) {
+  const endpointTypes = useGetEndpointTypes().data;
+  const serviceTypes = useGetServiceTypes().data;
+  // A choice made under an older version, or for another slot declaration, may not fit the slot any more: it is cleared (with its service and rows).
+  const misfit = slots.filter((s) => {
+    const chosen = endpoints?.find((e) => e.endpoint_id === value[s.key]);
+    return !!chosen && !typeFits(s.endpoint_types, chosen.type_id);
+  }).map((s) => s.key);
+  const misfitKey = misfit.join("\n");
+  useEffect(() => {
+    if (misfit.length === 0) return;
+    onChange(
+      Object.fromEntries(Object.entries(value).filter(([k]) => !misfit.includes(k))),
+      Object.fromEntries(Object.entries(services).filter(([k]) => !misfit.includes(k))),
+      Object.fromEntries(Object.entries(rows).filter(([k]) => !misfit.includes(k))),
+    );
+  }, [misfitKey]); // eslint-disable-line react-hooks/exhaustive-deps
   if (loading) return <LoadingState label="Loading the device's endpoints..." className="p-2" />;
   if (error) return <InlineAlert>Could not load the device's endpoints: {error}</InlineAlert>;
   if (endpoints && endpoints.length === 0) {
     return <InlineAlert variant="warning">This template uses endpoints, but the device has none. Add them on the device's Assets tab.</InlineAlert>;
   }
-  const options = (endpoints ?? []).map((e) => ({
+  const optionsFor = (slot: InputEndpoint) => (endpoints ?? []).filter((e) => typeFits(slot.endpoint_types, e.type_id)).map((e) => ({
     value: e.endpoint_id,
     label: e.ip ? `${e.name ?? e.type_label} (${e.ip})` : (e.name ?? e.type_label),
     hint: e.type_label,
   }));
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      {slots.map((s) => (
+      {slots.map((s) => {
+        const options = optionsFor(s);
+        if (options.length === 0 && s.endpoint_types?.length) {
+          return (
+            <div key={s.key} className="space-y-1">
+              <Label>Endpoint: {s.slot}</Label>
+              <p className="text-xs text-red-700">This device has no endpoint of type {typeLabels(s.endpoint_types, endpointTypes)}</p>
+            </div>
+          );
+        }
+        return (
         <div key={s.key} className="space-y-1">
           <Label htmlFor={`cfg-endpoint-${s.key}`}>Endpoint: {s.slot}</Label>
           <SearchableSelect
@@ -122,7 +157,7 @@ export function EndpointSlots({ deviceId, slots, endpoints, loading, error, valu
             </p>
           )}
           {needsService(s) && (
-            <ServiceSelect deviceId={deviceId} slot={s} endpointId={value[s.key]} value={services[s.key]}
+            <ServiceSelect deviceId={deviceId} slot={s} serviceTypes={serviceTypes} endpointId={value[s.key]} value={services[s.key]}
                            onChange={(v) => onServicesChange({ ...services, [s.key]: v })} disabled={disabled} />
           )}
           {Object.entries(s.row_fields ?? {}).map(([field, subs]) => (
@@ -130,22 +165,26 @@ export function EndpointSlots({ deviceId, slots, endpoints, loading, error, valu
                        value={rows[s.key]?.[field]} onChange={(rowId) => onRowsChange(withRow(rows, s.key, field, rowId))} disabled={disabled} />
           ))}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
 /** The service of the chosen endpoint that fills a slot's `${service[slot].*}` placeholders; never preselected. */
-function ServiceSelect({ deviceId, slot, endpointId, value, onChange, disabled }: {
+function ServiceSelect({ deviceId, slot, serviceTypes, endpointId, value, onChange, disabled }: {
   deviceId: string;
   slot: InputEndpoint;
+  serviceTypes?: { type_id: string; label: string }[];
   endpointId?: string;
   value?: string;
   onChange: (serviceId: string) => void;
   disabled: boolean;
 }) {
   const services = useEndpointServices(deviceId, endpointId);
-  const options = (services.data ?? []).map((s) => {
+  const fitting = (services.data ?? []).filter((s) => typeFits(slot.service_types, s.type_id));
+  const noneFit = !!services.data && services.data.length > 0 && fitting.length === 0 && !!slot.service_types?.length;
+  const options = fitting.map((s) => {
     const name = s.name ?? s.type_label;
     return { value: s.service_id, label: s.port != null && s.port !== "" ? `${name} (${String(s.port)})` : name, hint: s.type_label };
   });
@@ -157,6 +196,9 @@ function ServiceSelect({ deviceId, slot, endpointId, value, onChange, disabled }
   return (
     <div className="space-y-1 pt-1">
       <Label htmlFor={`cfg-service-${slot.key}`}>Service: {slot.slot}</Label>
+      {noneFit ? (
+        <p className="text-xs text-red-700">This endpoint has no service of type {typeLabels(slot.service_types!, serviceTypes)}</p>
+      ) : (
       <SearchableSelect
         id={`cfg-service-${slot.key}`}
         disabled={disabled || !endpointId}
@@ -167,9 +209,10 @@ function ServiceSelect({ deviceId, slot, endpointId, value, onChange, disabled }
         emptyText="No service found."
         onChange={onChange}
       />
+      )}
       {services.isError && <p className="text-xs text-red-700">Could not load the endpoint's services: {getErrorMessage(services.error)}</p>}
       {services.data?.length === 0 && <p className="text-xs text-red-700">This endpoint has no services: add one on the device's Assets tab.</p>}
-      {(!value || stale) && <p className="text-xs text-red-700">Choose a service</p>}
+      {(!value || stale) && !noneFit && <p className="text-xs text-red-700">Choose a service</p>}
       <p className="text-xs text-muted-foreground">
         Fills {slot.service_fields!.map((f) => <code key={f} className="mr-1 rounded bg-muted px-1">{f}</code>)}
       </p>
