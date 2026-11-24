@@ -5,7 +5,7 @@ import {
   useBlocks, useDeviceEndpoints, type Copy, type EndpointChoices, type Finding, type InputEndpoint, type InputVariable, type RowChoices,
   type ServiceChoices, type TemplateVersion, type Values,
 } from "@/features/ModuleConfigTemplates/api";
-import { InputsSection, needsService, rowsChosen as allRowsChosen } from "./ConfigInputs";
+import { InputsSection, needsService, withoutKeys, type ClearChoices, rowsChosen as allRowsChosen } from "./ConfigInputs";
 import { ListEntries, cardsValid, entriesToPayload, splitRevisionValues, type ListCards, type ListEntryRef } from "./ListEntries";
 
 /** What the form needs of a template: a saved version, or the server's view of an unsaved body (lint). */
@@ -106,12 +106,18 @@ export type TemplateInputsState = ReturnType<typeof useTemplateInputs>;
 /** The inputs form: top-level inputs, one box per block copy, list cards, and the device metadata used. */
 export function TemplateInputs({ form, findings, blocked }: { form: TemplateInputsState; findings: Finding[]; blocked: boolean }) {
   const { deviceEndpoints } = form;
+  // Sections share the state and may clear in the same commit: each clear filters the latest state.
+  const clearChoices: ClearChoices = (keys, scope) => {
+    form.setServices((all) => withoutKeys(all, keys));
+    if (scope === "choice") { form.setEndpoints((all) => withoutKeys(all, keys)); form.setRows((all) => withoutKeys(all, keys)); }
+  };
   const sectionProps = {
     deviceId: form.deviceId, values: form.values, setValues: form.setValues, endpoints: form.endpoints, services: form.services,
     setServices: form.setServices, rows: form.rows, setRows: form.setRows, findings, blocked,
     setEndpoints: (nextEndpoints: EndpointChoices, nextServices: ServiceChoices, nextRows: RowChoices) => {
       form.setEndpoints(nextEndpoints); form.setServices(nextServices); form.setRows(nextRows);
     },
+    clearChoices,
     deviceEndpoints: deviceEndpoints.data, endpointsLoading: deviceEndpoints.isLoading,
     endpointsError: deviceEndpoints.isError ? getErrorMessage(deviceEndpoints.error) : undefined,
   };

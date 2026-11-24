@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { InlineAlert } from "@/components/ui/page-state";
 import SearchableSelect from "@/components/Input/SearchableSelect";
 import type { DeviceEndpoint, EndpointChoices, Finding, InputList, RowChoices, ServiceChoices, Values } from "@/features/ModuleConfigTemplates/api";
-import { InputsSection, needsService, rowsChosen } from "./ConfigInputs";
+import { InputsSection, needsService, rowsChosen, withoutKeys } from "./ConfigInputs";
 
 /** One entry of a list as edited in the form. Values, endpoint, service and row choices are keyed relative to the entry;
  * the `<list key>/<name>/` prefix is added only when sending (so renaming keeps them). */
@@ -197,6 +197,13 @@ export function ListEntries({ deviceId, list, cards, onChange, activeBlockIds, f
                 setServices={(next) => update(card, { services: unprefixed(prefix, next) })}
                 rows={prefixed(prefix, card.rows)}
                 setRows={(next) => update(card, { rows: unprefixed(prefix, next) })}
+                clearChoices={(keys, scope) => {
+                  const own = keys.map((k) => k.slice(prefix.length));
+                  onChange((all) => all.map((c) => (c.id !== card.id ? c : {
+                    ...c, services: withoutKeys(c.services, own),
+                    ...(scope === "choice" && { endpoints: withoutKeys(c.endpoints, own), rows: withoutKeys(c.rows, own) }),
+                  })));
+                }}
                 findings={findings}
                 blocked={blocked}
                 deviceEndpoints={deviceEndpoints}

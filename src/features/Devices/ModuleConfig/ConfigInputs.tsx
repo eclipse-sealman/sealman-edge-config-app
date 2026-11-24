@@ -28,6 +28,13 @@ export const rowsChosen = (slots: InputEndpoint[], rows: RowChoices) =>
 
 const without = <T,>(map: Record<string, T>, key: string) => Object.fromEntries(Object.entries(map).filter(([k]) => k !== key));
 
+/** `map` without the given keys. */
+export const withoutKeys = <T,>(map: Record<string, T>, keys: string[]) => Object.fromEntries(Object.entries(map).filter(([k]) => !keys.includes(k)));
+
+/** Clears the choices of slots: `choice` drops the endpoint with its service and rows, `service` only the service. Must apply to the
+ * latest state (sections share it and may clear in the same commit), so it takes keys, not a copy of the render-time choices. */
+export type ClearChoices = (keys: string[], scope: "choice" | "service") => void;
+
 /** `rows` with the row of one slot's list field set, or removed when `rowId` is undefined. */
 function withRow(rows: RowChoices, slotKey: string, field: string, rowId: string | undefined): RowChoices {
   const slotRows = { ...without(rows[slotKey] ?? {}, field), ...(rowId !== undefined && { [field]: rowId }) };
@@ -44,7 +51,7 @@ const typeLabels = (allowed: string[], types?: { type_id: string; label: string 
 
 /** Endpoint dropdowns, then the variable inputs, of the top level or of one copy group. */
 export function InputsSection({
-  deviceId, variables, slots, emptyText, values, setValues, endpoints, setEndpoints, services, setServices, rows, setRows, findings, blocked,
+  deviceId, variables, slots, emptyText, values, setValues, endpoints, setEndpoints, services, setServices, rows, setRows, clearChoices, findings, blocked,
   deviceEndpoints, endpointsLoading, endpointsError,
 }: {
   deviceId: string;
@@ -61,6 +68,7 @@ export function InputsSection({
   setServices: (v: ServiceChoices) => void;
   rows: RowChoices;
   setRows: (next: RowChoices) => void;
+  clearChoices: ClearChoices;
   findings: Finding[];
   blocked: boolean;
   deviceEndpoints?: DeviceEndpoint[];
@@ -72,7 +80,7 @@ export function InputsSection({
       {slots.length > 0 && (
         <EndpointSlots deviceId={deviceId} slots={slots} endpoints={deviceEndpoints} loading={endpointsLoading}
                        error={endpointsError} value={endpoints} onChange={setEndpoints} services={services} onServicesChange={setServices}
-                       rows={rows} onRowsChange={setRows} disabled={blocked} />
+                       rows={rows} onRowsChange={setRows} clearChoices={clearChoices} disabled={blocked} />
       )}
       <VariableForm variables={variables} values={values} onChange={setValues} findings={findings} disabled={blocked}
                     keyOf={(d) => (d as InputVariable).key ?? d.name} emptyText={slots.length > 0 ? "" : (emptyText ?? "This template has no variables.")} />
@@ -82,7 +90,7 @@ export function InputsSection({
 
 /** One dropdown per endpoint slot: the endpoint of this device that fills its `${endpoint[slot].*}` placeholders;
  * under it, for slots that read a service, one of that endpoint's services, and for each list field the slot reads, one of its rows. */
-export function EndpointSlots({ deviceId, slots, endpoints, loading, error, value, onChange, services, onServicesChange, rows, onRowsChange, disabled }: {
+export function EndpointSlots({ deviceId, slots, endpoints, loading, error, value, onChange, services, onServicesChange, rows, onRowsChange, clearChoices, disabled }: {
   deviceId: string;
   slots: InputEndpoint[];
   endpoints?: DeviceEndpoint[];
@@ -94,6 +102,7 @@ export function EndpointSlots({ deviceId, slots, endpoints, loading, error, valu
   onServicesChange: (next: ServiceChoices) => void;
   rows: RowChoices;
   onRowsChange: (next: RowChoices) => void;
+  clearChoices: ClearChoices;
   disabled: boolean;
 }) {
   const endpointTypes = useGetEndpointTypes().data;
@@ -106,11 +115,7 @@ export function EndpointSlots({ deviceId, slots, endpoints, loading, error, valu
   const misfitKey = misfit.join("\n");
   useEffect(() => {
     if (misfit.length === 0) return;
-    onChange(
-      Object.fromEntries(Object.entries(value).filter(([k]) => !misfit.includes(k))),
-      Object.fromEntries(Object.entries(services).filter(([k]) => !misfit.includes(k))),
-      Object.fromEntries(Object.entries(rows).filter(([k]) => !misfit.includes(k))),
-    );
+    clearChoices(misfit, "choice");
   }, [misfitKey]); // eslint-disable-line react-hooks/exhaustive-deps
   if (loading) return <LoadingState label="Loading the device's endpoints..." className="p-2" />;
   if (error) return <InlineAlert>Could not load the device's endpoints: {error}</InlineAlert>;
@@ -158,7 +163,7 @@ export function EndpointSlots({ deviceId, slots, endpoints, loading, error, valu
           )}
           {needsService(s) && (
             <ServiceSelect deviceId={deviceId} slot={s} serviceTypes={serviceTypes} endpointId={value[s.key]} value={services[s.key]}
-                           onChange={(v) => onServicesChange({ ...services, [s.key]: v })} disabled={disabled} />
+                           onChange={(v) => onServicesChange({ ...services, [s.key]: v })} onStale={() => clearChoices([s.key], "service")} disabled={disabled} />
           )}
           {Object.entries(s.row_fields ?? {}).map(([field, subs]) => (
             <RowSelect key={field} slot={s} field={field} subs={subs} endpoint={endpoints?.find((e) => e.endpoint_id === value[s.key])}
@@ -172,13 +177,15 @@ export function EndpointSlots({ deviceId, slots, endpoints, loading, error, valu
 }
 
 /** The service of the chosen endpoint that fills a slot's `${service[slot].*}` placeholders; never preselected. */
-function ServiceSelect({ deviceId, slot, serviceTypes, endpointId, value, onChange, disabled }: {
+function ServiceSelect({ deviceId, slot, serviceTypes, endpointId, value, onChange, onStale, disabled }: {
   deviceId: string;
   slot: InputEndpoint;
   serviceTypes?: { type_id: string; label: string }[];
   endpointId?: string;
   value?: string;
   onChange: (serviceId: string) => void;
+  /** the stored service no longer exists: clear it */
+  onStale: () => void;
   disabled: boolean;
 }) {
   const services = useEndpointServices(deviceId, endpointId);
@@ -191,7 +198,7 @@ function ServiceSelect({ deviceId, slot, serviceTypes, endpointId, value, onChan
   // a stored service that no longer exists (deleted since the revision) is cleared
   const stale = !!value && !!services.data && !options.some((o) => o.value === value);
   useEffect(() => {
-    if (stale) onChange("");
+    if (stale) onStale();
   }, [stale]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="space-y-1 pt-1">

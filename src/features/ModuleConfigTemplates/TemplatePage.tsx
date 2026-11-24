@@ -173,7 +173,8 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
   const typeOptions = (types?: { type_id: string; label: string }[]) => (types ?? []).map((t) => ({ value: t.type_id, label: t.label }));
   const setSlot = (name: string, patch: Partial<SlotDecl>) => setDraft((d) => {
     const current = d.slots.find((s) => s.name === name) ?? { name, endpoint_types: [], service_types: [] };
-    return { ...d, slots: [...d.slots.filter((s) => s.name !== name), { ...current, ...patch }] };
+    const next = { ...current, ...patch };
+    return { ...d, slots: d.slots.some((s) => s.name === name) ? d.slots.map((s) => (s.name === name ? next : s)) : [...d.slots, next] };
   });
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
   const parsed = useMemo(() => parseBody(draft.body), [draft.body]);
@@ -427,7 +428,7 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
             </tbody>
           </table>
         )}
-        {lists.length > 0 && <ListInputs lists={lists} what="endpoints" />}
+        {lists.length > 0 && <ListInputs lists={lists} what="endpoints" endpointTypes={endpointTypes} serviceTypes={serviceTypes} />}
       </Box>
 
       <Preview body={parsed.body} bodyError={parsed.error} variables={draft.variables} slots={slots} groupId={draft.groupId} kind={kind}
@@ -703,7 +704,6 @@ function DuplicateDialog({ open, onOpenChange, template, groups, noun, version, 
   );
 }
 
-/** The lists of blocks the body offers: each once, with the inputs of every block allowed in it. */
 /** The endpoint or service types one slot accepts; nothing selected means any. Read-only where the slot is not edited here. */
 function SlotTypes({ id, what, options, selected, disabled, onChange }: {
   id: string;
@@ -722,17 +722,21 @@ function SlotTypes({ id, what, options, selected, disabled, onChange }: {
   );
 }
 
-/** The restriction of a slot of a block in a list, as text ("; endpoint types: plc"). */
-const typeNote = (e: InputEndpoint) =>
-  `${e.endpoint_types?.length ? `; endpoint types: ${e.endpoint_types.join(", ")}` : ""}${e.service_types?.length ? `; service types: ${e.service_types.join(", ")}` : ""}`;
+type TypeList = { type_id: string; label: string }[] | undefined;
+const typeLabel = (types: TypeList, id: string) => types?.find((t) => t.type_id === id)?.label ?? id;
 
-function ListInputs({ lists, what }: { lists: InputList[]; what: "variables" | "endpoints" }) {
+/** The restriction of a slot of a block in a list, as text ("; endpoint types: PLC"); a type that no longer exists is shown by its id. */
+const typeNote = (e: InputEndpoint, endpointTypes: TypeList, serviceTypes: TypeList) =>
+  `${e.endpoint_types?.length ? `; endpoint types: ${e.endpoint_types.map((t) => typeLabel(endpointTypes, t)).join(", ")}` : ""}${e.service_types?.length ? `; service types: ${e.service_types.map((t) => typeLabel(serviceTypes, t)).join(", ")}` : ""}`;
+
+/** The lists of blocks the body offers: each once, with the inputs of every block allowed in it. */
+function ListInputs({ lists, what, endpointTypes, serviceTypes }: { lists: InputList[]; what: "variables" | "endpoints"; endpointTypes?: TypeList; serviceTypes?: TypeList }) {
   const rows = lists.map((l) => ({
     list: l,
     blocks: l.blocks
       .map((b) => ({ b, items: what === "variables"
         ? b.inputs.variables.map((v) => `${copyLabel(v.key)} (${v.type}${v.required === false ? "" : ", required"})`)
-        : b.inputs.endpoints.map((e) => `${copyLabel(e.key)}: ${e.fields.join(", ")}${e.service_fields?.length ? `; service: ${e.service_fields.join(", ")}` : ""}${typeNote(e)}`) }))
+        : b.inputs.endpoints.map((e) => `${copyLabel(e.key)}: ${e.fields.join(", ")}${e.service_fields?.length ? `; service: ${e.service_fields.join(", ")}` : ""}${typeNote(e, endpointTypes, serviceTypes)}`) }))
       .filter(({ items }) => items.length > 0),
   }));
   return (

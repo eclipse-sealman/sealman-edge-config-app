@@ -21,16 +21,18 @@ const slot = (patch: Partial<InputEndpoint> = {}): InputEndpoint => ({ key: "end
 
 describe("EndpointSlots type restriction", () => {
   const onChange = vi.fn();
+  const clear = vi.fn();
   const renderSlots = (slots: InputEndpoint[], value: Record<string, string> = {}, services: Record<string, string> = {}) =>
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <EndpointSlots deviceId="dev-1" slots={slots} endpoints={ENDPOINTS} loading={false} value={value} onChange={onChange}
-                       services={services} onServicesChange={vi.fn()} rows={{}} onRowsChange={vi.fn()} disabled={false} />
+                       services={services} onServicesChange={vi.fn()} rows={{}} onRowsChange={vi.fn()} clearChoices={clear} disabled={false} />
       </QueryClientProvider>,
     );
 
   beforeEach(() => {
     onChange.mockReset();
+    clear.mockReset();
     http.get.mockReset().mockImplementation(async (url: string) => {
       if (url === "/dev-1/config/endpoints/e1/services") {
         return { data: [{ service_id: "s1", type_id: "opcua", type_label: "OPC UA", name: "opc", port: 4840, fields: {} }] };
@@ -58,14 +60,14 @@ describe("EndpointSlots type restriction", () => {
 
   it("clears a chosen endpoint that the slot no longer allows", async () => {
     renderSlots([slot({ endpoint_types: ["plc"] }), slot({ key: "keep", slot: "keep" })], { endpoint: "e2", keep: "e2" }, { endpoint: "s9", keep: "s8" });
-    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
-    expect(onChange).toHaveBeenCalledWith({ keep: "e2" }, { keep: "s8" }, {});
+    await waitFor(() => expect(clear).toHaveBeenCalledTimes(1));
+    expect(clear).toHaveBeenCalledWith(["endpoint"], "choice");
   });
 
   it("does not clear a fitting choice", async () => {
     renderSlots([slot({ endpoint_types: ["plc"] })], { endpoint: "e1" });
     await screen.findByRole("combobox", { name: "Endpoint: endpoint" });
-    expect(onChange).not.toHaveBeenCalled();
+    expect(clear).not.toHaveBeenCalled();
   });
 
   it("says which type is missing when the endpoint has no fitting service", async () => {
