@@ -5,6 +5,7 @@ import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
 import { useQueryClient } from "@tanstack/react-query";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
 import FieldValueInput, { validateFields } from "@/features/PlatformTypes/FieldValueInput";
+import { withoutFileFields } from "@/features/PlatformTypes/fileField";
 import { Button } from "@/components/ui/button";
 import { InlineAlert } from "@/components/ui/page-state";
 import { Input } from "@/components/ui/input";
@@ -69,7 +70,7 @@ export default function DeviceManageDialog({ canCreate }: { canCreate: boolean }
     setLoading(true); setError(null);
     try {
       const meta: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(fieldValues)) {
+      for (const [key, value] of Object.entries(withoutFileFields(fieldValues, effectiveFields))) {
         if (value !== null && value !== undefined && value !== "") meta[key] = value;
       }
       await edgeConfigApi.createDevice(

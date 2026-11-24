@@ -24,6 +24,6 @@ describe("initialRetypeValues", () => {
 
 describe("nonEmptyValues", () => {
   it("drops null, undefined and empty strings but keeps false and 0", () => {
-    expect(nonEmptyValues({ a: null, b: undefined, c: "", d: "x", e: 0, f: false })).toEqual({ d: "x", e: 0, f: false });
+    expect(nonEmptyValues({ a: null, b: undefined, c: "", d: "x", e: 0, f: false }, {})).toEqual({ d: "x", e: 0, f: false });
   });
 });

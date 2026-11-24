@@ -1,5 +1,7 @@
 import type { components } from "@/generated/edge-administration/types";
 
+import { withoutFileFields } from "@/features/PlatformTypes/fileField";
+
 type FieldDefinition = components["schemas"]["FieldDefinition"];
 type ResolvedField = components["schemas"]["ResolvedField"];
 
@@ -22,10 +24,13 @@ export function initialRetypeValues(
 /**
  * Only the values that are set. In a PATCH, `null` means "delete this key", so a retype leaves
  * empty fields out and the API keeps the stored data (Q15). "Empty" matches validateFields:
- * null, undefined or "".
+ * null, undefined or "". File fields are left out too: a save never sends a file reference.
  */
-export function nonEmptyValues(values: Record<string, unknown>): Record<string, unknown> {
+export function nonEmptyValues(
+  values: Record<string, unknown>,
+  fields: Record<string, { type: string }>,
+): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(values).filter(([, value]) => value !== null && value !== undefined && value !== "")
+    Object.entries(withoutFileFields(values, fields)).filter(([, value]) => value !== null && value !== undefined && value !== "")
   );
 }

@@ -17,6 +17,7 @@ import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_
 import { usePostEndpoint } from "@/generated/edge-administration/hooks/endpoints/usePostEndpoint";
 import { useUpdateEndpoint } from "@/generated/edge-administration/hooks/endpoints/useUpdateEndpoint";
 import TypeFieldsForm from "./TypeFieldsForm";
+import { withoutFileFields } from "@/features/PlatformTypes/fileField";
 import { initialRetypeValues, nonEmptyValues } from "./retypeData";
 
 type ResolvedField = components["schemas"]["ResolvedField"];
@@ -118,8 +119,8 @@ export default function AssignEndpointDialog({
         await updateEndpoint({
           endpointId: existingEndpoint.endpoint_id,
           body: isRetype
-            ? { type_id: selectedType.type_id, endpoint_data: nonEmptyValues(values) }
-            : { endpoint_data: values },
+            ? { type_id: selectedType.type_id, endpoint_data: nonEmptyValues(values, selectedType.fields) }
+            : { endpoint_data: withoutFileFields(values, selectedType.fields) },
         });
         toast.success(
           isRetype ? `Endpoint reassigned to "${selectedType.label}"` : `Endpoint "${selectedType.label}" updated`
@@ -127,7 +128,7 @@ export default function AssignEndpointDialog({
       } else {
         await postEndpoint({
           deviceId,
-          body: { type_id: selectedType.type_id, endpoint_data: values },
+          body: { type_id: selectedType.type_id, endpoint_data: withoutFileFields(values, selectedType.fields) },
         });
         toast.success(`Endpoint "${selectedType.label}" created${ip ? ` for ${ip}` : ""}`);
       }

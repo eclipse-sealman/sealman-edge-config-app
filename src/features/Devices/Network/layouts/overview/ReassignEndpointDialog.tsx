@@ -74,7 +74,7 @@ export default function ReassignEndpointDialog({
     }
     setError(null);
     try {
-      await updateEndpoint({ endpointId, body: { type_id: selectedType.type_id, endpoint_data: nonEmptyValues(values) } });
+      await updateEndpoint({ endpointId, body: { type_id: selectedType.type_id, endpoint_data: nonEmptyValues(values, selectedType.fields) } });
       toast.success(`Endpoint reassigned to "${selectedType.label}"`);
       onReassigned();
       onOpenChange(false);

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import Toggle from "./Toggle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import FileFieldInput from "./FileFieldInput";
+import { isFileRef, type FileOwner } from "./fileField";
 
 // Radix Select can't hold an empty-string item, so "no selection" is represented by this sentinel.
 const NO_SELECTION = "__none__";
@@ -11,7 +13,7 @@ const NO_SELECTION = "__none__";
 export type FieldDefinitionLike = Pick<
   components["schemas"]["FieldDefinition"],
   "type" | "ui" | "options" | "validation"
-> & Partial<Pick<components["schemas"]["FieldDefinition"], "item_fields" | "item_order">>;
+> & Partial<Pick<components["schemas"]["FieldDefinition"], "label" | "item_fields" | "item_order" | "secret">>;
 type FieldDefinition = components["schemas"]["FieldDefinition"];
 type FieldValidation = NonNullable<FieldDefinitionLike["validation"]>;
 
@@ -26,6 +28,7 @@ export const compactInputClass = inputClass.replace("py-2", "py-1") + " h-8";
 /** Read-only counterpart to the input widget above: formats a value for display, driven by the same FieldDefinition. */
 export function formatMetadataValue(value: unknown, definition: Pick<FieldDefinitionLike, "type">): string {
   if (value === null || value === undefined || value === "") return "";
+  if (definition.type === "file") return isFileRef(value) ? value.name : "";
   if (definition.type === "boolean") return value ? "Yes" : "No";
   if (definition.type === "list") return Array.isArray(value) ? `${value.length} ${value.length === 1 ? "item" : "items"}` : "";
   return String(value);
@@ -130,6 +133,8 @@ export function validateFields(
     const value = values[key];
     const isEmpty = value === null || value === undefined || value === "" ||
       (definition.type === "list" && Array.isArray(value) && value.length === 0);
+    // A file is added by uploading, after the record exists: the API decides whether one is missing.
+    if (definition.type === "file") continue;
     if (definition.required && isEmpty) {
       return `"${definition.label}" is required`;
     }
@@ -159,6 +164,10 @@ interface FieldValueInputProps {
   onChange: (value: unknown) => void;
   placeholder?: string;
   disabled?: boolean;
+  /** The record a file field belongs to; without it a file can only be shown, not uploaded. */
+  fileOwner?: FileOwner;
+  /** The key of this field in its record; a file field needs it to address its upload. */
+  fieldKey?: string;
 }
 
 function itemFieldEntries(definition: FieldDefinitionLike) {
@@ -244,7 +253,12 @@ function ListFieldValueInput({
  * FieldDefinition's `type`/`ui`/`options` — the single source of truth for
  * how any platform-type field should be edited.
  */
-export default function FieldValueInput({ definition, value, onChange, placeholder, disabled }: FieldValueInputProps) {
+export default function FieldValueInput({ definition, value, onChange, placeholder, disabled, fileOwner, fieldKey }: FieldValueInputProps) {
+  if (definition.type === "file") {
+    return (
+      <FileFieldInput definition={definition} fieldKey={fieldKey} value={value} owner={fileOwner} disabled={disabled} onChange={onChange} />
+    );
+  }
   const ui = definition.ui ?? defaultUiFor(definition.type);
   const options = definition.options ?? [];
 
