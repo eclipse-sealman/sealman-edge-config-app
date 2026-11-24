@@ -213,6 +213,18 @@ describe("FieldsEditor file type", () => {
     });
   });
 
+  it("switching a secret file back to string leaves no secret in the payload", async () => {
+    const onChange = vi.fn();
+    const rows = rowsFromFields({
+      key: { type: "file", label: "Key", required: false, changeable: true, show_in_list: true, secret: true },
+    });
+    render(<FieldsEditor rows={rows} onChange={onChange} />);
+    await openTypeSelect();
+    await userEvent.click(await screen.findByRole("option", { name: "String" }));
+    const next = onChange.mock.calls[0][0] as FieldRow[];
+    expect(buildFieldsPayload(next, ["key"]).key).not.toHaveProperty("secret");
+  });
+
   it("shows only the controls a file field has", () => {
     const rows = rowsFromFields({
       key: { type: "file", label: "Key", required: false, changeable: true, show_in_list: true, secret: true },

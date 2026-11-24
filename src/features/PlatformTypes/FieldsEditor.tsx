@@ -140,6 +140,8 @@ export function buildFieldsPayload(
     }
     const definition = { ...row.definition } as FieldDefinitionPatch;
     delete definition.item_order;
+    // a row that was a file keeps no secret flag under another type
+    delete definition.secret;
     if (row.definition.type === "list") {
       const currentItems = row.definition.item_fields ?? {};
       const previousKey = row.originalKey === row.key.trim() ? row.originalKey : null;
@@ -467,7 +469,7 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
               </div>
 
               <div className="col-span-2">
-                <Field label="Type" info="The data type accepted for this field. Changing the type resets incompatible widget and validation settings.">
+                <Field label="Type" info="The data type accepted for this field; File is an uploaded certificate or key. Changing the type resets incompatible widget and validation settings.">
                   <Select value={row.definition.type} onValueChange={(v) => handleTypeChange(row, v as FieldType)}>
                     <SelectTrigger className="h-8">
                       <SelectValue />
