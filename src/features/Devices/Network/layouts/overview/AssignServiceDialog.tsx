@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { WaterLoader } from "@/components/ui/water-loader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import { components } from "@/generated/edge-administration/types";
@@ -35,7 +36,8 @@ interface props {
   port?: number;
   defaultTypeId?: string | null;
   existingService?: ExistingService | null;
-  onCreated: () => void;
+  /** May return a promise; the dialog stays busy until it settles, i.e. until the change is visible. */
+  onCreated: () => void | Promise<unknown>;
 }
 
 export default function AssignServiceDialog({
@@ -52,6 +54,8 @@ export default function AssignServiceDialog({
   const { updateService, isPending: isUpdating } = useUpdateService();
   const { deleteService, isPending: isDeleting } = useDeleteService();
   const isPending = isCreating || isUpdating || isDeleting;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isBusy = isPending || isRefreshing;
   const isEdit = Boolean(existingService);
   const isLocked = port !== undefined;
 
@@ -115,11 +119,17 @@ export default function AssignServiceDialog({
         await postService({ endpointId, body: { type_id: selectedType.type_id, service_data: values } });
         toast.success(`Service "${selectedType.label}" ${existingService ? "reassigned" : "created"}`);
       }
-      onCreated();
-      onOpenChange(false);
     } catch {
       setError("Failed to save service");
+      return;
     }
+    setIsRefreshing(true);
+    try {
+      await onCreated();
+    } finally {
+      setIsRefreshing(false);
+    }
+    onOpenChange(false);
   };
 
   const description = isEdit
@@ -169,11 +179,12 @@ export default function AssignServiceDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isRefreshing}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending || !selectedType}>
-            {isPending ? "Saving..." : isEdit ? "Save Changes" : "Create Service"}
+          <Button onClick={handleSubmit} disabled={isBusy || !selectedType}>
+            {isBusy && <WaterLoader />}
+            {isBusy ? "Saving..." : isEdit ? "Save Changes" : "Create Service"}
           </Button>
         </DialogFooter>
       </DialogContent>

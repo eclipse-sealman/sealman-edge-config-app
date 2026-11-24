@@ -153,7 +153,7 @@ export function EndpointDialogs({
 }: {
   endpoint: MappedEndpoint;
   deviceId: string;
-  onCreated: () => void;
+  onCreated: () => void | Promise<unknown>;
   assignEndpointOpen: boolean;
   setAssignEndpointOpen: (open: boolean) => void;
   assignPort: MappedPort | null;
