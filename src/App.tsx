@@ -24,6 +24,7 @@ import AppearanceSettings from "./pages/settings/AppearanceSettings";
 import PlatformFunctionsSettings from "./pages/settings/PlatformFunctionsSettings";
 import DevicesSettings from "./pages/settings/DevicesSettings";
 import PresetTemplateVariablesSettings from "./pages/settings/PresetTemplateVariablesSettings";
+import AzureIotEdgeSwitch from "./pages/settings/AzureIotEdgeSwitch";
 import { DeviceTemplateVariablesSection, IOTEDGE_AGENT_VARIABLES, IOTEDGE_PROVISIONING_VARIABLES, IOTEDGE_REGISTRY_VARIABLES, SEALMAN_EMS_REGISTRY_VARIABLES, SEALMAN_EMS_VARIABLES } from "./pages/settings/TemplatesSettings";
 import DeploymentsLayout from "./pages/deployments/DeploymentsLayout";
 import AssetConfigurationLayout from "./pages/assetConfiguration/AssetConfigurationLayout";
@@ -164,6 +165,7 @@ export default function App() {
                   <PresetTemplateVariablesSettings
                     title="Azure IoT Edge"
                     description="Template variables used to provision the Azure IoT Edge runtime on devices. Empty fields fall back to the template default."
+                    header={<AzureIotEdgeSwitch />}
                     sections={[
                       {
                         title: "Container Registry",

@@ -4,6 +4,7 @@ import { queryClient } from "@/config/queryConfig";
 
 export interface PlatformFunctions {
   network_scan_enabled: boolean;
+  azure_iot_edge_enabled: boolean;
 }
 
 export const PLATFORM_FUNCTIONS_QUERY_KEY = ["platformFunctions"] as const;

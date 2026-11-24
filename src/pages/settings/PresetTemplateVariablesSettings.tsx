@@ -26,11 +26,13 @@ export default function PresetTemplateVariablesSettings({
   title,
   description,
   sections,
+  header,
   children,
 }: {
   title: string;
   description: string;
   sections: PresetVariableSection[];
+  header?: ReactNode;
   children?: ReactNode;
 }) {
   const { variablesQuery, setVariableMutation, deleteVariableMutation } =
@@ -69,6 +71,8 @@ export default function PresetTemplateVariablesSettings({
   return (
     <div className="space-y-6">
       <PageTitle title={title} description={description} />
+
+      {header}
 
       {sections.map((section) => (
         <section key={section.title} className="space-y-3">
