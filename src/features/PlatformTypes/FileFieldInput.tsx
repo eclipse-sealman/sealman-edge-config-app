@@ -49,7 +49,9 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, dis
   };
 
   const status = ref ? fileStatus(ref, secret, new Date()) : null;
-  const canAct = Boolean(owner && fieldKey) && !disabled;
+  const addressed = owner && fieldKey ? { owner, fieldKey } : null;
+  // Without write permission (disabled) the file can still be downloaded, but not changed.
+  const canEdit = !disabled;
 
   return (
     <div className="flex items-center gap-2">
@@ -58,13 +60,13 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, dis
           <>
             {ref.name} · <span className={LEVEL_CLASS[status.level]}>{status.text}</span>
           </>
-        ) : owner && fieldKey ? (
+        ) : addressed ? (
           <span className="text-muted-foreground">No file</span>
         ) : (
           <span className="text-muted-foreground">Add the file after saving</span>
         )}
       </span>
-      {canAct && owner && fieldKey && (
+      {canEdit && addressed && (
         <>
           <input
             ref={inputRef}
@@ -82,17 +84,23 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, dis
           <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
             {ref ? "Replace" : "Upload"}
           </Button>
-          {ref && !secret && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => void run(() => downloadFieldFile(owner, fieldKey, ref.name), "Could not download the file")}
-            >
-              Download
-            </Button>
-          )}
+        </>
+      )}
+      {addressed && ref && !secret && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onClick={() =>
+            void run(() => downloadFieldFile(addressed.owner, addressed.fieldKey, ref.name), "Could not download the file")
+          }
+        >
+          Download
+        </Button>
+      )}
+      {canEdit && addressed && (
+        <>
           {ref && (
             <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setConfirmOpen(true)}>
               Remove
@@ -106,7 +114,7 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, dis
             isPending={busy}
             onConfirm={() => {
               void run(async () => {
-                await removeFieldFile(owner, fieldKey);
+                await removeFieldFile(addressed.owner, addressed.fieldKey);
                 setConfirmOpen(false);
                 onChange(null);
               }, "Could not remove the file");

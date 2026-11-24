@@ -57,6 +57,18 @@ describe("FileFieldInput", () => {
     expect(screen.getByText("valid until 2099-01-01 · secret")).toBeInTheDocument();
   });
 
+  it("without write permission (disabled) it keeps only Download of a non-secret file", () => {
+    const { rerender } = render(
+      <FileFieldInput definition={definition} fieldKey="crt" value={ref} owner={owner} disabled onChange={vi.fn()} />,
+    );
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual(["Download"]);
+    expect(screen.queryByTestId("file-input")).not.toBeInTheDocument();
+    rerender(
+      <FileFieldInput definition={secretDefinition} fieldKey="crt" value={ref} owner={owner} disabled onChange={vi.fn()} />,
+    );
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("removes only after confirmation", async () => {
     mocks.remove.mockResolvedValue(undefined);
     const onChange = vi.fn();

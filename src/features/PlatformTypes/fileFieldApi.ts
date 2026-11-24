@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import { edgeConfigApiInstance } from "@/api/edgeConfig/edgeConfigApi";
 import type { FileOwner, FileRef } from "./fileField";
 
@@ -17,8 +18,26 @@ export async function removeFieldFile(owner: FileOwner, field: string): Promise<
   await edgeConfigApiInstance.delete(path(owner, field));
 }
 
+/** A blob request's error body is a Blob too: read it as JSON so the API's `message` reaches the user. */
+async function withJsonErrorBody(error: unknown): Promise<unknown> {
+  const response = isAxiosError(error) ? error.response : undefined;
+  if (response && response.data instanceof Blob) {
+    try {
+      response.data = JSON.parse(await response.data.text());
+    } catch {
+      response.data = undefined;
+    }
+  }
+  return error;
+}
+
 export async function downloadFieldFile(owner: FileOwner, field: string, name: string): Promise<void> {
-  const { data } = await edgeConfigApiInstance.get<Blob>(path(owner, field), { responseType: "blob" });
+  let data: Blob;
+  try {
+    ({ data } = await edgeConfigApiInstance.get<Blob>(path(owner, field), { responseType: "blob" }));
+  } catch (error) {
+    throw await withJsonErrorBody(error);
+  }
   const url = URL.createObjectURL(data);
   const link = document.createElement("a");
   link.href = url;
