@@ -6,7 +6,11 @@ export type FileRef = {
   uploaded_at: string;
 };
 
-export type FileOwner = { kind: "endpoint" | "service" | "device"; id: string };
+/** Who holds the file: a record (endpoint, service, device), a template's default file, or a module's own file for an apply. */
+export type FileOwner =
+  | { kind: "endpoint" | "service" | "device"; id: string }
+  | { kind: "template"; id: string }
+  | { kind: "module"; device: string; module: string; templateId: number };
 
 export const FILE_SIZE_LIMIT = 65536;
 

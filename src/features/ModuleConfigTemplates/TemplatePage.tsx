@@ -381,7 +381,7 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
 
       <Box label="Template variables" title="Variables"
            description={`The values asked for when the ${kind === "block" ? "template using this block" : "template"} is applied. Writing \${name} in the ${noun} adds a variable here, removing its last use removes it; set its type and label below.`}>
-        <VariablesEditor variables={draft.variables} disabled={readOnly} onChange={(variables) => set({ variables })} />
+        <VariablesEditor templateId={template?.id} variables={draft.variables} disabled={readOnly} onChange={(variables) => set({ variables })} />
         {blockVariables.length > 0 && <BlockVariables variables={blockVariables} />}
         {lists.length > 0 && <ListInputs lists={lists} what="variables" />}
       </Box>
@@ -432,7 +432,7 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
       </Box>
 
       <Preview body={parsed.body} bodyError={parsed.error} variables={draft.variables} slots={slots} groupId={draft.groupId} kind={kind}
-               lint={lint.data} />
+               lint={lint.data} templateId={template?.id} />
 
       {serverFindings.length > 0 && (
         <Box label={`${Noun} findings`} title="Findings"><FindingsList findings={serverFindings} /></Box>
@@ -535,7 +535,8 @@ function CompareDialog({ open, onOpenChange, templateId, versions }: {
 }
 
 /** Live render of the edited template with sample values and sample device metadata. */
-function Preview({ body, bodyError, variables, slots, groupId, kind, lint }: {
+function Preview({ body, bodyError, variables, slots, groupId, kind, lint, templateId }: {
+  templateId?: number;
   body: unknown;
   bodyError?: string;
   variables: VariableDecl[];
@@ -555,12 +556,13 @@ function Preview({ body, bodyError, variables, slots, groupId, kind, lint }: {
   });
   // choices belong to one device: a new device starts an empty form
   return (
-    <PreviewBox key={device?.device_id ?? "none"} body={body} bodyError={bodyError} variables={variables} slots={slots} groupId={groupId} kind={kind}
+    <PreviewBox key={device?.device_id ?? "none"} body={body} bodyError={bodyError} variables={variables} slots={slots} groupId={groupId} kind={kind} templateId={templateId}
                 lint={lint} device={device} onDevice={(d) => setChosen({ device: d, groupId })} collapsed={collapsed} onToggle={toggle} />
   );
 }
 
-function PreviewBox({ body, bodyError, variables, slots, groupId, kind, lint, device, onDevice, collapsed, onToggle }: {
+function PreviewBox({ body, bodyError, variables, slots, groupId, kind, templateId, lint, device, onDevice, collapsed, onToggle }: {
+  templateId?: number;
   body: unknown;
   bodyError?: string;
   variables: VariableDecl[];
@@ -580,6 +582,8 @@ function PreviewBox({ body, bodyError, variables, slots, groupId, kind, lint, de
   const request = useDebounced({
     body, variables: declared, slots, kind, ...form.sent, endpoints: form.sent.endpoints ?? {},
     ...(groupId !== null ? { group_id: groupId } : {}),
+    // the saved template's default files take part in the render
+    ...(templateId !== undefined ? { template_id: templateId } : {}),
     ...(device ? { device_id: device.device_id } : {}),
   });
   const preview = useQuery({

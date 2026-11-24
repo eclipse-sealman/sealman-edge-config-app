@@ -18,10 +18,10 @@ export const templatePath = (groupId: number, templateId: number | "new") =>
 /** Same rule as the API: an exact module name, no wildcards. */
 export const MODULE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
-export const VARIABLE_TYPES: VariableType[] = ["string", "text", "number", "integer", "boolean", "enum"];
+export const VARIABLE_TYPES: VariableType[] = ["string", "text", "number", "integer", "boolean", "enum", "file"];
 
 export const VARIABLE_TYPE_LABELS: Record<VariableType, string> = {
-  string: "String", text: "Text", number: "Number", integer: "Integer", boolean: "Boolean", enum: "Enum",
+  string: "String", text: "Text", number: "Number", integer: "Integer", boolean: "Boolean", enum: "Enum", file: "File",
 };
 
 export interface VariableProblem {
@@ -65,6 +65,10 @@ export function cleanVariables(variables: VariableDecl[]): VariableDecl[] {
   return variables.map((v) => {
     const out: VariableDecl = { name: v.name.trim(), type: v.type, required: v.required !== false };
     if (v.type === "enum" && v.options?.length) out.options = v.options;
+    if (v.type === "file") {
+      if (v.secret) out.secret = true;
+      if (v.default) out.default = v.default;
+    }
     if (v.label) out.label = v.label;
     if (v.description) out.description = v.description;
     return out;

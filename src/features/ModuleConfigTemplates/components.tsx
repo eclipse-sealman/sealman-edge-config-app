@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import FileFieldInput from "@/features/PlatformTypes/FileFieldInput";
 import type { Finding, Scalar, VariableDecl, VariableType, Values } from "./api";
 import { VARIABLE_TYPES, VARIABLE_TYPE_LABELS, variableProblems } from "./utils";
 
@@ -143,7 +144,7 @@ const COLUMN_HELP = {
   name: "Taken from the body: writing ${name} adds the variable, removing its last use removes it. Letters, digits and _, not starting with a digit.",
   type: "How the value is entered and checked. String: one line. Text: several lines. Number, Integer, Boolean. Enum: one of the options.",
   label: "Caption above the input when the template is applied. The name is used if empty.",
-  options: "Enum only: the allowed values, separated by commas.",
+  options: "Enum only: the allowed values, separated by commas. File: whether the file is secret, and the default file.",
   description: "Help text shown under the input.",
   required: "Checked: a value is needed to apply the template. Unchecked: without a value the key is left out of the configuration.",
 } as const;
@@ -184,13 +185,52 @@ function OptionsInput({ options, disabled, invalid, onChange }: {
   );
 }
 
-/** Table editor for a template's variable declarations. */
+/** The options cell of a file variable: the secret toggle and the default file, which belongs to the saved template. */
+function FileVariableCell({ variable, index, templateId, disabled, onChange }: {
+  variable: VariableDecl;
+  index: number;
+  templateId?: number;
+  disabled?: boolean;
+  onChange: (patch: Partial<VariableDecl>) => void;
+}) {
+  const secret = Boolean(variable.secret);
+  // the stored file keeps the flag it was uploaded with: remember which one that was
+  const [stored, setStored] = useState(secret);
+  const owner = templateId === undefined || !variable.name.trim() ? undefined : { kind: "template" as const, id: String(templateId) };
+  return (
+    <div className="col-span-2 space-y-1 md:col-span-1">
+      <span className="text-xs text-muted-foreground">Default file</span>
+      <FileFieldInput
+        definition={{ type: "file", label: variable.label || variable.name, secret }}
+        fieldKey={variable.name.trim()} owner={owner} disabled={disabled} uploadOptions={{ secret }}
+        value={variable.default ?? null}
+        onChange={(ref) => {
+          setStored(secret);
+          onChange({ default: ref });
+        }}
+      />
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" disabled={disabled} checked={secret} aria-label={`Variable ${variable.name || index + 1} secret`}
+               onChange={(e) => onChange({ secret: e.target.checked })} />
+        Secret
+      </label>
+      <p className="text-xs text-muted-foreground">A secret file can be replaced or removed, never downloaded. Required for private keys.</p>
+      {variable.default && secret !== stored && (
+        <p className="text-xs text-amber-700">Upload the file again to apply this</p>
+      )}
+    </div>
+  );
+}
+
+/** Table editor for a template's variable declarations. `templateId` is the saved template that holds the default files. */
 export function VariablesEditor({
   variables,
+  templateId,
   onChange,
   disabled,
 }: {
   variables: VariableDecl[];
+  templateId?: number;
   onChange: (variables: VariableDecl[]) => void;
   disabled?: boolean;
 }) {
@@ -223,8 +263,11 @@ export function VariablesEditor({
             </Select>
             <Input aria-label="Variable label" disabled={disabled} value={v.label ?? ""} placeholder="label"
                    onChange={(e) => update(i, { label: e.target.value || null })} />
-            <OptionsInput key={v.type === "enum" ? "enum" : "other"} options={v.options} disabled={disabled || v.type !== "enum"}
-                          invalid={invalid(i, "options")} onChange={(options) => update(i, { options })} />
+            {v.type === "file"
+              ? <FileVariableCell key={`${v.name}-file`} variable={v} index={i} templateId={templateId} disabled={disabled}
+                                  onChange={(patch) => update(i, patch)} />
+              : <OptionsInput key={v.type === "enum" ? "enum" : "other"} options={v.options} disabled={disabled || v.type !== "enum"}
+                              invalid={invalid(i, "options")} onChange={(options) => update(i, { options })} />}
             <Input aria-label="Variable description" disabled={disabled} value={v.description ?? ""} placeholder="description"
                    onChange={(e) => update(i, { description: e.target.value || null })} />
             <label className="flex items-center justify-center gap-2 text-sm">

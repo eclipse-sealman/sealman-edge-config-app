@@ -13,6 +13,8 @@ interface FileFieldInputProps {
   fieldKey?: string;
   value: unknown;
   owner?: FileOwner;
+  /** Passed to the upload, e.g. the secret flag of a template's default file. */
+  uploadOptions?: { secret?: boolean };
   disabled?: boolean;
   onChange: (value: FileRef | null) => void;
 }
@@ -20,7 +22,7 @@ interface FileFieldInputProps {
 const LEVEL_CLASS = { ok: "text-muted-foreground", warning: "text-amber-600", error: "text-destructive" } as const;
 
 /** One row for a `file` field: the file's name and status, with the buttons to upload, replace, download and remove it. */
-export default function FileFieldInput({ definition, fieldKey, value, owner, disabled, onChange }: FileFieldInputProps) {
+export default function FileFieldInput({ definition, fieldKey, value, owner, uploadOptions, disabled, onChange }: FileFieldInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -45,7 +47,7 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, dis
       toast.error("The file must not exceed 64 KB");
       return;
     }
-    void run(async () => onChange(await uploadFieldFile(owner, fieldKey, file)), "Could not upload the file");
+    void run(async () => onChange(await uploadFieldFile(owner, fieldKey, file, uploadOptions)), "Could not upload the file");
   };
 
   const status = ref ? fileStatus(ref, secret, new Date()) : null;

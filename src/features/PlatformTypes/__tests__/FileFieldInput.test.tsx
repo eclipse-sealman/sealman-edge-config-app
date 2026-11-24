@@ -42,7 +42,7 @@ describe("FileFieldInput", () => {
     const file = new File(["pem"], "plc-line3.crt");
     pick(file);
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(ref));
-    expect(mocks.upload).toHaveBeenCalledWith(owner, "crt", file);
+    expect(mocks.upload).toHaveBeenCalledWith(owner, "crt", file, undefined);
   });
 
   it("shows name, status and Replace, Download, Remove for a file; no Download for a secret one", () => {

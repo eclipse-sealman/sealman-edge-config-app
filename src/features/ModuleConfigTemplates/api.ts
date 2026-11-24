@@ -1,9 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { edgeConfigApiInstance } from "@/api/edgeConfig/edgeConfigApi";
+import type { FileRef } from "@/features/PlatformTypes/fileField";
 import { queryClient } from "@/config/queryConfig";
 
-export type VariableType = "string" | "text" | "number" | "integer" | "boolean" | "enum";
+export type VariableType = "string" | "text" | "number" | "integer" | "boolean" | "enum" | "file";
 export type Scalar = string | number | boolean;
 
 export interface VariableDecl {
@@ -13,6 +14,10 @@ export interface VariableDecl {
   options?: Scalar[] | null;
   label?: string | null;
   description?: string | null;
+  /** File variables only: a secret file is never downloadable. */
+  secret?: boolean | null;
+  /** File variables only: the default file, stored with the template under the variable's name. */
+  default?: FileRef | null;
 }
 
 /** The endpoint and service types a slot accepts (type ids); empty means any. */
@@ -284,7 +289,7 @@ export const moduleConfigApi = {
   duplicate: async (id: number, payload: { name: string; version?: number; group_id?: number }) =>
     (await edgeConfigApiInstance.post<Template>(`${BASE}/${id}/duplicate`, payload)).data,
   preview: async (payload: {
-    body: unknown; variables: VariableDecl[]; slots?: SlotDecl[]; values: Values; device?: Values; device_id?: string; group_id?: number; kind?: TemplateKind;
+    body: unknown; variables: VariableDecl[]; slots?: SlotDecl[]; template_id?: number; values: Values; device?: Values; device_id?: string; group_id?: number; kind?: TemplateKind;
     endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices;
   }) => (await edgeConfigApiInstance.post<RenderResult>(`${BASE}/preview`, payload)).data,
   lint: async (payload: { body: unknown; variables: VariableDecl[]; slots?: SlotDecl[]; kind: TemplateKind; group_id?: number }) =>
