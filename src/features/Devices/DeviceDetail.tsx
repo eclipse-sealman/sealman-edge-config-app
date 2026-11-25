@@ -136,11 +136,7 @@ export default function DeviceDetail() {
             />
             <Route
               path="assets"
-              element={
-                <Panel>
-                  <NetworkPage deviceId={deviceId ?? "no device ID in the path"} />
-                </Panel>
-              }
+              element={<NetworkPage deviceId={deviceId ?? "no device ID in the path"} />}
             />
             <Route path="remote-access/*" element={<RemoteAccess />} />
             <Route

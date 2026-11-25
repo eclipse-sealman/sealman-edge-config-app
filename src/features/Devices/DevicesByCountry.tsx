@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import Badge, { BadgeColor } from "../../components/Typography/Badge";
+import Badge from "../../components/Typography/Badge";
 import { Menu, Transition } from "@headlessui/react";
 import { IndeterminateCheckbox } from "../../components/Input/FormElements";
 import CountryFlag from "../../components/CountryFlag";

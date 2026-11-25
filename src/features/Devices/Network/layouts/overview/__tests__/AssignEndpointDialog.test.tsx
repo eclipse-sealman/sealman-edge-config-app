@@ -97,29 +97,4 @@ describe("AssignEndpointDialog", () => {
     expect(body.type_id).toBeUndefined();
     expect(body.endpoint_data.addr).toBe("");
   });
-
-  it("creates list rows with explicit defaults and no client IDs, and requires at least one row", async () => {
-    mocks.types.push({
-      type_id: "with-list", label: "With list", description: null, mapping: {},
-      fields: {
-        equipment: {
-          type: "list", label: "Equipment", required: true, changeable: true, show_in_list: true,
-          item_fields: {
-            identifier: { ...STRING, label: "Identifier", required: true, default: "NEW" },
-            quantity: { ...STRING, label: "Quantity", type: "integer", ui: "number", default: 1 },
-          },
-        },
-      },
-    });
-    render(<AssignEndpointDialog open onOpenChange={() => {}} deviceId="d" defaultTypeId="with-list" onCreated={() => {}} />);
-    await userEvent.click(screen.getByRole("button", { name: "Create Endpoint" }));
-    expect(mocks.postEndpoint).not.toHaveBeenCalled();
-    expect(screen.getByText('"Equipment" is required')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Add row" }));
-    await userEvent.click(screen.getByRole("button", { name: "Create Endpoint" }));
-    expect(mocks.postEndpoint).toHaveBeenCalledWith({
-      deviceId: "d", body: { type_id: "with-list", endpoint_data: { equipment: [{ identifier: "NEW", quantity: 1 }] } },
-    });
-    mocks.types.pop();
-  });
 });

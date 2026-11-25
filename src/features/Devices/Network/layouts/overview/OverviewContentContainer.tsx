@@ -13,7 +13,7 @@ import DiscoveredEndpointsCard from "./DiscoveredEndpointsCard";
 import UnidentifiedEndpointsCard from "./UnidentifiedEndpointsCard";
 import ScanNetworkDialog, { ScanNetworkRange } from "./ScanNetworkDialog";
 import AssignEndpointDialog from "./AssignEndpointDialog";
-import EndpointDetailsPage from "./EndpointDetailsPage";
+import EndpointDetailsDialog from "./EndpointDetailsDialog";
 import { mergeConfiguredEndpoints, mergeEndpointsByIp } from "./overviewMerge";
 import EndpointCanvas from "./EndpointCanvas";
 import EndpointActions from "./EndpointActions";
@@ -349,16 +349,19 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
   // baseline poll is refreshing.
   const isScanning = extraScanQuery.isFetching;
 
-  const handleRefresh = () => {
+  // Resolves once the refreshed data has arrived, so callers can keep a loader up until then.
+  const handleRefresh = async () => {
     if (stopped.current) return;
-    offlineFallbackQuery.refetch();
-    if (scanStopped.current) return;
-    overviewQuery.refetch();
-    // Keep the custom scan's results fresh too, so they don't go stale after e.g. assigning one
-    // of its discovered hosts to a real endpoint elsewhere on the page.
-    if (extraRange || extraIps.length > 0) {
-      extraScanQuery.refetch();
+    const refreshes: Promise<unknown>[] = [offlineFallbackQuery.refetch()];
+    if (!scanStopped.current) {
+      refreshes.push(overviewQuery.refetch());
+      // Keep the custom scan's results fresh too, so they don't go stale after e.g. assigning one
+      // of its discovered hosts to a real endpoint elsewhere on the page.
+      if (extraRange || extraIps.length > 0) {
+        refreshes.push(extraScanQuery.refetch());
+      }
     }
+    await Promise.allSettled(refreshes);
   };
 
   const handleConfirmScan = async (newRange: ScanNetworkRange | null, newExtraPorts: number[], newExtraIps: string[]) => {
@@ -389,45 +392,6 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
 
   if (denied) {
     return <ErrorState title="Not permitted" onRetry={onRetry} />;
-  }
-
-  // Every successful overview includes the full configured membership, even for custom scans.
-  // Failed/pending refreshes retain their last successful data and timestamp.
-  const configuration = [offlineFallbackQuery, ...(scanDenied ? [] : [overviewQuery, extraScanQuery])]
-    .filter((snapshot) => snapshot.data != null)
-    .sort((a, b) => b.dataUpdatedAt - a.dataUpdatedAt)[0]?.data;
-  const endpoints = mergeConfiguredEndpoints(
-    mergeEndpointsByIp(overview?.endpoints ?? [], extraEndpoints),
-    configuration?.endpoints.filter((endpoint) => endpoint.source === "configured"),
-  );
-  const openEndpoint = (endpointId: string) => {
-    setDetailsServiceId(null);
-    setDetailsEndpointId(endpointId);
-  };
-  const openService = (serviceId: string) => {
-    const endpoint = endpoints.find((item) => item.ports.some((port) => port.service_id === serviceId));
-    if (!endpoint?.endpoint_id) {
-      toast.error("Could not find this service's endpoint. Refresh the assets and try again.");
-      return;
-    }
-    setDetailsEndpointId(endpoint.endpoint_id);
-    setDetailsServiceId(serviceId);
-  };
-
-  // Checked before the scan-pipeline's own loading/error states, since the details pages fetch
-  // their own data independently and shouldn't be blocked by those.
-  if (detailsEndpointId) {
-    return (
-      <div className="pt-2 pb-8 min-h-full">
-        <EndpointDetailsPage
-          endpointId={detailsEndpointId}
-          onBack={() => setDetailsEndpointId(null)}
-          networkEndpoint={endpoints.find((endpoint) => endpoint.endpoint_id === detailsEndpointId)}
-          initialServiceId={detailsServiceId}
-          onUpdated={handleRefresh}
-        />
-      </div>
-    );
   }
 
   if (!scanDenied && offlineFallbackQuery.data === undefined && (isLoadingPorts || isLoadingRange)) {
@@ -489,11 +453,29 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
     );
   }
 
-  // Keep configured-only endpoints alongside discoveries, with service membership taken from
-  // the latest successful response rather than an older cached scan.
+  // Every successful overview includes complete configuration, including custom scans.
+  // Failed/pending refreshes retain their last successful data and timestamp.
+  const configuration = [offlineFallbackQuery, ...(scanDenied ? [] : [overviewQuery, extraScanQuery])]
+    .filter((snapshot) => snapshot.data != null)
+    .sort((a, b) => b.dataUpdatedAt - a.dataUpdatedAt)[0]?.data;
+  const endpoints = mergeConfiguredEndpoints(
+    mergeEndpointsByIp(overview?.endpoints ?? [], extraEndpoints),
+    configuration?.endpoints.filter((endpoint) => endpoint.source === "configured"),
+  );
   const discovered = endpoints.filter((e) => e.source !== "unidentified");
   const unidentified = endpoints.filter((e) => e.source === "unidentified");
   const viewToggle = <AssetsViewToggle value={viewMode} onChange={changeViewMode} />;
+  const detailsEndpoint = endpoints.find((e) => e.endpoint_id != null && e.endpoint_id === detailsEndpointId) ?? null;
+  const openEndpointDetails = (endpointId: string) => {
+    setDetailsEndpointId(endpointId);
+    setDetailsServiceId(null);
+  };
+  const openServiceDetails = (serviceId: string) => {
+    const owner = endpoints.find((e) => e.ports.some((p) => p.service_id === serviceId));
+    if (!owner?.endpoint_id) return;
+    setDetailsEndpointId(owner.endpoint_id);
+    setDetailsServiceId(serviceId);
+  };
 
   return (
     <div className="grid gap-4 pt-2">
@@ -513,6 +495,17 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
           }}
         />
       )}
+      <div className="flex justify-end px-3">
+        <EndpointActions
+          deviceId={deviceId}
+          onScan={() => setScanDialogOpen(true)}
+          isScanning={isScanning}
+          scanDisabled={scanDenied}
+          scanAvailable={scanEnabled}
+          onAddEndpoint={() => setAddEndpointOpen(true)}
+          leading={viewToggle}
+        />
+      </div>
       {viewMode === "list" ? (
         <>
           <div>
@@ -521,13 +514,8 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
           <DiscoveredEndpointsCard
             endpoints={discovered}
             deviceId={deviceId}
-            onScan={() => setScanDialogOpen(true)}
-            isScanning={isScanning}
-            scanDisabled={scanDenied}
-            scanAvailable={scanEnabled}
-            onAddEndpoint={() => setAddEndpointOpen(true)}
             onEndpointCreated={handleRefresh}
-            viewToggle={viewToggle}
+            onOpenDetails={openEndpointDetails}
             highlightedEndpointId={highlightedEndpointId}
             onHighlightDone={() => setHighlightedEndpointId(null)}
           />
@@ -535,29 +523,12 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
         </>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1.5">
-              <h2 className="text-lg font-semibold leading-none tracking-tight">Endpoints &amp; Services</h2>
-              <p className="text-sm text-muted-foreground">
-                Every endpoint as a tile - drag them to arrange your own layout. Tiles show each service{scanEnabled ? " and its state" : ""}.
-              </p>
-            </div>
-            <EndpointActions
-              deviceId={deviceId}
-              onScan={() => setScanDialogOpen(true)}
-              isScanning={isScanning}
-              scanDisabled={scanDenied}
-              scanAvailable={scanEnabled}
-              onAddEndpoint={() => setAddEndpointOpen(true)}
-              leading={viewToggle}
-            />
-          </div>
           <EndpointCanvas
             endpoints={endpoints}
             deviceId={deviceId}
             onEndpointCreated={handleRefresh}
-            onOpenDetails={openEndpoint}
-            onOpenServiceDetails={openService}
+            onOpenDetails={openEndpointDetails}
+            onOpenServiceDetails={openServiceDetails}
           />
         </div>
       )}
@@ -580,6 +551,17 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
         onOpenChange={setAddEndpointOpen}
         deviceId={deviceId}
         onCreated={handleRefresh}
+      />
+
+      <EndpointDetailsDialog
+        endpoint={detailsEndpoint}
+        serviceId={detailsServiceId}
+        deviceId={deviceId}
+        onClose={() => {
+          setDetailsEndpointId(null);
+          setDetailsServiceId(null);
+        }}
+        onChanged={handleRefresh}
       />
     </div>
   );

@@ -18,19 +18,16 @@ import { useShowConnectionState } from "./connectionStateContext";
 
 const GuardedButton = withPermissionRequiredTooltip(Button);
 
-export function EndpointIdentity({ display, className, typeLabel }: { display: EndpointDisplay; className?: string; typeLabel?: string }) {
+export function EndpointIdentity({ display, className }: { display: EndpointDisplay; className?: string }) {
   const { isUnidentified, needsAssignment, title, subtitle } = display;
   return (
     <div className={`flex items-center gap-3 ${className ?? ""}`}>
       {isUnidentified ? (
         <HelpCircle className="w-5 h-5 text-orange-500 shrink-0" />
       ) : (
-        <span className={typeLabel ? "rounded-md bg-blue-600 p-2 text-white" : ""}>
-          <Server className={`w-5 h-5 shrink-0 ${typeLabel ? "" : needsAssignment ? "text-amber-600" : "text-muted-foreground"}`} />
-        </span>
+        <Server className={`w-5 h-5 shrink-0 ${needsAssignment ? "text-amber-600" : "text-muted-foreground"}`} />
       )}
       <div className="text-left min-w-0">
-        {typeLabel && <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-700">Endpoint · {typeLabel}</p>}
         <div className="flex items-center gap-2">
           <p className={isUnidentified ? "font-medium text-orange-600" : needsAssignment ? "font-medium text-amber-700" : "font-medium"}>
             {title}
@@ -41,7 +38,7 @@ export function EndpointIdentity({ display, className, typeLabel }: { display: E
             </Badge>
           )}
         </div>
-        <p className="break-words text-xs font-normal text-muted-foreground">{subtitle}</p>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
       </div>
     </div>
   );
@@ -156,7 +153,7 @@ export function EndpointDialogs({
 }: {
   endpoint: MappedEndpoint;
   deviceId: string;
-  onCreated: () => void;
+  onCreated: () => void | Promise<unknown>;
   assignEndpointOpen: boolean;
   setAssignEndpointOpen: (open: boolean) => void;
   assignPort: MappedPort | null;

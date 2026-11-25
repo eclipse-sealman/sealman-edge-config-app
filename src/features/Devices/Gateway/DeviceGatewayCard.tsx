@@ -1,18 +1,17 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { Cpu, Pencil } from "lucide-react";
+import { ChevronDown, Cpu, Pencil } from "lucide-react";
 import { WaterLoader } from "@/components/ui/water-loader";
 import { Button } from "@/components/ui/button";
-import Badge from "@/components/Typography/Badge";
 import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
+import InlineMetadataField from "@/features/Devices/Network/layouts/overview/InlineMetadataField";
+import InlineCustomFieldAdder from "@/features/Devices/Network/layouts/overview/InlineCustomFieldAdder";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
 import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 import useGetDeviceMetadata from "@/generated/edge-administration/hooks/device_metadata/useGetDeviceMetadata";
 import usePatchDeviceMetadata from "@/generated/edge-administration/hooks/device_metadata/usePatchDeviceMetadata";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
 import { getErrorMessage } from "@/lib/errors";
-import AssetDetailsSection from "@/features/Devices/Network/layouts/overview/AssetDetailsSection";
-import AssetFieldValues from "@/features/Devices/Network/layouts/overview/AssetFieldValues";
 
 const GuardedButton = withPermissionRequiredTooltip(Button);
 
@@ -55,6 +54,12 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
     setDeletedKeys(new Set());
     setDetailsOpen(true);
     setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEdits({});
+    setDeletedKeys(new Set());
+    setEditing(false);
   };
 
   const setValue = (key: string, value: unknown) => {
@@ -103,35 +108,57 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
     }
   };
 
+  const detailRows = metadata
+    ? [
+        { key: "__device_type", label: "Device Type", value: currentType?.label ?? metadata.typeId, fixed: true, definition: undefined },
+        ...Object.entries(fields)
+          .map(([key, definition]) => ({ key, label: definition.label, value: merged[key] ?? null, definition, fixed: false }))
+          .sort((a, b) => a.label.localeCompare(b.label)),
+        ...Object.entries(merged)
+          .filter(([key]) => !(key in fields))
+          .map(([key, value]) => ({ key, label: metadata.deviceMetadata[key]?.field?.label ?? key, value, definition: metadata.deviceMetadata[key]?.field, fixed: false }))
+          .sort((a, b) => a.label.localeCompare(b.label)),
+      ]
+    : [];
+
   return (
-    <section className="rounded-lg border bg-background">
-      <header className="flex items-center gap-3 px-4 py-3">
-          <div className="rounded-md bg-blue-900 p-2 text-white">
+    <section className="bg-white">
+      <header className="flex min-h-14 items-center gap-3 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded bg-[#0b3f8f] text-white">
             <Cpu className="h-5 w-5" aria-hidden="true" />
           </div>
-          <div className="min-w-0 space-y-0.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-800">Device</p>
-            <h2 className="break-words text-sm font-semibold">{deviceId}</h2>
-            {metadata && <p className="text-xs text-muted-foreground">{currentType?.label ?? metadata.typeId}</p>}
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#0b3f8f]">Device · Edge device</p>
+            <h2 className="truncate text-base font-semibold leading-5">{deviceId}</h2>
           </div>
+        </div>
       </header>
 
-      <div className="border-t px-4">
-        <AssetDetailsSection
-          title="Device details"
-          open={detailsOpen || editing}
-          onOpenChange={setDetailsOpen}
-          actions={metadata &&
-          (editing ? (
-            <div className="flex shrink-0 items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setEditing(false)} disabled={isSaving}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          ) : (
+      <div className="flex min-h-10 items-center justify-between gap-3 border-t border-slate-100 px-3 py-1.5">
+        <button
+          type="button"
+          className="flex items-center gap-2 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-blue-700"
+          aria-expanded={detailsOpen || editing}
+          aria-controls="gateway-details"
+          disabled={editing}
+          onClick={() => setDetailsOpen((open) => !open)}
+        >
+          <ChevronDown className={`h-4 w-4 transition-transform ${detailsOpen || editing ? "" : "-rotate-90"}`} />
+          Device details
+        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {metadata && editing && (
+            <Button variant="outline" size="sm" onClick={cancelEditing} disabled={isSaving}>
+              Cancel
+            </Button>
+          )}
+          {metadata && editing && (
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save"}
+            </Button>
+          )}
+          {metadata && !editing && (
             <GuardedButton
               deviceId={deviceId}
               permissionKey={PERMISSION_KEYS.DEVICE_METADATA_WRITE}
@@ -141,26 +168,36 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
             >
               <Pencil /> Edit
             </GuardedButton>
-          ))}>
-        {metadata && (
-          <AssetFieldValues fields={fields} values={editing ? merged : stored}
-            onChange={editing ? setValue : undefined} onDelete={editing ? deleteValue : undefined}
-            lockSavedValues={false} disabled={isSaving}>
-            <div className="min-w-0 space-y-1">
-              <dt className="flex h-5 items-center text-xs text-muted-foreground">Device Type</dt>
-              <dd className="flex min-h-8 items-center text-sm font-medium">
-                <Badge>{currentType?.label ?? metadata.typeId}</Badge>
-              </dd>
-            </div>
-          </AssetFieldValues>
-        )}
-        </AssetDetailsSection>
+          )}
+        </div>
+      </div>
+
+      <div className={detailsOpen || editing || metadataQuery.isLoading || metadataQuery.isError ? "px-3 pb-3" : "px-3"}>
         {metadataQuery.isLoading && (
-          <p className="flex items-center gap-2 pb-3 text-sm text-muted-foreground">
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <WaterLoader /> Loading gateway...
           </p>
         )}
-        {metadataQuery.isError && <p className="pb-3 text-sm text-destructive">Failed to load the gateway data.</p>}
+        {metadataQuery.isError && <p className="text-sm text-destructive">Failed to load the gateway data.</p>}
+
+        {metadata && (detailsOpen || editing) && (
+          <div id="gateway-details" className="border-t border-slate-100 py-3">
+            <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+              {detailRows.map((row) => (
+                <InlineMetadataField
+                  key={row.key}
+                  label={row.label}
+                  value={row.value}
+                  definition={row.definition}
+                  editing={editing && !row.fixed}
+                  onChange={(value) => setValue(row.key, value)}
+                  onDelete={row.fixed || row.definition?.required ? undefined : () => deleteValue(row.key)}
+                />
+              ))}
+            </dl>
+            {editing && <InlineCustomFieldAdder existingKeys={Object.keys(merged)} onAdd={setValue} />}
+          </div>
+        )}
       </div>
     </section>
   );

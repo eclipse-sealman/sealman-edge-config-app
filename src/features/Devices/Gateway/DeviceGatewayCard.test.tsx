@@ -48,54 +48,19 @@ describe("gateway metadata editing", () => {
     mocks.patchMetadata.mockReset().mockResolvedValue(undefined);
     mocks.patchDeviceType.mockReset();
     mocks.notify.mockReset();
-  });
-
-  const renderEditing = () => {
     render(<DeviceGatewayCard deviceId="device-a" />);
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-  };
+  });
 
   it("shows the existing device type read-only and keeps its metadata fields editable", () => {
-    renderEditing();
-    expect(screen.getAllByText("Gateway type")).toHaveLength(2);
+    expect(screen.getByText("Gateway type")).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(screen.queryByText("Other type")).not.toBeInTheDocument();
     expect(screen.getByDisplayValue("Saved name")).toBeEnabled();
     expect(screen.getByDisplayValue("Saved serial")).toBeEnabled();
   });
 
-  it("keeps device type, metadata, and custom values in their existing grid positions while editing", () => {
-    render(<DeviceGatewayCard deviceId="device-a" />);
-    fireEvent.click(screen.getByRole("button", { name: "Device details" }));
-    const typeField = screen.getByText("Device Type").parentElement;
-    const nameField = screen.getByText("Saved name").closest("dd")!.parentElement;
-    const customField = screen.getByText("Custom note").closest("dd")!.parentElement;
-    const grid = nameField!.parentElement;
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    expect(screen.getByText("Device Type").parentElement).toBe(typeField);
-    expect(screen.getByRole("textbox", { name: "Name" }).closest("dd")!.parentElement).toBe(nameField);
-    expect(screen.getByRole("textbox", { name: "note" }).closest("dd")!.parentElement).toBe(customField);
-    expect(nameField!.parentElement).toBe(grid);
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.getByText("Saved name").closest("dd")!.parentElement).toBe(nameField);
-    expect(mocks.patchMetadata).not.toHaveBeenCalled();
-  });
-
-  it("keeps device metadata collapsed by default and opens it without entering edit mode", () => {
-    render(<DeviceGatewayCard deviceId="device-a" />);
-    const details = screen.getByRole("button", { name: "Device details" });
-    expect(details).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByText("Custom note")).not.toBeVisible();
-    fireEvent.click(details);
-    expect(details).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("Custom note")).toBeVisible();
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    fireEvent.click(details);
-    expect(screen.getByText("Custom note")).not.toBeVisible();
-  });
-
   it("saves metadata without submitting a device type change", async () => {
-    renderEditing();
     fireEvent.change(screen.getByDisplayValue("Saved name"), { target: { value: "Updated name" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
@@ -108,8 +73,7 @@ describe("gateway metadata editing", () => {
   });
 
   it("preserves deletion of optional metadata fields", async () => {
-    renderEditing();
-    fireEvent.click(screen.getByTitle('Clear "Serial"'));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Serial" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(mocks.patchMetadata).toHaveBeenCalledWith({
@@ -120,12 +84,30 @@ describe("gateway metadata editing", () => {
   });
 
   it("still validates the current type and default metadata fields before saving", () => {
-    renderEditing();
     fireEvent.change(screen.getByDisplayValue("Saved name"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(mocks.notify).toHaveBeenCalledWith('"Name" is required');
     expect(mocks.patchMetadata).not.toHaveBeenCalled();
     expect(mocks.patchDeviceType).not.toHaveBeenCalled();
+  });
+
+  it("reveals device metadata from the details disclosure", () => {
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    const details = screen.getByRole("button", { name: /Device details/ });
+    expect(details).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(details);
+    expect(details).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(details);
+    expect(details).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Saved serial")).toBeInTheDocument();
+  });
+
+  it("keeps the gateway detail grid unchanged when switching to edit mode", () => {
+    const editingGrid = document.querySelectorAll("#gateway-details dl > div").length;
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(document.querySelectorAll("#gateway-details dl > div")).toHaveLength(editingGrid);
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(document.querySelectorAll("#gateway-details dl > div")).toHaveLength(editingGrid);
   });
 });

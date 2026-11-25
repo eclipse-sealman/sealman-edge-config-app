@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/generated/edge-administration/api";
 import TypeFormDialog, { BrowserKindOption, TypeFormResult, TypeRecord } from "./TypeFormDialog";
-import { FieldDefinition } from "./FieldsEditor";
+import { FieldDefinition, FieldDefinitionPatch } from "./FieldsEditor";
 import type { RoleOption } from "./typeRoles";
-import type { FieldDefinitionWrite } from "./listFields";
 
 export interface TypesManagerProps {
   title: string;
@@ -32,6 +31,7 @@ export interface TypesManagerProps {
   /** When set, each field row gets a "Show in list" toggle controlling whether its value appears
    * in the corresponding device or endpoint list. */
   supportsListVisibility?: boolean;
+  /** Enables list-of-objects fields for endpoint types. */
   supportsListFields?: boolean;
   /** Type ID that can't be deleted (its delete button is hidden entirely) - used for the
    * "default" device type, which the backend also rejects deleting. */
@@ -58,7 +58,7 @@ export interface TypesManagerProps {
     body: {
       label: string;
       description: string | null;
-      fields: Record<string, FieldDefinitionWrite | null>;
+      fields: Record<string, FieldDefinitionPatch | null>;
       browser_kind?: string | null;
       mapping?: Record<string, string>;
     }
@@ -66,20 +66,19 @@ export interface TypesManagerProps {
   onDelete: (typeId: string) => Promise<unknown>;
 }
 
-function nonNullFields(fields: Record<string, FieldDefinitionWrite | null>): Record<string, FieldDefinition> {
+function nonNullFields(fields: Record<string, FieldDefinitionPatch | null>): Record<string, FieldDefinition> {
   return Object.fromEntries(
     Object.entries(fields)
-      .filter((entry): entry is [string, FieldDefinitionWrite] => entry[1] !== null)
-      .map(([key, field]) => {
-        const { item_fields, ...definition } = field;
-        return [key, {
-          ...definition,
-          ...(item_fields ? {
-            item_fields: Object.fromEntries(
-              Object.entries(item_fields).filter((entry): entry is [string, FieldDefinition] => entry[1] !== null),
-            ),
-          } : {}),
-        }];
+      .filter((entry): entry is [string, FieldDefinitionPatch] => entry[1] !== null)
+      .map(([key, definition]) => {
+        const createDefinition: Record<string, unknown> = { ...definition };
+        delete createDefinition.item_order;
+        if (definition.type === "list" && definition.item_fields) {
+          createDefinition.item_fields = Object.fromEntries(
+            Object.entries(definition.item_fields).filter((entry) => entry[1] !== null),
+          );
+        }
+        return [key, createDefinition as FieldDefinition];
       }),
   );
 }

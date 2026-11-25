@@ -16,7 +16,7 @@ function stringField(label: string, required = false): FieldDefinition {
   return { type: "string", label, required, ui: "input", default: null, changeable: true, show_in_list: true };
 }
 
-function renderEndpointCreate() {
+function renderEndpointCreate(supportsListFields = false) {
   const onSubmit = vi.fn().mockResolvedValue(undefined);
   render(
     <TypeFormDialog
@@ -28,6 +28,7 @@ function renderEndpointCreate() {
       defaultMapping={ENDPOINT_TYPE_DEFAULT_MAPPING}
       roleOptions={ENDPOINT_ROLE_OPTIONS}
       supportsListVisibility
+      supportsListFields={supportsListFields}
     />
   );
   return onSubmit;
@@ -38,65 +39,6 @@ describe("TypeFormDialog roles", () => {
     renderEndpointCreate();
     expect(screen.getByLabelText("Role of field ip")).toHaveValue("ip");
     expect(screen.getByLabelText("Role of field name")).toHaveValue("name");
-  });
-
-  describe("TypeFormDialog list fields", () => {
-    const equipment: FieldDefinition = {
-      ...stringField("Equipment"), type: "list", ui: null,
-      item_fields: { identifier: stringField("Identifier"), quantity: stringField("Quantity") },
-      item_order: ["quantity", "identifier"],
-    };
-    function renderList(fields: Record<string, FieldDefinition> = { equipment }, supportsListFields = true) {
-      const onSubmit = vi.fn().mockResolvedValue(undefined);
-      render(<TypeFormDialog isOpen onClose={() => {}} onSubmit={onSubmit} singularLabel="Endpoint Type"
-        initial={{ type_id: "t1", label: "Machine", description: null, fields }}
-        supportsListFields={supportsListFields} roleOptions={ENDPOINT_ROLE_OPTIONS}
-      />);
-      return onSubmit;
-    }
-
-    it("edits ordered scalar columns and removes columns explicitly in the patch", async () => {
-      const onSubmit = renderList();
-      expect(screen.getAllByPlaceholderText("field_key").map((input) => (input as HTMLInputElement).value))
-        .toEqual(["equipment", "quantity", "identifier"]);
-      await userEvent.click(screen.getAllByRole("button", { name: "Remove field" })[1]);
-      await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
-      expect(onSubmit.mock.calls[0][0].fields.equipment).toMatchObject({
-        item_fields: { quantity: null, identifier: stringField("Identifier") },
-      });
-      expect(onSubmit.mock.calls[0][0].fields.equipment).not.toHaveProperty("item_order");
-    });
-
-    it("blocks duplicate row field keys instead of silently overwriting one", async () => {
-      const onSubmit = renderList();
-      const key = screen.getAllByPlaceholderText("field_key")[1];
-      await userEvent.clear(key);
-      await userEvent.type(key, "identifier");
-      await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
-      expect(onSubmit).not.toHaveBeenCalled();
-      expect(screen.getByText(/needs unique, non-empty row field keys/)).toBeInTheDocument();
-    });
-
-    it.each([
-      ["empty", { ...equipment, item_fields: {} }, /needs at least one row field/],
-      ["reserved id", { ...equipment, item_fields: { id: stringField("ID") } }, /other than "id"/],
-      ["nested list", { ...equipment, item_fields: { nested: equipment } }, /needs a label and a scalar type/],
-      ["invalid column pattern", {
-        ...equipment, item_fields: { identifier: { ...stringField("Identifier"), validation: { pattern: "[", exclusive_minimum: false, exclusive_maximum: false } } },
-      }, /invalid regex pattern/],
-    ] as const)("rejects %s definitions", async (_name, definition, message) => {
-      const onSubmit = renderList({ equipment: definition });
-      await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
-      expect(onSubmit).not.toHaveBeenCalled();
-      expect(screen.getByText(message)).toBeInTheDocument();
-    });
-
-    it("rejects list definitions outside endpoint types", async () => {
-      const onSubmit = renderList({ equipment }, false);
-      await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
-      expect(onSubmit).not.toHaveBeenCalled();
-      expect(screen.getByText("List fields are only supported on endpoint types")).toBeInTheDocument();
-    });
   });
 
   it("sends the pre-filled fields as optional and their roles as mapping", async () => {
@@ -173,5 +115,57 @@ describe("TypeFormDialog roles", () => {
     await userEvent.type(screen.getByPlaceholderText("Human readable name"), "Gateway");
     await userEvent.click(screen.getByRole("button", { name: "Add device type" }));
     expect(onSubmit.mock.calls[0][0].mapping).toBeNull();
+  });
+});
+
+describe("TypeFormDialog list fields", () => {
+  it.each<{ key: string; scalarType: FieldDefinition["type"]; supportsListFields: boolean; mapping: Record<string, string>; error: RegExp }>([
+    { key: "", scalarType: "string" as const, supportsListFields: true, mapping: {}, error: /without a key/ },
+    { key: "nested", scalarType: "list" as const, supportsListFields: true, mapping: {}, error: /must be scalar/ },
+    { key: "serial", scalarType: "string" as const, supportsListFields: false, mapping: {}, error: /only on endpoint types/ },
+    { key: "serial", scalarType: "string" as const, supportsListFields: true, mapping: { equipment: "ip" }, error: /cannot have a role/ },
+  ])("rejects unsupported list definitions before submission: $error", async ({ key, scalarType, supportsListFields, mapping, error }) => {
+    const onSubmit = vi.fn();
+    const list: FieldDefinition = {
+      ...stringField("Equipment"), type: "list", ui: null,
+      item_fields: { [key]: { ...stringField("Serial"), type: scalarType } },
+    };
+    render(<TypeFormDialog isOpen onClose={() => {}} onSubmit={onSubmit} singularLabel="Endpoint Type"
+      initial={{ type_id: "t", label: "Machine", description: null, fields: { equipment: list }, mapping }}
+      supportsListFields={supportsListFields} />);
+    await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(error)).toBeInTheDocument();
+  });
+
+  it("only offers list fields when explicitly enabled", async () => {
+    Element.prototype.hasPointerCapture ??= () => false;
+    Element.prototype.setPointerCapture ??= () => {};
+    Element.prototype.releasePointerCapture ??= () => {};
+    Element.prototype.scrollIntoView ??= () => {};
+    renderEndpointCreate();
+
+    await userEvent.click(screen.getAllByRole("combobox")[0]);
+
+    expect(screen.queryByRole("option", { name: "List of objects" })).not.toBeInTheDocument();
+  });
+
+  it("creates a list definition with scalar item fields", async () => {
+    Element.prototype.hasPointerCapture ??= () => false;
+    Element.prototype.setPointerCapture ??= () => {};
+    Element.prototype.releasePointerCapture ??= () => {};
+    Element.prototype.scrollIntoView ??= () => {};
+    const onSubmit = renderEndpointCreate(true);
+
+    await userEvent.click(screen.getAllByRole("combobox")[0]);
+    await userEvent.click(await screen.findByRole("option", { name: "List of objects" }));
+    await userEvent.type(screen.getByPlaceholderText("Human readable name"), "Controller");
+    await userEvent.click(screen.getByRole("button", { name: "Add endpoint type" }));
+
+    expect(onSubmit.mock.calls[0][0].fields.ip).toMatchObject({
+      type: "list",
+      item_fields: { item: { type: "string", label: "Item" } },
+    });
+    expect(onSubmit.mock.calls[0][0].fields.ip).not.toHaveProperty("item_order");
   });
 });

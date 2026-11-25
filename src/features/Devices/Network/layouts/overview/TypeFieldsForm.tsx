@@ -1,5 +1,3 @@
-import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import FieldValueInput from "@/features/PlatformTypes/FieldValueInput";
 import { components } from "@/generated/edge-administration/types";
 
@@ -19,10 +17,6 @@ interface props {
    * false` field (e.g. a service type's default port) would lock the field before anything has
    * actually been saved, making it impossible to type in a different value on first creation. */
   lockSavedValues?: boolean;
-  /** When provided, shows a delete action next to every non-required, unlocked field, letting its
-   * stored value be cleared entirely rather than just edited. */
-  onDelete?: (key: string) => void;
-  disabled?: boolean;
 }
 
 export default function TypeFieldsForm({
@@ -31,8 +25,6 @@ export default function TypeFieldsForm({
   onChange,
   lockedFieldKey,
   lockSavedValues = true,
-  onDelete,
-  disabled = false,
 }: props) {
   const entries = Object.entries(fields);
 
@@ -46,7 +38,6 @@ export default function TypeFieldsForm({
         const hasValue = values[key] !== null && values[key] !== undefined && values[key] !== "";
         const isNonChangeable = lockSavedValues && definition.changeable === false && hasValue;
         const isLocked = key === lockedFieldKey || isNonChangeable;
-        const canDelete = Boolean(onDelete) && !definition.required && !isLocked;
         return (
           <div key={key} className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">
@@ -61,22 +52,9 @@ export default function TypeFieldsForm({
                   definition={definition}
                   value={values[key] ?? null}
                   onChange={(value) => onChange(key, value)}
-                  disabled={disabled || isLocked}
+                  disabled={isLocked}
                 />
               </div>
-              {canDelete && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 text-destructive hover:text-destructive"
-                  onClick={() => onDelete?.(key)}
-                  title={`Clear "${definition.label}"`}
-                  disabled={disabled}
-                >
-                  <Trash2 />
-                </Button>
-              )}
             </div>
           </div>
         );

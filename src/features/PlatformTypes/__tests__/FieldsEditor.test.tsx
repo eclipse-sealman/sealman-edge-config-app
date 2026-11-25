@@ -34,6 +34,51 @@ describe("buildMappingPayload", () => {
   });
 });
 
+describe("buildFieldsPayload list definitions", () => {
+  it("sends removed list item fields as null and omits server-owned item_order", () => {
+    const equipment: FieldDefinition = {
+      type: "list",
+      label: "Equipment",
+      required: false,
+      ui: null,
+      default: null,
+      changeable: true,
+      show_in_list: true,
+      item_fields: {
+        serial: { ...stringField("Serial"), item_fields: null, item_order: null },
+        model: stringField("Model"),
+      },
+      item_order: ["serial", "model"],
+    };
+    const rows = rowsFromFields({ equipment });
+    rows[0] = {
+      ...rows[0],
+      definition: { ...equipment, item_fields: { serial: stringField("Serial") } },
+    };
+
+    const payload = buildFieldsPayload(rows, ["equipment"], { equipment });
+
+    expect(payload.equipment).toMatchObject({
+      type: "list",
+      item_fields: { serial: stringField("Serial"), model: null },
+    });
+    expect(payload.equipment).not.toHaveProperty("item_order");
+    expect(payload.equipment?.item_fields?.serial).not.toHaveProperty("item_order");
+    expect(payload.equipment?.item_fields?.serial).not.toHaveProperty("item_fields");
+  });
+
+  it("clears the previous item schema when converting a list to a scalar", () => {
+    const original: FieldDefinition = {
+      ...stringField("Equipment"), type: "list", ui: null,
+      item_fields: { serial: stringField("Serial") }, item_order: ["serial"],
+    };
+    const rows = rowsFromFields({ equipment: original });
+    rows[0] = { ...rows[0], definition: stringField("Equipment") };
+    expect(buildFieldsPayload(rows, ["equipment"], { equipment: original }).equipment)
+      .toMatchObject({ type: "string", item_fields: null });
+  });
+});
+
 describe("FieldsEditor role selector", () => {
   it("is not rendered without roleOptions", () => {
     render(<FieldsEditor rows={rowsFromFields({ addr: stringField("A") })} onChange={() => {}} />);
@@ -137,52 +182,5 @@ describe("FieldsEditor list visibility", () => {
         definition: expect.objectContaining({ show_in_list: false }),
       }),
     ]);
-  });
-
-  describe("FieldsEditor list definitions", () => {
-    it("only offers lists when supported and clears incompatible scalar settings and roles", async () => {
-      Element.prototype.hasPointerCapture ??= () => false;
-      Element.prototype.setPointerCapture ??= () => {};
-      Element.prototype.releasePointerCapture ??= () => {};
-      Element.prototype.scrollIntoView ??= () => {};
-      const onChange = vi.fn();
-      const props = {
-        rows: rowsFromFields({ addr: { ...stringField("Address"), changeable: false, default: "A" } }, { addr: "ip" }),
-        onChange, roleOptions: ENDPOINT_ROLE_OPTIONS,
-      };
-      const { rerender } = render(<FieldsEditor {...props} />);
-      await userEvent.click(screen.getAllByRole("combobox")[0]);
-      expect(screen.queryByRole("option", { name: "List" })).not.toBeInTheDocument();
-      await userEvent.keyboard("{Escape}");
-      rerender(<FieldsEditor {...props} supportsListFields />);
-      await userEvent.click(screen.getAllByRole("combobox")[0]);
-      await userEvent.click(screen.getByRole("option", { name: "List" }));
-      expect(onChange).toHaveBeenCalledWith([expect.objectContaining({
-        role: null,
-        definition: expect.objectContaining({
-          type: "list", ui: null, options: null, default: null, validation: null, changeable: true, item_fields: {},
-        }),
-      })]);
-    });
-
-    it("strips response-only ordering and sends column deletion tombstones alongside complete definitions", () => {
-      const original: FieldDefinition = {
-        ...stringField("Equipment"), type: "list", ui: null,
-        item_fields: { old: stringField("Old"), kept: stringField("Kept") },
-        item_order: ["old", "kept"],
-      };
-      const current: FieldDefinition = {
-        ...original, item_fields: { kept: { ...stringField("Renamed label"), item_order: null }, added: stringField("Added") },
-        item_order: ["kept", "added"],
-      };
-      const payload = buildFieldsPayload(rowsFromFields({ equipment: current }), ["equipment"], { equipment: original });
-      expect(payload.equipment).not.toHaveProperty("item_order");
-      expect(payload.equipment?.item_fields).toEqual({
-        old: null, kept: stringField("Renamed label"), added: stringField("Added"),
-      });
-      expect(buildFieldsPayload(rowsFromFields({ equipment: stringField("Scalar") }), ["equipment"], {
-        equipment: original,
-      }).equipment).toMatchObject({ type: "string", item_fields: null });
-    });
   });
 });

@@ -62,19 +62,15 @@ The gateway's device type is read-only when editing metadata. Select the type wh
 
 ### Device assets
 
-The Assets list follows the Device > Endpoint > Service hierarchy. Device metadata starts collapsed. Endpoint headers show identity, type, service/port summaries, and connection state when scanning is enabled. Expand an endpoint to access its independently collapsible details and a tab for each service, with editing and browsing kept inside the endpoint. Details are read-only until Edit is selected. Switching service tabs or collapsing an endpoint retains unsaved edits while the page remains open.
+The Assets list follows the Device > Endpoint > Service hierarchy using the upstream inline-edit layout. Device metadata starts collapsed. Endpoint headers show identity, type, service/port summaries, and connection state when scanning is enabled. Expand an endpoint to access its independently collapsible details and a tab for each service, with editing and browsing kept inside the endpoint. Details are read-only until Edit is selected. Canvas details reuse the same endpoint row in a dialog, including endpoint extension sections.
 
-Editing keeps device, endpoint, and service fields in the same grid positions. List rows remain in their table with the same column order, replacing values with inputs in place. Add/remove controls appear alongside the data; Cancel restores the saved display without submitting changes.
-
-Ordinary and custom fields are grouped before the list tables, with the add-field editor directly after that group so newly added fields appear where they are created. Add row is in each list's header, avoiding an empty action footer below the table in read-only mode.
-
-Service panels share the endpoint's service-list data. Network responses determine port assignments and connection state; a read-time field default does not establish an assignment. Separate configured services remain distinct even when they share the same port. The latest successful configuration snapshot controls endpoint/service membership and metadata, so cached scans cannot restore deleted assets or overwrite edited hosts. Cached connection states apply only to the same host and service ID/port; unclaimed discoveries remain visible. Failed or pending configuration refreshes retain the last successful snapshot.
+List values display as compact labeled items; editing uses item cards with Add item and remove controls. Cancel restores the saved display without submitting changes. Network responses determine port assignments and connection state; a read-time field default does not establish an assignment. Separate configured services remain distinct even when they share the same port. The latest successful configuration snapshot controls endpoint/service membership and metadata, so cached scans cannot restore deleted assets or overwrite edited hosts. Cached connection states apply only to the same host and service ID/port; unclaimed discoveries remain visible. Failed or pending configuration refreshes retain the last successful snapshot.
 
 ### Endpoint list fields
 
 Asset Configuration > Endpoint Types supports **List** fields with one or more scalar row fields (text, boolean, integer, or number). Nested lists and the reserved row-field key `id` are not supported. Lists have no widget, default, options, or list-level validation; configure constraints and defaults on their row fields instead. Required lists need at least one row.
 
-Endpoint assignment and details support adding, editing, and removing rows. Saving replaces the whole list, preserving server row IDs and unknown row properties; new rows receive IDs from the API. Removing all rows clears an optional list. Row-field `changeable` flags are not enforced by the API and do not lock row inputs. Fields marked **Show in list** display labeled row values in configured column order in both endpoint overview views.
+Endpoint assignment and details support adding, editing, and removing rows. Saving replaces the whole list, preserving server row IDs and unknown row properties; new rows receive IDs from the API. Removing all rows clears an optional list. Row-field `changeable` flags are not enforced by the API and do not lock row inputs. Fields marked **Show in list** display an item count in endpoint summaries; expanded details show labeled item values in configured column order. Invalid legacy values require explicit replacement before saving.
 
 ### API access errors
 

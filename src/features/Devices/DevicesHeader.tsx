@@ -1,5 +1,4 @@
 import { ReactNode, useEffect, useState } from "react";
-import Badge, { BadgeColor } from "../../components/Typography/Badge";
 import { CountryDeviceInfoDict } from "./DevicesByCountry";
 import useGetDevices from "@/generated/edge-administration/hooks/useGetDevices/useGetDevices";
 
@@ -20,8 +19,6 @@ export enum DeviceOnlineFilterStatus {
 }
 
 export default function DevicesHeader({
-  showGeolocationInfo = false,
-  missingGeolocationCount = 0,
   deviceOnlineFilter,
   setDeviceOnlineFilter,
   children,

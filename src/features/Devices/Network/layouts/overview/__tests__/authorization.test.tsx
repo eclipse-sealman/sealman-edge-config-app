@@ -23,22 +23,24 @@ vi.mock("@/generated/edge-administration/hooks/network/usePostNetworkOverview", 
 vi.mock("@/generated/edge-administration/hooks/network/usePostDeviceScanPorts", () => ({ default: () => ({ mutateAsync: mocks.savePorts }) }));
 vi.mock("react-toastify", () => ({ toast: { error: mocks.notify } }));
 vi.mock("../DiscoveredEndpointsCard", () => ({
-  default: ({ endpoints, onScan, scanDisabled, scanAvailable }: {
+  default: ({ endpoints }: {
     endpoints: { ip: string; ports: { service_id?: string | null }[] }[];
-    onScan: () => void; scanDisabled: boolean; scanAvailable?: boolean;
   }) => (
     <div>{endpoints.map((endpoint) => <div key={endpoint.ip}>
       <span>{endpoint.ip}</span>
       <output aria-label={`Services for ${endpoint.ip}`}>
         {endpoint.ports.length} services: {endpoint.ports.map((port) => port.service_id).join(", ")}
       </output>
-    </div>)}{scanAvailable !== false && <button disabled={scanDisabled} onClick={onScan}>Custom scan</button>}</div>
+    </div>)}</div>
   ),
 }));
 vi.mock("../EndpointCanvas", () => ({
   default: ({ endpoints }: { endpoints: { ip: string }[] }) => <div>{endpoints.map((endpoint) => <span key={endpoint.ip}>{endpoint.ip}</span>)}</div>,
 }));
-vi.mock("../EndpointActions", () => ({ default: ({ onScan, scanDisabled }: { onScan: () => void; scanDisabled: boolean }) => <button disabled={scanDisabled} onClick={onScan}>Custom scan</button> }));
+vi.mock("../EndpointActions", () => ({
+  default: ({ onScan, scanDisabled, scanAvailable }: { onScan: () => void; scanDisabled: boolean; scanAvailable?: boolean }) =>
+    scanAvailable !== false ? <button disabled={scanDisabled} onClick={onScan}>Custom scan</button> : null,
+}));
 vi.mock("../ScanNetworkDialog", () => ({
   default: ({ open, onConfirm }: { open: boolean; onConfirm: (range: null, ports: number[], ips: string[]) => void }) => (
     open ? <button onClick={() => onConfirm(null, [8080], ["10.0.0.2"])}>Run custom scan</button> : null
@@ -46,8 +48,7 @@ vi.mock("../ScanNetworkDialog", () => ({
 }));
 vi.mock("../UnidentifiedEndpointsCard", () => ({ default: () => null }));
 vi.mock("../AssignEndpointDialog", () => ({ default: () => null }));
-vi.mock("../EndpointDetailsPage", () => ({ default: () => null }));
-vi.mock("../ServiceDetailsPage", () => ({ default: () => null }));
+vi.mock("../EndpointDetailsDialog", () => ({ default: () => null }));
 vi.mock("@/features/Devices/Gateway/DeviceGatewayCard", () => ({ default: () => null }));
 
 const definition = { networkDefinition: "10.0.0.0", subnetMask: 24, ports: [80] };
