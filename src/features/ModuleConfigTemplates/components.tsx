@@ -85,7 +85,8 @@ export function VariableForm({
         const choices: Scalar[] | null = decl.type === "boolean" ? [true, false] : decl.type === "enum" ? decl.options ?? [] : null;
         return (
           <div key={key} className="space-y-1">
-            <Label htmlFor={id}>{fieldLabel(decl)}</Label>
+            {/* a file row has no single input to point at */}
+            <Label htmlFor={decl.type === "file" ? undefined : id}>{fieldLabel(decl)}</Label>
             {decl.type === "file" ? (
               <FileFieldInput
                 definition={{ type: "file", label: decl.label || decl.name, secret: Boolean(decl.secret) }}
@@ -204,7 +205,7 @@ function FileVariableCell({ variable, index, templateId, disabled, onChange }: {
   onChange: (patch: Partial<VariableDecl>) => void;
 }) {
   const secret = Boolean(variable.secret);
-  // the stored file keeps the flag it was uploaded with: remember which one that was
+  // whether the stored file is secret: saving can make it secret, only a new upload makes it public again
   const [stored, setStored] = useState(secret);
   const owner = templateId === undefined || !variable.name.trim() ? undefined : { kind: "template" as const, id: String(templateId) };
   return (
@@ -225,8 +226,8 @@ function FileVariableCell({ variable, index, templateId, disabled, onChange }: {
         Secret
       </label>
       <p className="text-xs text-muted-foreground">A secret file can be replaced or removed, never downloaded. Required for private keys.</p>
-      {variable.default && secret !== stored && (
-        <p className="text-xs text-amber-700">Upload the file again to apply this</p>
+      {variable.default && stored && !secret && (
+        <p className="text-xs text-amber-700">The stored file stays secret until it is uploaded again</p>
       )}
     </div>
   );

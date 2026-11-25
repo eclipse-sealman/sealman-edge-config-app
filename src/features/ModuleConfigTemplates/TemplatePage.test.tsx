@@ -324,13 +324,24 @@ describe("TemplatePage", () => {
       expect(sent.variables).toEqual([{ name: "ca", type: "string", required: true }]);
     });
 
-    it("asks to upload again when the secret flag changes under an existing default", async () => {
+    it("says a stored secret default stays secret when Secret is turned off, and nothing when it is turned on", async () => {
+      const notice = "The stored file stays secret until it is uploaded again";
+      withFileVariable({ secret: true, default: REF });
+      const { unmount } = renderAt("/module-templates/1/templates/1");
+      const toggle = await screen.findByRole("checkbox", { name: "Variable ca secret" });
+      expect(screen.queryByText(notice)).not.toBeInTheDocument();
+      fireEvent.click(toggle);
+      expect(screen.getByText(notice)).toBeInTheDocument();
+      fireEvent.click(toggle);
+      expect(screen.queryByText(notice)).not.toBeInTheDocument();
+      unmount();
+
+      // saving makes the stored file secret: no notice
       withFileVariable({ secret: false, default: REF });
       renderAt("/module-templates/1/templates/1");
-      const toggle = await screen.findByRole("checkbox", { name: "Variable ca secret" });
+      fireEvent.click(await screen.findByRole("checkbox", { name: "Variable ca secret" }));
+      expect(screen.queryByText(notice)).not.toBeInTheDocument();
       expect(screen.queryByText("Upload the file again to apply this")).not.toBeInTheDocument();
-      fireEvent.click(toggle);
-      expect(screen.getByText("Upload the file again to apply this")).toBeInTheDocument();
     });
 
     it("lets the preview load the template's default files", async () => {

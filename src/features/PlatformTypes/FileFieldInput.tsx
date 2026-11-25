@@ -17,7 +17,9 @@ interface FileFieldInputProps {
   uploadOptions?: { secret?: boolean };
   disabled?: boolean;
   /** Set when applying a template: the file is the module's own choice, the template's default (maybe none) is used without one.
-   * Nothing is read back, so there is no Download and no Remove, only "Use the default". */
+   * Nothing is read back, so there is no Download and no Remove: a value is cleared with "Use the default" (or "Clear"
+   * without a default). A value that is not a file reference (e.g. from a revision made when the variable was a string)
+   * is shown as "Not a file", to be cleared or replaced. */
   applying?: { default: FileRef | null };
   onChange: (value: FileRef | null) => void;
 }
@@ -30,7 +32,8 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, upl
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const ref = isFileRef(value) ? value : null;
-  const fallback = applying && !ref ? applying.default : null;
+  const notAFile = Boolean(applying) && value !== null && value !== undefined && !ref;
+  const fallback = applying && !ref && !notAFile ? applying.default : null;
   const shown = ref ?? fallback;
   const secret = Boolean(definition.secret);
   const label = definition.label ?? "file";
@@ -68,6 +71,8 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, upl
             {shown.name} · <span className={LEVEL_CLASS[status.level]}>{status.text}</span>
             {fallback && " · default"}
           </>
+        ) : notAFile ? (
+          <span className="text-destructive">Not a file</span>
         ) : addressed || applying ? (
           <span className="text-muted-foreground">No file</span>
         ) : (
@@ -92,12 +97,12 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, upl
           <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
             {ref ? "Replace" : fallback ? "Use another file" : "Upload"}
           </Button>
-          {applying && ref && applying.default && (
-            <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => onChange(null)}>
-              Use the default
-            </Button>
-          )}
         </>
+      )}
+      {canEdit && applying && (ref || notAFile) && (
+        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => onChange(null)}>
+          {applying.default ? "Use the default" : "Clear"}
+        </Button>
       )}
       {!applying && addressed && ref && !secret && (
         <Button

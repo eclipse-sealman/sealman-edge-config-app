@@ -60,8 +60,8 @@ const FILE_SOURCE = (variables: object[], copies: object[] = []) => ({
   inputs: { variables, device: [], lists: [], copies, endpoints: [] },
 }) as unknown as TemplateInputsSource;
 
-function FileHarness({ source, findings = [] }: { source: TemplateInputsSource; findings?: { level: "error"; path: string; code: string; message: string }[] }) {
-  const form = useTemplateInputs("dev-1", source, null, undefined, { module: "mod", templateId: 7 });
+function FileHarness({ source, findings = [], stored }: { source: TemplateInputsSource; findings?: { level: "error"; path: string; code: string; message: string }[]; stored?: Record<string, unknown> }) {
+  const form = useTemplateInputs("dev-1", source, null, stored as never, { module: "mod", templateId: 7 });
   return (
     <>
       <TemplateInputs form={form} findings={findings as never} blocked={false} />
@@ -70,8 +70,8 @@ function FileHarness({ source, findings = [] }: { source: TemplateInputsSource; 
   );
 }
 
-const renderFiles = (source: TemplateInputsSource, findings?: never[]) =>
-  render(<QueryClientProvider client={new QueryClient()}><FileHarness source={source} findings={findings} /></QueryClientProvider>);
+const renderFiles = (source: TemplateInputsSource, findings?: never[], stored?: Record<string, unknown>) =>
+  render(<QueryClientProvider client={new QueryClient()}><FileHarness source={source} findings={findings} stored={stored} /></QueryClientProvider>);
 
 describe("file variables", () => {
   beforeEach(() => files.upload.mockReset());
@@ -104,6 +104,27 @@ describe("file variables", () => {
     expect(screen.getByText("No file")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Upload" })).toBeTruthy();
     expect(screen.getByText("ca is required")).toBeTruthy();
+  });
+
+  it("clears a file chosen for a variable without default", async () => {
+    const user = userEvent.setup();
+    files.upload.mockResolvedValue(ref("mine.pem"));
+    renderFiles(FILE_SOURCE([{ name: "ca", key: "ca", type: "file", required: false }]));
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+    await user.upload(screen.getByTestId("file-input"), new File(["x"], "mine.pem"));
+    await user.click(await screen.findByRole("button", { name: "Clear" }));
+    expect(screen.getByTestId("sent").textContent).toBe("{}");
+    expect(screen.getByText("No file")).toBeTruthy();
+  });
+
+  it("offers to clear a prefilled value that is not a file instead of showing the default", async () => {
+    const user = userEvent.setup();
+    renderFiles(FILE_SOURCE([withDefault]), undefined, { ca: "old text" });
+    expect(screen.getByText("Not a file")).toBeTruthy();
+    expect(screen.queryByText(/default\.pem/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Use the default" }));
+    expect(screen.getByTestId("sent").textContent).toBe("{}");
+    expect(screen.getByText(/default\.pem/).textContent).toContain("· default");
   });
 
   it("uploads under the key of the block copy", async () => {
