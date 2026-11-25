@@ -184,3 +184,18 @@ describe("FieldsEditor list visibility", () => {
     ]);
   });
 });
+
+describe("FieldsEditor default removal", () => {
+  it.each([
+    { type: "string" as const, ui: "input" as const, value: "" },
+    { type: "integer" as const, ui: "number" as const, value: 0 },
+    { type: "boolean" as const, ui: "toggle" as const, value: false },
+  ])("explicitly clears a $type default without substituting an empty value", async ({ type, ui, value }) => {
+    const original: FieldDefinition = { ...stringField("Value"), type, ui, default: value };
+    const onChange = vi.fn();
+    render(<FieldsEditor rows={rowsFromFields({ value: original })} onChange={onChange} />);
+    await userEvent.click(screen.getByRole("button", { name: "Clear default for value" }));
+    const rows: FieldRow[] = onChange.mock.calls[0][0];
+    expect(buildFieldsPayload(rows, ["value"], { value: original }).value).toHaveProperty("default", null);
+  });
+});

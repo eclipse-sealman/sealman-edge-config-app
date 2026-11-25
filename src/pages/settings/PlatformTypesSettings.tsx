@@ -70,7 +70,7 @@ export default function PlatformTypesSettings() {
 
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2" role="tablist" aria-label="Asset modelling sections">
         <button type="button" role="tab" aria-selected={activeTab === "device"} onClick={() => setActiveTab("device")} className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${activeTab === "device" ? "bg-blue-100 text-blue-700" : "text-muted-foreground hover:bg-muted"}`}>Device Types</button>
-        <button type="button" role="tab" aria-selected={activeTab === "service"} onClick={() => setActiveTab("service")} className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${activeTab === "service" ? "bg-blue-100 text-blue-700" : "text-muted-foreground hover:bg-muted"}`}>Service Type</button>
+        <button type="button" role="tab" aria-selected={activeTab === "service"} onClick={() => setActiveTab("service")} className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${activeTab === "service" ? "bg-blue-100 text-blue-700" : "text-muted-foreground hover:bg-muted"}`}>Service Types</button>
         <button type="button" role="tab" aria-selected={activeTab === "endpoint"} onClick={() => setActiveTab("endpoint")} className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${activeTab === "endpoint" ? "bg-blue-100 text-blue-700" : "text-muted-foreground hover:bg-muted"}`}>Endpoint Types</button>
       </div>
 

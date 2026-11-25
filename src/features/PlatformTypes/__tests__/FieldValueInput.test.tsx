@@ -91,6 +91,19 @@ describe("FieldValueInput list values", () => {
     expect(changed).toHaveBeenCalledWith([{ code: "DEFAULT", enabled: false }]);
   });
 
+  it("does not initialize missing or null cells in existing rows when adding a new row", async () => {
+    const definition: FieldDefinition = {
+      ...equipmentField,
+      item_fields: { code: { ...equipmentField.item_fields!.code, default: "DEFAULT" } },
+    };
+    const rows = [{ id: "missing", legacy: { nested: [1] } }, { id: "null", code: null }];
+    const changed = vi.fn();
+    render(<FieldValueInput definition={definition} value={rows} onChange={changed} />);
+    screen.getAllByRole("textbox").forEach((input) => expect(input).toHaveValue(""));
+    await userEvent.click(screen.getByRole("button", { name: "Add item" }));
+    expect(changed).toHaveBeenCalledWith([...rows, { code: "DEFAULT" }]);
+  });
+
   it("requires explicit replacement of legacy data and preserves disabled controls", async () => {
     const changed = vi.fn();
     const { rerender } = render(<FieldValueInput definition={equipmentField} value="legacy" onChange={changed} />);

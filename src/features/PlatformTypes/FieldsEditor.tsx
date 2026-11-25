@@ -573,12 +573,28 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
               )}
 
               {!isList && <div className={showOptions ? "col-span-3" : "col-span-7"}>
-                <Field label="Default value" info="The initial value suggested for this field. It must match the selected data type and any configured validation rules.">
-                  <FieldValueInput
-                    definition={row.definition}
-                    value={row.definition.default}
-                    onChange={(value) => updateDefinition(row.id, { default: value })}
-                  />
+                <Field label="Default value" info="Used to initialize new values. Changing or clearing a default does not replace values already saved. It must match the field's type and validation rules.">
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <FieldValueInput
+                        definition={row.definition}
+                        value={row.definition.default}
+                        onChange={(value) => updateDefinition(row.id, { default: value })}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      disabled={row.definition.default == null}
+                      aria-label={`Clear default for ${trimmedKey || row.definition.label || "field"}`}
+                      title="Clear default"
+                      onClick={() => updateDefinition(row.id, { default: null })}
+                    >
+                      <XCircleIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </Field>
               </div>}
             </div>
