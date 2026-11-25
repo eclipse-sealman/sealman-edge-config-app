@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TemplateInputs, useTemplateInputs, type TemplateInputsSource } from "./TemplateInputs";
@@ -7,6 +8,9 @@ const http = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock("@/api/edgeConfig/edgeConfigApi", () => ({ edgeConfigApiInstance: http }));
 vi.mock("@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes", () => ({ default: () => ({ data: [] }) }));
 vi.mock("@/generated/edge-administration/hooks/service_types/useGetServiceTypes", () => ({ default: () => ({ data: [] }) }));
+
+const files = vi.hoisted(() => ({ upload: vi.fn() }));
+vi.mock("@/features/PlatformTypes/fileFieldApi", () => ({ uploadFieldFile: files.upload }));
 
 const SOURCE = {
   variables: [], references: { variables: [], device: [] },
@@ -45,5 +49,74 @@ describe("TemplateInputs type restriction", () => {
   it("clears a misfit choice in every copy group, not only in the last section to update", async () => {
     render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><Harness /></QueryClientProvider>);
     await waitFor(() => expect(screen.getByTestId("state").textContent).toBe(JSON.stringify({ endpoints: {}, services: {} })));
+  });
+});
+
+const ref = (name: string, not_after: string | null = null) =>
+  ({ $file: `id-${name}`, name, kind: "certificate", not_after, uploaded_at: "2026-01-01T00:00:00Z" });
+
+const FILE_SOURCE = (variables: object[], copies: object[] = []) => ({
+  variables: [], references: { variables: [], device: [] },
+  inputs: { variables, device: [], lists: [], copies, endpoints: [] },
+}) as unknown as TemplateInputsSource;
+
+function FileHarness({ source, findings = [] }: { source: TemplateInputsSource; findings?: { level: "error"; path: string; code: string; message: string }[] }) {
+  const form = useTemplateInputs("dev-1", source, null, undefined, { module: "mod", templateId: 7 });
+  return (
+    <>
+      <TemplateInputs form={form} findings={findings as never} blocked={false} />
+      <output data-testid="sent">{JSON.stringify(form.sent.values)}</output>
+    </>
+  );
+}
+
+const renderFiles = (source: TemplateInputsSource, findings?: never[]) =>
+  render(<QueryClientProvider client={new QueryClient()}><FileHarness source={source} findings={findings} /></QueryClientProvider>);
+
+describe("file variables", () => {
+  beforeEach(() => files.upload.mockReset());
+  const withDefault = { name: "ca", key: "ca", type: "file", default: ref("default.pem", "2099-01-01T00:00:00Z") };
+
+  it("uploads another file for the module, then goes back to the default without sending a value", async () => {
+    const user = userEvent.setup();
+    files.upload.mockResolvedValue(ref("mine.pem"));
+    renderFiles(FILE_SOURCE([withDefault]));
+    expect(screen.getByText(/default\.pem/).textContent).toContain("valid until 2099-01-01 · default");
+    expect(screen.getByTestId("sent").textContent).toBe("{}");
+
+    await user.click(screen.getByRole("button", { name: "Use another file" }));
+    const file = new File(["x"], "mine.pem");
+    await user.upload(screen.getByTestId("file-input"), file);
+    await screen.findByRole("button", { name: "Use the default" });
+    expect(screen.getByText("mine.pem", { selector: "span.flex-1", exact: false })).toBeTruthy();
+    expect(files.upload).toHaveBeenCalledWith({ kind: "module", device: "dev-1", module: "mod", templateId: 7 }, "ca", file, undefined);
+    expect(JSON.parse(screen.getByTestId("sent").textContent!)).toEqual({ ca: ref("mine.pem") });
+    expect(screen.queryByRole("button", { name: "Download" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Remove" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Use the default" }));
+    expect(screen.getByTestId("sent").textContent).toBe("{}");
+    expect(screen.getByText(/default\.pem/)).toBeTruthy();
+  });
+
+  it("shows no file and an upload for a variable without default, and the missing-value finding", () => {
+    renderFiles(FILE_SOURCE([{ name: "ca", key: "ca", type: "file" }]), [{ level: "error", path: "/values/ca", code: "missing", message: "ca is required" }] as never);
+    expect(screen.getByText("No file")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Upload" })).toBeTruthy();
+    expect(screen.getByText("ca is required")).toBeTruthy();
+  });
+
+  it("uploads under the key of the block copy", async () => {
+    const user = userEvent.setup();
+    files.upload.mockResolvedValue(ref("mine.pem"));
+    renderFiles(FILE_SOURCE([{ name: "ca", key: "a/ca", copy: "a", type: "file" }], [{ key: "a", label: "Client", block_id: 1, name: "one", path: "/a" }]));
+    await user.upload(screen.getByTestId("file-input"), new File(["x"], "mine.pem"));
+    await waitFor(() => expect(files.upload).toHaveBeenCalled());
+    expect(files.upload.mock.calls[0][1]).toBe("a/ca");
+  });
+
+  it("shows an expired default as an error", () => {
+    renderFiles(FILE_SOURCE([{ ...withDefault, default: ref("old.pem", "2020-01-01T00:00:00Z") }]));
+    expect(screen.getByText("expired 2020-01-01").className).toContain("text-destructive");
   });
 });

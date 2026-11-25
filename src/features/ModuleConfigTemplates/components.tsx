@@ -52,6 +52,7 @@ export function VariableForm({
   disabled,
   keyOf = (decl) => decl.name,
   emptyText = "This template has no variables.",
+  fileScope,
 }: {
   variables: VariableDecl[];
   /** Key of a declaration in `values` and in findings (`/values/<key>`): prefixed with the copy inside block copies. */
@@ -61,6 +62,8 @@ export function VariableForm({
   onChange: (values: Values) => void;
   findings?: Finding[];
   disabled?: boolean;
+  /** Where a file variable's chosen file is kept: the device, module and template being applied. */
+  fileScope?: { device: string; module: string; templateId: number };
 }) {
   if (variables.length === 0) {
     return <p className="text-sm text-muted-foreground">{emptyText}</p>;
@@ -83,7 +86,14 @@ export function VariableForm({
         return (
           <div key={key} className="space-y-1">
             <Label htmlFor={id}>{fieldLabel(decl)}</Label>
-            {choices ? (
+            {decl.type === "file" ? (
+              <FileFieldInput
+                definition={{ type: "file", label: decl.label || decl.name, secret: Boolean(decl.secret) }}
+                fieldKey={key} owner={fileScope && { kind: "module", ...fileScope }} disabled={disabled}
+                applying={{ default: decl.default ?? null }}
+                value={current ?? null} onChange={(ref) => set(key, ref ?? undefined)}
+              />
+            ) : choices ? (
               <Select
                 disabled={disabled}
                 value={current === undefined ? UNSET : String(current)}

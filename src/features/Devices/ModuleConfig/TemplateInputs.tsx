@@ -55,7 +55,7 @@ function inputsOf(version?: TemplateInputsSource) {
  * The state of the inputs form for a template on a device: values, endpoint, service and row choices, list cards, and the
  * payload (`sent`) for render/preview/apply. `stored` starts it from a revision's values ("$endpoints", "$services", "$rows", "$lists").
  */
-export function useTemplateInputs(deviceId: string | undefined, source: TemplateInputsSource | undefined, groupId: number | null | undefined, stored?: Values) {
+export function useTemplateInputs(deviceId: string | undefined, source: TemplateInputsSource | undefined, groupId: number | null | undefined, stored?: Values, applied?: { module: string; templateId: number }) {
   const [initial] = useState(() => splitRevisionValues(stored ?? {}));
   const [values, setValues] = useState<Values>(initial.values);
   const [endpoints, setEndpoints] = useState<EndpointChoices>(initial.endpoints);
@@ -92,10 +92,13 @@ export function useTemplateInputs(deviceId: string | undefined, source: Template
     ...(lists.length > 0 && { lists: Object.assign({}, ...parts.map((p) => p.lists)) as Record<string, ListEntryRef[]> }),
   };
 
+  // Files chosen for a file variable belong to the device and module: only an apply form has them.
+  const fileScope = deviceId && applied ? { device: deviceId, ...applied } : undefined;
+
   const reset = () => { setValues({}); setEndpoints({}); setServices({}); setRows({}); setCards({}); };
 
   return {
-    deviceId: deviceId ?? "", sent, listsValid, servicesChosen, rowsChosen, reset,
+    deviceId: deviceId ?? "", fileScope, sent, listsValid, servicesChosen, rowsChosen, reset,
     values, setValues, endpoints, setEndpoints, services, setServices, rows, setRows, cards, setCards,
     topVariables, topSlots, copyGroups, lists, deviceMeta, dropped, activeBlockIds, deviceEndpoints,
   };
@@ -112,7 +115,7 @@ export function TemplateInputs({ form, findings, blocked }: { form: TemplateInpu
     if (scope === "choice") { form.setEndpoints((all) => withoutKeys(all, keys)); form.setRows((all) => withoutKeys(all, keys)); }
   };
   const sectionProps = {
-    deviceId: form.deviceId, values: form.values, setValues: form.setValues, endpoints: form.endpoints, services: form.services,
+    deviceId: form.deviceId, fileScope: form.fileScope, values: form.values, setValues: form.setValues, endpoints: form.endpoints, services: form.services,
     setServices: form.setServices, rows: form.rows, setRows: form.setRows, findings, blocked,
     setEndpoints: (nextEndpoints: EndpointChoices, nextServices: ServiceChoices, nextRows: RowChoices) => {
       form.setEndpoints(nextEndpoints); form.setServices(nextServices); form.setRows(nextRows);
@@ -136,7 +139,7 @@ export function TemplateInputs({ form, findings, blocked }: { form: TemplateInpu
         </InlineAlert>
       ))}
       {form.lists.map((list) => (
-        <ListEntries key={list.key} deviceId={form.deviceId} list={list} cards={form.cards[list.key] ?? []} activeBlockIds={form.activeBlockIds}
+        <ListEntries key={list.key} deviceId={form.deviceId} fileScope={form.fileScope} list={list} cards={form.cards[list.key] ?? []} activeBlockIds={form.activeBlockIds}
                      onChange={(next) => form.setCards((all) => ({ ...all, [list.key]: next(all[list.key] ?? []) }))} findings={findings} blocked={blocked}
                      deviceEndpoints={sectionProps.deviceEndpoints} endpointsLoading={sectionProps.endpointsLoading}
                      endpointsError={sectionProps.endpointsError} />

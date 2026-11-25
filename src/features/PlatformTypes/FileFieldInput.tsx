@@ -16,17 +16,22 @@ interface FileFieldInputProps {
   /** Passed to the upload, e.g. the secret flag of a template's default file. */
   uploadOptions?: { secret?: boolean };
   disabled?: boolean;
+  /** Set when applying a template: the file is the module's own choice, the template's default (maybe none) is used without one.
+   * Nothing is read back, so there is no Download and no Remove, only "Use the default". */
+  applying?: { default: FileRef | null };
   onChange: (value: FileRef | null) => void;
 }
 
 const LEVEL_CLASS = { ok: "text-muted-foreground", warning: "text-amber-600", error: "text-destructive" } as const;
 
 /** One row for a `file` field: the file's name and status, with the buttons to upload, replace, download and remove it. */
-export default function FileFieldInput({ definition, fieldKey, value, owner, uploadOptions, disabled, onChange }: FileFieldInputProps) {
+export default function FileFieldInput({ definition, fieldKey, value, owner, uploadOptions, disabled, applying, onChange }: FileFieldInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const ref = isFileRef(value) ? value : null;
+  const fallback = applying && !ref ? applying.default : null;
+  const shown = ref ?? fallback;
   const secret = Boolean(definition.secret);
   const label = definition.label ?? "file";
 
@@ -50,7 +55,7 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, upl
     void run(async () => onChange(await uploadFieldFile(owner, fieldKey, file, uploadOptions)), "Could not upload the file");
   };
 
-  const status = ref ? fileStatus(ref, secret, new Date()) : null;
+  const status = shown ? fileStatus(shown, secret, new Date()) : null;
   const addressed = owner && fieldKey ? { owner, fieldKey } : null;
   // Without write permission (disabled) the file can still be downloaded, but not changed.
   const canEdit = !disabled;
@@ -58,11 +63,12 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, upl
   return (
     <div className="flex items-center gap-2">
       <span className="flex-1 truncate text-sm">
-        {ref && status ? (
+        {shown && status ? (
           <>
-            {ref.name} · <span className={LEVEL_CLASS[status.level]}>{status.text}</span>
+            {shown.name} · <span className={LEVEL_CLASS[status.level]}>{status.text}</span>
+            {fallback && " · default"}
           </>
-        ) : addressed ? (
+        ) : addressed || applying ? (
           <span className="text-muted-foreground">No file</span>
         ) : (
           <span className="text-muted-foreground">Add the file after saving</span>
@@ -84,11 +90,16 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, upl
             }}
           />
           <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
-            {ref ? "Replace" : "Upload"}
+            {ref ? "Replace" : fallback ? "Use another file" : "Upload"}
           </Button>
+          {applying && ref && applying.default && (
+            <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => onChange(null)}>
+              Use the default
+            </Button>
+          )}
         </>
       )}
-      {addressed && ref && !secret && (
+      {!applying && addressed && ref && !secret && (
         <Button
           type="button"
           variant="outline"
@@ -101,7 +112,7 @@ export default function FileFieldInput({ definition, fieldKey, value, owner, upl
           Download
         </Button>
       )}
-      {canEdit && addressed && (
+      {!applying && canEdit && addressed && (
         <>
           {ref && (
             <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setConfirmOpen(true)}>

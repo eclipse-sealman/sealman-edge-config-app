@@ -110,8 +110,9 @@ export function cardsValid(list: InputList, cards: ListCard[]) {
 }
 
 /** One list of the template: a card per entry (name, type, the type's endpoints and inputs), added and removed freely. */
-export function ListEntries({ deviceId, list, cards, onChange, activeBlockIds, findings, blocked, deviceEndpoints, endpointsLoading, endpointsError }: {
+export function ListEntries({ deviceId, fileScope, list, cards, onChange, activeBlockIds, findings, blocked, deviceEndpoints, endpointsLoading, endpointsError }: {
   deviceId: string;
+  fileScope?: { device: string; module: string; templateId: number };
   list: InputList;
   cards: ListCard[];
   /** gets an updater, so several changes in one tick all apply */
@@ -184,6 +185,7 @@ export function ListEntries({ deviceId, list, cards, onChange, activeBlockIds, f
             {block && (
               <InputsSection
                 deviceId={deviceId}
+                fileScope={fileScope}
                 variables={block.inputs.variables.map((v) => ({ ...v, key: prefix + v.key }))}
                 slots={block.inputs.endpoints.map((e) => ({ ...e, key: prefix + e.key }))}
                 emptyText=""

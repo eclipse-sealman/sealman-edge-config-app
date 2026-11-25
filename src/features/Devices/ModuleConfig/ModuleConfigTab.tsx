@@ -122,7 +122,7 @@ function ApplyTemplate({ deviceId, moduleName, blocked, templates, prefill }: {
 
   // A revision stores its endpoint, service and row choices and list entries with the values, under "$endpoints", "$services", "$rows" and "$lists".
   const loaded = useTemplateVersion(templateId, "latest");
-  const form = useTemplateInputs(deviceId, loaded.data, template?.group_id, prefill?.values);
+  const form = useTemplateInputs(deviceId, loaded.data, template?.group_id, prefill?.values, templateId === undefined ? undefined : { module: moduleName, templateId });
   const { sent, listsValid, servicesChosen, rowsChosen } = form;
   const [comment, setComment] = useState("");
   const [showResult, setShowResult] = useState(false);

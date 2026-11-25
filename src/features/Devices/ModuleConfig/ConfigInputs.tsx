@@ -52,9 +52,10 @@ const typeLabels = (allowed: string[], types?: { type_id: string; label: string 
 /** Endpoint dropdowns, then the variable inputs, of the top level or of one copy group. */
 export function InputsSection({
   deviceId, variables, slots, emptyText, values, setValues, endpoints, setEndpoints, services, setServices, rows, setRows, clearChoices, findings, blocked,
-  deviceEndpoints, endpointsLoading, endpointsError,
+  deviceEndpoints, endpointsLoading, endpointsError, fileScope,
 }: {
   deviceId: string;
+  fileScope?: { device: string; module: string; templateId: number };
   variables: InputVariable[];
   slots: InputEndpoint[];
   /** shown when there is nothing to fill in */
@@ -82,7 +83,7 @@ export function InputsSection({
                        error={endpointsError} value={endpoints} onChange={setEndpoints} services={services} onServicesChange={setServices}
                        rows={rows} onRowsChange={setRows} clearChoices={clearChoices} disabled={blocked} />
       )}
-      <VariableForm variables={variables} values={values} onChange={setValues} findings={findings} disabled={blocked}
+      <VariableForm fileScope={fileScope} variables={variables} values={values} onChange={setValues} findings={findings} disabled={blocked}
                     keyOf={(d) => (d as InputVariable).key ?? d.name} emptyText={slots.length > 0 ? "" : (emptyText ?? "This template has no variables.")} />
     </>
   );
