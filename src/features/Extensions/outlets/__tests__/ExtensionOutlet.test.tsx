@@ -61,6 +61,24 @@ describe("ExtensionOutlet", () => {
     expect(await screen.findAllByText("panel body")).toHaveLength(2);
   });
 
+  it("field-row passes row props to the panel without a card", async () => {
+    contributionsMock.mockReturnValue({
+      contributions: [{ ...c, placement: "field-row" }],
+      isLoading: false,
+    });
+    const received: Array<Record<string, unknown>> = [];
+    loadMock.mockResolvedValue((props: Record<string, unknown>) => {
+      received.push(props);
+      return <div>row panel</div>;
+    });
+    const updateItem = vi.fn();
+    const extraProps = { fieldKey: "equipment", item: { identifier: "SEP-00412" }, updateItem };
+    setup({ placement: "field-row", extraProps });
+    expect(await screen.findByText("row panel")).toBeTruthy();
+    expect(received[0]).toMatchObject({ ...extraProps, context: { user: { id: "u", name: "n" } } });
+    expect(screen.queryByRole("heading", { name: "Acme" })).toBeNull();
+  });
+
   it("keeps the panel mounted when the context changes", async () => {
     let mounts = 0;
     const MountCounting = ({ context }: PanelProps<unknown>) => {

@@ -14,6 +14,7 @@ import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import InlineMetadataField from "./InlineMetadataField";
 import { withoutFileFields } from "@/features/PlatformTypes/fileField";
 import InlineCustomFieldAdder from "./InlineCustomFieldAdder";
+import EndpointListRowOutlet from "./EndpointListRowOutlet";
 import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes";
 import useGetServiceTypes from "@/generated/edge-administration/hooks/service_types/useGetServiceTypes";
 import { useUpdateEndpoint } from "@/generated/edge-administration/hooks/endpoints/useUpdateEndpoint";
@@ -405,6 +406,20 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                   editing={editingEndpoint}
                   fieldKey={key}
                   fileOwner={endpoint.endpoint_id ? { kind: "endpoint", id: endpoint.endpoint_id } : undefined}
+                  renderListRowEnd={
+                    endpoint.endpoint_id
+                      ? (row) => (
+                          <EndpointListRowOutlet
+                            deviceId={deviceId}
+                            endpointId={endpoint.endpoint_id!}
+                            endpointTypeId={endpoint.type_id ?? ""}
+                            fieldKey={key}
+                            row={row}
+                            onDataChanged={onCreated}
+                          />
+                        )
+                      : undefined
+                  }
                   onChange={(value) => setEndpointValue(key, value)}
                   onDelete={editingEndpoint && !(key in endpointFields) ? () => deleteEndpointValue(key) : undefined}
                 />

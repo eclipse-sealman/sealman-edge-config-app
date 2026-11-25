@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { components } from "@/generated/edge-administration/types";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -168,6 +169,16 @@ interface FieldValueInputProps {
   fileOwner?: FileOwner;
   /** The key of this field in its record; a file field needs it to address its upload. */
   fieldKey?: string;
+  /** Extra content at the end of each row of a list field. */
+  renderListRowEnd?: (row: ListRowSlot) => ReactNode;
+}
+
+/** `updateItem` merges into its row as it is when called, and does nothing once the row is removed. */
+export type ListRowSlot = { index: number; item: Record<string, unknown>; updateItem: (patch: Record<string, unknown>) => void };
+
+// Calls the row-end render prop from its own component, so `updateItem` (which reads a ref) is never called during render.
+function RowEnd({ render, ...row }: ListRowSlot & { render: (row: ListRowSlot) => ReactNode }) {
+  return render(row);
 }
 
 function itemFieldEntries(definition: FieldDefinitionLike) {
@@ -190,11 +201,24 @@ function ListFieldValueInput({
   value,
   onChange,
   disabled,
+  renderListRowEnd,
 }: FieldValueInputProps) {
   const items = Array.isArray(value)
     ? value.filter((item): item is Record<string, unknown> => item !== null && typeof item === "object" && !Array.isArray(item))
     : [];
   const fields = itemFieldEntries(definition);
+
+  // The row slot may call back later (after a lookup): it must merge into the rows as they are then.
+  const latest = useRef({ items, onChange });
+  useLayoutEffect(() => {
+    latest.current = { items, onChange };
+  });
+  const patchRow = (index: number, id: unknown, patch: Record<string, unknown>) => {
+    const { items: rows, onChange: emit } = latest.current;
+    const at = typeof id === "string" ? rows.findIndex((row) => row.id === id) : index < rows.length && typeof rows[index].id !== "string" ? index : -1;
+    if (at < 0) return;
+    emit(rows.map((row, rowIndex) => (rowIndex === at ? { ...row, ...patch } : row)));
+  };
 
   const updateItem = (index: number, key: string, nextValue: unknown) => {
     onChange(items.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: nextValue } : item));
@@ -232,6 +256,9 @@ function ListFieldValueInput({
               </div>
             ))}
           </div>
+          {renderListRowEnd && (
+            <RowEnd render={renderListRowEnd} index={index} item={item} updateItem={(patch) => patchRow(index, item.id, patch)} />
+          )}
         </div>
       ))}
       <Button
@@ -253,7 +280,7 @@ function ListFieldValueInput({
  * FieldDefinition's `type`/`ui`/`options` — the single source of truth for
  * how any platform-type field should be edited.
  */
-export default function FieldValueInput({ definition, value, onChange, placeholder, disabled, fileOwner, fieldKey }: FieldValueInputProps) {
+export default function FieldValueInput({ definition, value, onChange, placeholder, disabled, fileOwner, fieldKey, renderListRowEnd }: FieldValueInputProps) {
   if (definition.type === "file") {
     return (
       <FileFieldInput definition={definition} fieldKey={fieldKey} value={value} owner={fileOwner} disabled={disabled} onChange={onChange} />
@@ -263,7 +290,7 @@ export default function FieldValueInput({ definition, value, onChange, placehold
   const options = definition.options ?? [];
 
   if (definition.type === "list") {
-    return <ListFieldValueInput definition={definition} value={value} onChange={onChange} disabled={disabled} />;
+    return <ListFieldValueInput definition={definition} value={value} onChange={onChange} disabled={disabled} renderListRowEnd={renderListRowEnd} />;
   }
 
   if (ui === "toggle") {

@@ -36,6 +36,11 @@ vi.mock("@/generated/edge-administration/hooks/services/useDeleteService", () =>
 vi.mock("@/features/authorization/permissions/use-permissions", () => ({
   usePermissions: () => ({ hasPermission: true }),
 }));
+vi.mock("../EndpointListRowOutlet", () => ({
+  default: ({ fieldKey, row }: { fieldKey: string; row: { updateItem: (patch: Record<string, unknown>) => void } }) => (
+    <button type="button" onClick={() => row.updateItem({ serial: "SN-1" })}>slot {fieldKey}</button>
+  ),
+}));
 vi.mock("../AssignEndpointDialog", () => ({ default: () => null }));
 vi.mock("../AssignServiceDialog", () => ({ default: () => null }));
 vi.mock("../BrowseDialog", () => ({ default: () => null }));
@@ -132,6 +137,26 @@ describe("EndpointAccordionItem", () => {
     expect(screen.getByRole("button", { name: "Add item" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add item" }));
     expect(screen.getByText("Serial Number")).toBeInTheDocument();
+  });
+
+  it("gives extensions a slot on each list row while editing; what they set is saved with Save", async () => {
+    const user = userEvent.setup();
+    const serial = { ...STRING, label: "Serial Number" };
+    const equipment = { type: "list", label: "Equipment", required: false, ui: null, default: null, changeable: true, show_in_list: true, item_fields: { serial } };
+    typesRef.current = [{ type_id: "plc", label: "PLC", description: null, mapping: {}, fields: { equipment } }];
+    renderItem({
+      endpoint_id: "e-slot", type_id: "plc", type_label: "PLC", ip: "10.0.0.1", status: "online", source: "configured", ports: [],
+      endpoint_data: { equipment: { value: [{ id: "r1", serial: "old" }, { id: "r2", serial: "other" }], field: equipment } },
+    } as unknown as MappedEndpoint);
+    await user.click(screen.getByRole("button", { name: "Endpoint details" }));
+    expect(screen.queryByRole("button", { name: "slot equipment" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Edit endpoint details" }));
+    await user.click(screen.getAllByRole("button", { name: "slot equipment" })[0]);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(updateEndpoint).toHaveBeenCalledWith({
+      endpointId: "e-slot",
+      body: { endpoint_data: { equipment: [{ id: "r1", serial: "SN-1" }, { id: "r2", serial: "other" }] } },
+    });
   });
 
   it("shows list item values instead of an item count", async () => {

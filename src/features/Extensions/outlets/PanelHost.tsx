@@ -40,9 +40,11 @@ type ContributionPanelProps = {
   /** The outlet context as JSON: pages pass it as an inline literal, so this keeps its identity stable. */
   contextKey: string;
   onDataChanged?: () => void;
+  /** Spread onto the panel after the base props. */
+  extraProps?: Record<string, unknown>;
 };
 
-function ContributionPanel({ contribution: c, contextKey, onDataChanged }: ContributionPanelProps) {
+function ContributionPanel({ contribution: c, contextKey, onDataChanged, extraProps }: ContributionPanelProps) {
   // The cache, not this memo, keeps the identity: this component sits inside the Suspense
   // boundary, so its memo is discarded on every retry while the panel is still loading.
   const Panel = useMemo(
@@ -67,7 +69,7 @@ function ContributionPanel({ contribution: c, contextKey, onDataChanged }: Contr
     [contextKey, api, notify, onDataChanged]
   );
 
-  return <Panel {...props} />;
+  return <Panel {...props} {...extraProps} />;
 }
 
 type PanelHostProps = ContributionPanelProps & {
