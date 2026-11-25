@@ -149,7 +149,7 @@ function parseScalar(text: string, type: VariableType): Scalar | null {
   return text;
 }
 
-const COLUMNS = "md:grid-cols-[minmax(8rem,1.2fr)_7.5rem_minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(10rem,1.6fr)_5.5rem]";
+const COLUMNS = "md:grid-cols-[minmax(8rem,1.2fr)_7.5rem_minmax(8rem,1fr)_minmax(8rem,1.8fr)_minmax(8rem,1.2fr)_5.5rem]";
 
 const COLUMN_HELP = {
   name: "Taken from the body: writing ${name} adds the variable, removing its last use removes it. Letters, digits and _, not starting with a digit.",
@@ -209,23 +209,30 @@ function FileVariableCell({ variable, index, templateId, disabled, onChange }: {
   const [stored, setStored] = useState(secret);
   const owner = templateId === undefined || !variable.name.trim() ? undefined : { kind: "template" as const, id: String(templateId) };
   return (
-    <div className="col-span-2 space-y-1 md:col-span-1">
-      <span className="text-xs text-muted-foreground">Default file</span>
-      <FileFieldInput
-        definition={{ type: "file", label: variable.label || variable.name, secret }}
-        fieldKey={variable.name.trim()} owner={owner} disabled={disabled} uploadOptions={{ secret }}
-        value={variable.default ?? null}
-        onChange={(ref) => {
-          setStored(secret);
-          onChange({ default: ref });
-        }}
-      />
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" disabled={disabled} checked={secret} aria-label={`Variable ${variable.name || index + 1} secret`}
+    <div className="col-span-2 min-w-0 space-y-1 md:col-span-1">
+      <div className="flex h-9 items-center gap-2 rounded-md border border-input pl-3 pr-0.5 shadow-xs">
+        <span className="shrink-0 text-xs text-muted-foreground">Default file</span>
+        <div className="min-w-0 flex-1">
+          <FileFieldInput
+            definition={{ type: "file", label: variable.label || variable.name, secret }}
+            fieldKey={variable.name.trim()} owner={owner} disabled={disabled} uploadOptions={{ secret }}
+            value={variable.default ?? null}
+            onChange={(ref) => {
+              setStored(secret);
+              onChange({ default: ref });
+            }}
+          />
+        </div>
+      </div>
+      <label className="flex items-start gap-2 text-xs text-muted-foreground">
+        <input type="checkbox" className="mt-0.5" disabled={disabled} checked={secret} aria-label={`Variable ${variable.name || index + 1} secret`}
                onChange={(e) => onChange({ secret: e.target.checked })} />
-        Secret
+        <span>
+          <span className="font-medium text-foreground">Secret</span>
+          {" · "}
+          <span>A secret file can be replaced or removed, never downloaded. Required for private keys.</span>
+        </span>
       </label>
-      <p className="text-xs text-muted-foreground">A secret file can be replaced or removed, never downloaded. Required for private keys.</p>
       {variable.default && stored && !secret && (
         <p className="text-xs text-amber-700">The stored file stays secret until it is uploaded again</p>
       )}
@@ -263,7 +270,7 @@ export function VariablesEditor({
           </div>
         )}
         {variables.map((v, i) => (
-          <div key={i} className={cn("grid grid-cols-2 items-center gap-2", COLUMNS)}>
+          <div key={i} className={cn("grid grid-cols-2 items-start gap-2", COLUMNS)}>
             <Input aria-label="Variable name" readOnly value={v.name} title="Set by the ${name} placeholders of the body"
                    aria-invalid={invalid(i, "name") || undefined} className={cn("bg-muted/40 font-mono", invalid(i, "name") && "border-red-500")} />
             <Select disabled={disabled} value={v.type} onValueChange={(t) => update(i, { type: t as VariableType })}>
@@ -281,7 +288,7 @@ export function VariablesEditor({
                               invalid={invalid(i, "options")} onChange={(options) => update(i, { options })} />}
             <Input aria-label="Variable description" disabled={disabled} value={v.description ?? ""} placeholder="description"
                    onChange={(e) => update(i, { description: e.target.value || null })} />
-            <label className="flex items-center justify-center gap-2 text-sm">
+            <label className="flex h-9 items-center justify-center gap-2 text-sm">
               <input type="checkbox" disabled={disabled} checked={v.required !== false}
                      aria-label={`Variable ${v.name || i + 1} required`}
                      onChange={(e) => update(i, { required: e.target.checked })} />
