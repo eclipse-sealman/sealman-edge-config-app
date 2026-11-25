@@ -200,7 +200,7 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
                   fieldKey={row.key}
                   fileOwner={{ kind: "device", id: deviceId }}
                   onChange={(value) => setValue(row.key, value)}
-                  onDelete={row.fixed || row.definition?.required || row.definition?.type === "file" ? undefined : () => deleteValue(row.key)}
+                  onDelete={row.fixed || row.definition?.required ? undefined : () => deleteValue(row.key)}
                 />
               ))}
             </dl>
