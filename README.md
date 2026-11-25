@@ -60,6 +60,16 @@ Set `VITE_AUTHENTICATION_PROVIDER` to `keycloak` (default) or `entra` and fill i
 
 The gateway's device type is read-only when editing metadata. Select the type when creating the device; it cannot be changed afterward.
 
+### Device assets
+
+The Assets list follows the Device > Endpoint > Service hierarchy. Device metadata starts collapsed. Endpoint headers show identity, type, service/port summaries, and connection state when scanning is enabled. Expand an endpoint to access its independently collapsible details and a tab for each service, with editing and browsing kept inside the endpoint. Details are read-only until Edit is selected. Switching service tabs or collapsing an endpoint retains unsaved edits while the page remains open.
+
+Editing keeps device, endpoint, and service fields in the same grid positions. List rows remain in their table with the same column order, replacing values with inputs in place. Add/remove controls appear alongside the data; Cancel restores the saved display without submitting changes.
+
+Ordinary and custom fields are grouped before the list tables, with the add-field editor directly after that group so newly added fields appear where they are created. Add row is in each list's header, avoiding an empty action footer below the table in read-only mode.
+
+Service panels share the endpoint's service-list data. Network responses determine port assignments and connection state; a read-time field default does not establish an assignment. Separate configured services remain distinct even when they share the same port. The latest successful configuration snapshot controls endpoint/service membership and metadata, so cached scans cannot restore deleted assets or overwrite edited hosts. Cached connection states apply only to the same host and service ID/port; unclaimed discoveries remain visible. Failed or pending configuration refreshes retain the last successful snapshot.
+
 ### Endpoint list fields
 
 Asset Configuration > Endpoint Types supports **List** fields with one or more scalar row fields (text, boolean, integer, or number). Nested lists and the reserved row-field key `id` are not supported. Lists have no widget, default, options, or list-level validation; configure constraints and defaults on their row fields instead. Required lists need at least one row.
@@ -82,7 +92,7 @@ For local development, set it in `.env.local` and restart `npm run dev` after ch
 
 Password information requires `device.read`; revealing a password requires `device.password.read`, and requesting renewal requires `device.password.write`. The UI uses the core `/{device}/password/info`, `/request`, and `/renew` endpoints. Deploy it with an API providing these endpoints; legacy SmartEMS routes remain a backend compatibility concern.
 
-Revealing a password explicitly requests its value and shows the persisted one-time automatic renewal schedule. The UI displays backend timestamps in UTC without calculating or configuring schedules. Task `Completed` means the renewal request was accepted, not that the device password rotated. Manual renewal also waits for device communication and does not require config activation. Password information refreshes every ten seconds on active supported-device pages only while live renewal or an automatic task is pending. Idle pages retain normal focus/manual refresh, and reveal or renewal always refreshes information.
+Revealing a password explicitly requests its value; the Security page shows the current persisted one-time automatic renewal schedule, not a snapshot in the reveal dialog. The UI displays backend timestamps in UTC without calculating or configuring schedules. Task `Completed` means the renewal request was accepted, not that the device password rotated. Manual renewal also waits for device communication and does not require config activation. Password information refreshes every ten seconds on active supported-device pages only while live renewal or an automatic task is pending. Idle pages retain normal focus/manual refresh, and reveal or renewal always refreshes information. An uncertain or aborted reveal also invalidates that device/account's information, since closing the response cannot undo an already saved schedule; the password request itself is never retried automatically.
 
 Plaintext is held only in the open reveal dialog, not in browser storage or query/mutation caches. Closing the dialog, starting renewal, changing device/account/permissions, or detecting a password update clears it. Reveal requests are never automatically retried or repeated on refocus/reconnect; retry a failed request explicitly.
 

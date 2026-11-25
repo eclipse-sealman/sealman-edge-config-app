@@ -21,6 +21,10 @@ export default function RenewPassword({ deviceId, info, canRenew, noPermissionsM
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const { mutate, isPending, error, reset } = useRenewDevicePassword();
 
+  if (info.forceRenewal && isConfirmModalOpen) {
+    setIsConfirmModalOpen(false);
+  }
+
   const renewPassword = () => {
     if (!canRenew || isPending || info.forceRenewal) return;
     onRenewalStart();

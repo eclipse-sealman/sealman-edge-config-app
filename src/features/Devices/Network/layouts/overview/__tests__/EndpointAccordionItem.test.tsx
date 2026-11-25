@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Accordion } from "@/components/ui/accordion";
 import type { MappedEndpoint } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import EndpointAccordionItem from "../EndpointAccordionItem";
-import { endpointListKey } from "../overviewMerge";
+import { endpointListKey, mergeConfiguredEndpoints } from "../overviewMerge";
 import { ShowConnectionStateContext } from "../connectionStateContext";
 
 const { typesRef } = vi.hoisted(() => ({ typesRef: { current: [] as unknown[] } }));
@@ -17,13 +18,15 @@ vi.mock("@/features/authorization/permissions/use-permissions", () => ({
 vi.mock("../AssignEndpointDialog", () => ({ default: () => null }));
 vi.mock("../AssignServiceDialog", () => ({ default: () => null }));
 vi.mock("../BrowseDialog", () => ({ default: () => null }));
+vi.mock("../EndpointDetailsPage", () => ({ default: ({ endpointId }: { endpointId: string }) => <input aria-label="Endpoint draft" defaultValue={endpointId} /> }));
+vi.mock("../EndpointServices", () => ({ default: () => <div>Unassigned services</div> }));
 
 const STRING = { type: "string", ui: "input", required: false, changeable: true, show_in_list: true, default: null } as const;
 
 function renderItem(endpoint: MappedEndpoint) {
   return render(
     <Accordion type="single" defaultValue={endpointListKey(endpoint)}>
-      <EndpointAccordionItem endpoint={endpoint} deviceId="dev-1" onCreated={() => {}} onOpenDetails={() => {}} onOpenServiceDetails={() => {}} />
+      <EndpointAccordionItem endpoint={endpoint} deviceId="dev-1" onCreated={() => {}} />
     </Accordion>
   );
 }
@@ -99,36 +102,13 @@ describe("EndpointAccordionItem", () => {
       ports: [{ status: "unknown", source: "configured", service_id: "s1", type_label: "Modbus" }],
     });
     expect(screen.getByText("Sensor")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Details" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Details" })).not.toBeInTheDocument();
+    expect(screen.getByText("1 service")).toBeInTheDocument();
     expect(screen.getByText("Unknown")).toBeInTheDocument();
     expect(screen.getByText("Modbus")).toBeInTheDocument();
   });
 
-  it("shows Browse for a service with a browser, an ip and a port", () => {
-    renderItem({
-      endpoint_id: "e5", type_id: "sensor", type_label: "Sensor", ip: "10.0.0.5", status: "online", source: "configured", endpoint_data: {},
-      ports: [{ port: 4840, status: "online", source: "configured", service_id: "s5", type_label: "OPC UA", browser_kind: "opcua" }],
-    });
-    expect(screen.getByRole("button", { name: "Browse" })).toBeInTheDocument();
-  });
-
-  it("shows no Browse without an ip", () => {
-    renderItem({
-      endpoint_id: "e6", type_id: "sensor", type_label: "Sensor", status: "unknown", source: "configured", endpoint_data: {},
-      ports: [{ port: 4840, status: "unknown", source: "configured", service_id: "s6", type_label: "OPC UA", browser_kind: "opcua" }],
-    });
-    expect(screen.queryByRole("button", { name: "Browse" })).not.toBeInTheDocument();
-  });
-
-  it("shows no Browse without a port", () => {
-    renderItem({
-      endpoint_id: "e7", type_id: "sensor", type_label: "Sensor", ip: "10.0.0.7", status: "online", source: "configured", endpoint_data: {},
-      ports: [{ status: "unknown", source: "configured", service_id: "s7", type_label: "OPC UA", browser_kind: "opcua" }],
-    });
-    expect(screen.queryByRole("button", { name: "Browse" })).not.toBeInTheDocument();
-  });
-
-  it("shows no connection states and keeps Browse usable while the network scan is disabled", () => {
+  it("shows no connection states while the network scan is disabled", () => {
     render(
       <ShowConnectionStateContext.Provider value={false}>
         <Accordion type="single" defaultValue="id:e9">
@@ -137,15 +117,41 @@ describe("EndpointAccordionItem", () => {
               endpoint_id: "e9", type_id: "sensor", type_label: "Sensor", ip: "10.0.0.9", status: "offline", source: "configured", endpoint_data: {},
               ports: [{ port: 4840, status: "offline", source: "configured", service_id: "s9", type_label: "OPC UA", browser_kind: "opcua" }],
             }}
-            deviceId="dev-1" onCreated={() => {}} onOpenDetails={() => {}} onOpenServiceDetails={() => {}}
+            deviceId="dev-1" onCreated={() => {}}
           />
         </Accordion>
       </ShowConnectionStateContext.Provider>
     );
-    expect(screen.getByText("OPC UA")).toBeInTheDocument();
+    expect(screen.getByText("OPC UA :4840")).toBeInTheDocument();
     expect(screen.queryByText("Offline")).not.toBeInTheDocument();
     expect(screen.queryByText("Status")).not.toBeInTheDocument();
     expect(screen.queryByText("Last status change")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Browse" })).toBeEnabled();
+    expect(screen.getByText("1 service")).toBeInTheDocument();
+  });
+
+  it("shows useful collapsed summaries, loads details on demand and retains drafts across collapsing", async () => {
+    const endpoint: MappedEndpoint = {
+      endpoint_id: "e1", type_id: "plc", type_label: "PLC", ip: "10.0.0.1",
+      status: "online", source: "configured", ports: [
+        { service_id: "s1", type_label: "OPC UA", port: 4840, source: "configured", status: "online" },
+        { service_id: "s2", type_label: "Modbus TCP", port: 4840, source: "configured", status: "offline" },
+      ],
+    };
+    const [merged] = mergeConfiguredEndpoints([endpoint], [endpoint]);
+    render(<Accordion type="single" collapsible>
+      <EndpointAccordionItem endpoint={merged} deviceId="dev-1" onCreated={() => {}} />
+    </Accordion>);
+    expect(screen.getByText("Endpoint · PLC")).toBeVisible();
+    expect(screen.getByText("2 services")).toBeVisible();
+    expect(screen.getByText("OPC UA :4840")).toBeVisible();
+    expect(screen.getByText("Online")).toBeVisible();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    const trigger = screen.getByRole("button", { expanded: false });
+    await userEvent.click(trigger);
+    await userEvent.type(screen.getByRole("textbox", { name: "Endpoint draft" }), "-edited");
+    await userEvent.click(trigger);
+    expect(screen.getByLabelText("Endpoint draft").closest("[data-state]")).toHaveAttribute("data-state", "closed");
+    await userEvent.click(trigger);
+    expect(screen.getByRole("textbox", { name: "Endpoint draft" })).toHaveValue("e1-edited");
   });
 });

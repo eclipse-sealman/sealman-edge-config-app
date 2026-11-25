@@ -14,7 +14,6 @@ import UnidentifiedEndpointsCard from "./UnidentifiedEndpointsCard";
 import ScanNetworkDialog, { ScanNetworkRange } from "./ScanNetworkDialog";
 import AssignEndpointDialog from "./AssignEndpointDialog";
 import EndpointDetailsPage from "./EndpointDetailsPage";
-import ServiceDetailsPage from "./ServiceDetailsPage";
 import { mergeConfiguredEndpoints, mergeEndpointsByIp } from "./overviewMerge";
 import EndpointCanvas from "./EndpointCanvas";
 import EndpointActions from "./EndpointActions";
@@ -69,7 +68,8 @@ function excludeIpsCoveredByRanges(ips: string[], ranges: ScanNetworkRange[]): s
 // Hub for a while), since nothing updates these persisted statuses without a live scan.
 async function buildOfflineFallbackOverview(deviceId: string, signal: AbortSignal): Promise<NetworkOverview> {
   const { data } = await client.GET("/{device}/network/last-known", { params: { path: { device: deviceId } }, signal });
-  return data ?? { scanDefinition: { networkDefinition: "0.0.0.0", subnetMask: 32, ports: [] }, endpoints: [] };
+  if (!data) throw new Error("Configured assets returned no result");
+  return data;
 }
 
 export default function OverviewContentContainer() {
@@ -391,27 +391,39 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
     return <ErrorState title="Not permitted" onRetry={onRetry} />;
   }
 
+  // Every successful overview includes the full configured membership, even for custom scans.
+  // Failed/pending refreshes retain their last successful data and timestamp.
+  const configuration = [offlineFallbackQuery, ...(scanDenied ? [] : [overviewQuery, extraScanQuery])]
+    .filter((snapshot) => snapshot.data != null)
+    .sort((a, b) => b.dataUpdatedAt - a.dataUpdatedAt)[0]?.data;
+  const endpoints = mergeConfiguredEndpoints(
+    mergeEndpointsByIp(overview?.endpoints ?? [], extraEndpoints),
+    configuration?.endpoints.filter((endpoint) => endpoint.source === "configured"),
+  );
+  const openEndpoint = (endpointId: string) => {
+    setDetailsServiceId(null);
+    setDetailsEndpointId(endpointId);
+  };
+  const openService = (serviceId: string) => {
+    const endpoint = endpoints.find((item) => item.ports.some((port) => port.service_id === serviceId));
+    if (!endpoint?.endpoint_id) {
+      toast.error("Could not find this service's endpoint. Refresh the assets and try again.");
+      return;
+    }
+    setDetailsEndpointId(endpoint.endpoint_id);
+    setDetailsServiceId(serviceId);
+  };
+
   // Checked before the scan-pipeline's own loading/error states, since the details pages fetch
   // their own data independently and shouldn't be blocked by those.
-  if (detailsServiceId) {
-    return (
-      <div className="pt-2 pb-8 min-h-full">
-        <ServiceDetailsPage
-          serviceId={detailsServiceId}
-          onBack={() => setDetailsServiceId(null)}
-          onUpdated={handleRefresh}
-        />
-      </div>
-    );
-  }
-
   if (detailsEndpointId) {
     return (
       <div className="pt-2 pb-8 min-h-full">
         <EndpointDetailsPage
           endpointId={detailsEndpointId}
           onBack={() => setDetailsEndpointId(null)}
-          onOpenServiceDetails={setDetailsServiceId}
+          networkEndpoint={endpoints.find((endpoint) => endpoint.endpoint_id === detailsEndpointId)}
+          initialServiceId={detailsServiceId}
           onUpdated={handleRefresh}
         />
       </div>
@@ -477,16 +489,8 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
     );
   }
 
-  // Configured endpoints (from the DB) are always merged in underneath whatever the live scan
-  // currently finds - `mergeConfiguredEndpoints` lets live data (fresher) win per endpoint while
-  // still keeping configured-only entries around, shown as offline. Keyed by `endpoint_id` rather
-  // than `ip` here specifically, so multiple configured endpoints that happen to share an IP
-  // (e.g. several instances of the same type before each has its own real IP entered) still all
-  // show up instead of collapsing into one.
-  const endpoints = mergeConfiguredEndpoints(
-    mergeEndpointsByIp(overview?.endpoints ?? [], extraEndpoints),
-    offlineFallbackQuery.data?.endpoints ?? [],
-  );
+  // Keep configured-only endpoints alongside discoveries, with service membership taken from
+  // the latest successful response rather than an older cached scan.
   const discovered = endpoints.filter((e) => e.source !== "unidentified");
   const unidentified = endpoints.filter((e) => e.source === "unidentified");
   const viewToggle = <AssetsViewToggle value={viewMode} onChange={changeViewMode} />;
@@ -513,7 +517,6 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
         <>
           <div>
             <DeviceGatewayCard deviceId={deviceId} />
-            <div className="ml-10 h-6 w-0.5 bg-blue-600/30" aria-hidden="true" />
           </div>
           <DiscoveredEndpointsCard
             endpoints={discovered}
@@ -524,8 +527,6 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
             scanAvailable={scanEnabled}
             onAddEndpoint={() => setAddEndpointOpen(true)}
             onEndpointCreated={handleRefresh}
-            onOpenDetails={setDetailsEndpointId}
-            onOpenServiceDetails={setDetailsServiceId}
             viewToggle={viewToggle}
             highlightedEndpointId={highlightedEndpointId}
             onHighlightDone={() => setHighlightedEndpointId(null)}
@@ -555,8 +556,8 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
             endpoints={endpoints}
             deviceId={deviceId}
             onEndpointCreated={handleRefresh}
-            onOpenDetails={setDetailsEndpointId}
-            onOpenServiceDetails={setDetailsServiceId}
+            onOpenDetails={openEndpoint}
+            onOpenServiceDetails={openService}
           />
         </div>
       )}

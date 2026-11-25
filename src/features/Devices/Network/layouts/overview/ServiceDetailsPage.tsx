@@ -1,61 +1,54 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { ArrowLeft, Trash2 } from "lucide-react";
-import { WaterLoader } from "@/components/ui/water-loader";
+import { Pencil, Server, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Centered } from "@/features/Devices/Network/components";
-import { useNetworkPageStore } from "@/features/Devices/Network/stores";
-import useGetService from "@/generated/edge-administration/hooks/services/useGetService";
 import { useUpdateService } from "@/generated/edge-administration/hooks/services/useUpdateService";
 import { useDeleteService } from "@/generated/edge-administration/hooks/services/useDeleteService";
-import useGetServiceTypes from "@/generated/edge-administration/hooks/service_types/useGetServiceTypes";
+import type { components } from "@/generated/edge-administration/types";
 import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
-import TypeFieldsForm from "./TypeFieldsForm";
-import CustomFieldsEditor from "./CustomFieldsEditor";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
 import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
+import { usePermissions } from "@/features/authorization/permissions/use-permissions";
+import AssetFieldValues from "./AssetFieldValues";
+import { edgeApi } from "@/generated/edge-administration/api";
 
 const GuardedButton = withPermissionRequiredTooltip(Button);
+type Service = components["schemas"]["ServiceResponse"];
 
 interface props {
-  serviceId: string;
-  onBack: () => void;
+  service: Service;
+  deviceId: string;
   onUpdated: () => void;
+  actions?: ReactNode;
 }
 
-export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: props) {
-  const deviceId = useNetworkPageStore((s) => s.deviceId);
-  const { data: service, isLoading, isError, refetch } = useGetService(serviceId);
-  const { data: serviceTypes } = useGetServiceTypes();
+export default function ServiceDetailsPage({ service, deviceId, onUpdated, actions }: props) {
+  const serviceId = service.service_id;
+  const queryClient = useQueryClient();
+  const servicesQueryKey = edgeApi.queryOptions("get", "/services", {
+    params: { query: { endpoint_id: service.endpoint_id } },
+  }).queryKey;
   const { updateService, isPending: isSaving } = useUpdateService();
   const { deleteService, isPending: isDeleting } = useDeleteService();
-
-  const type = (serviceTypes ?? []).find((t) => t.type_id === service?.type_id);
+  const { hasPermission: canWrite } = usePermissions({ deviceId, permissionKey: PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE });
 
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [deletedKeys, setDeletedKeys] = useState<Set<string>>(new Set());
   const [isDirty, setIsDirty] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
 
-  // Only reset the form when we actually switch to a *different* service - not on every
-  // background refetch of the same one, which would otherwise wipe in-progress edits.
-  const initializedForRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!service || initializedForRef.current === service.service_id) return;
-    initializedForRef.current = service.service_id;
-    const initial: Record<string, unknown> = {};
-    for (const [key, resolved] of Object.entries(service.service_data)) {
-      initial[key] = resolved.value ?? null;
-    }
-    setValues(initial);
+  const schemaFields = Object.fromEntries(Object.entries(service.service_data)
+    .flatMap(([key, resolved]) => resolved.field ? [[key, resolved.field]] : []));
+  const storedValues = Object.fromEntries(Object.entries(service.service_data).map(([key, resolved]) => [key, resolved.value]));
+  const startEditing = () => {
+    setValues(storedValues);
     setDeletedKeys(new Set());
     setIsDirty(false);
-  }, [service]);
-
-  const schemaFields = type?.fields ?? {};
-  const customValues = Object.fromEntries(Object.entries(values).filter(([key]) => !(key in schemaFields)));
+    setEditing(true);
+  };
 
   const setFieldValue = (key: string, value: unknown) => {
     setValues((v) => ({ ...v, [key]: value }));
@@ -79,6 +72,7 @@ export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: pro
   };
 
   const handleSave = async () => {
+    if (!canWrite) return;
     // Only schema fields the user hasn't just deleted have anything to validate against -
     // custom fields are free-form, and a deleted field is about to be removed regardless.
     const fieldsToValidate = Object.fromEntries(
@@ -94,11 +88,13 @@ export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: pro
       for (const key of deletedKeys) {
         payload[key] = null;
       }
-      await updateService({ serviceId, body: { service_data: payload } });
+      const saved = await updateService({ serviceId, body: { service_data: payload } });
+      queryClient.setQueryData<Service[]>(servicesQueryKey, (current) =>
+        current?.map((item) => item.service_id === serviceId ? saved : item));
       toast.success("Service updated");
       setDeletedKeys(new Set());
       setIsDirty(false);
-      await refetch();
+      setEditing(false);
       onUpdated();
     } catch {
       toast.error("Failed to update service");
@@ -106,130 +102,69 @@ export default function ServiceDetailsPage({ serviceId, onBack, onUpdated }: pro
   };
 
   const handleDelete = async () => {
+    if (!canWrite) return;
     try {
       await deleteService(serviceId);
+      queryClient.setQueryData<Service[]>(servicesQueryKey, (current) =>
+        current?.filter((item) => item.service_id !== serviceId));
       toast.success("Service removed");
       setDeleteOpen(false);
       onUpdated();
-      onBack();
     } catch {
       toast.error("Failed to remove service");
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
-        <ArrowLeft /> Back to Endpoint
-      </Button>
-
-      {isLoading && (
-        <Centered>
-          <p className="flex items-center gap-2 text-muted-foreground">
-            <WaterLoader /> Loading service...
-          </p>
-        </Centered>
-      )}
-
-      {isError && (
-        <Centered>
-          <p className="text-sm text-destructive">Failed to load this service.</p>
-        </Centered>
-      )}
-
-      {service && (
-        <>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold leading-none tracking-tight">{service.type_label}</h2>
-              {service.type_description && (
-                <p className="text-sm text-muted-foreground mt-1.5">{service.type_description}</p>
-              )}
-            </div>
-            <GuardedButton
-              deviceId={deviceId}
-              permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
-              variant="destructive"
-              size="sm"
-              onClick={() => setDeleteOpen(true)}
-              className="shrink-0"
-            >
-              <Trash2 /> Remove Service
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+        <div className="flex items-center gap-3">
+          <div className="rounded-md bg-blue-100 p-2 text-blue-600"><Server className="h-4 w-4" aria-hidden="true" /></div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600">Service</p>
+            <h3 className="text-sm font-semibold">{service.type_label}</h3>
+            {service.type_description && (
+              <p className="text-xs text-muted-foreground mt-1">{service.type_description}</p>
+            )}
+          </div>
+        </div>
+        <div className="ml-auto flex w-64 max-w-full flex-wrap items-center justify-end gap-2">
+          {actions}
+          {editing && canWrite ? (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setEditing(false)} disabled={isSaving}>Cancel</Button>
+              <Button size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>{isSaving ? "Saving..." : "Save"}</Button>
+            </>
+          ) : (
+            <GuardedButton deviceId={deviceId} permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+              variant="outline" size="sm" onClick={startEditing}>
+              <Pencil /> Edit service
             </GuardedButton>
-          </div>
-
-          {type && (
-            <div className="border rounded-lg bg-background">
-              <div className="px-4 py-3 border-b">
-                <h3 className="text-sm font-semibold">Service Type Definition</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  The field schema defined on the "{type.label}" service type.
-                </p>
-              </div>
-              <div className="divide-y">
-                {Object.entries(type.fields).map(([key, definition]) => (
-                  <div key={key} className="flex items-center justify-between px-4 py-2 text-sm">
-                    <span>
-                      {definition.label} <span className="text-muted-foreground font-mono text-xs">({key})</span>
-                    </span>
-                    <span className="text-muted-foreground text-xs">
-                      {definition.type}
-                      {definition.required ? " · required" : ""}
-                      {definition.default !== null && definition.default !== undefined
-                        ? ` · default: ${definition.default}`
-                        : ""}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
           )}
+        </div>
+      </div>
 
-          <div className="border rounded-lg bg-background">
-            <div className="px-4 py-3 border-b flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold">Instance Data</h3>
-                <p className="text-xs text-muted-foreground mt-1">The actual field values for this service.</p>
-              </div>
-              <GuardedButton
-                deviceId={deviceId}
-                permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
-                size="sm"
-                onClick={handleSave}
-                disabled={!isDirty || isSaving}
-              >
-                {isSaving ? "Saving..." : "Save Changes"}
-              </GuardedButton>
-            </div>
-            <div className="p-4 space-y-6">
-              {type && (
-                <TypeFieldsForm
-                  fields={type.fields}
-                  values={values}
-                  onChange={setFieldValue}
-                  onDelete={deleteFieldValue}
-                />
-              )}
-
-              <div className="space-y-2 pt-2 border-t">
-                <h4 className="text-xs font-semibold text-muted-foreground">Custom Fields</h4>
-                <CustomFieldsEditor
-                  customValues={customValues}
-                  onChange={setFieldValue}
-                  onDelete={deleteFieldValue}
-                  onAdd={setFieldValue}
-                />
-              </div>
-            </div>
-          </div>
-        </>
+      <AssetFieldValues
+        fields={schemaFields}
+        values={editing && canWrite ? values : storedValues}
+        onChange={editing && canWrite ? setFieldValue : undefined}
+        onDelete={editing && canWrite ? deleteFieldValue : undefined}
+        disabled={isSaving}
+      />
+      {editing && canWrite && (
+        <div className="border-t pt-4">
+          <GuardedButton deviceId={deviceId} permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+            variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} disabled={isSaving}>
+            <Trash2 /> Remove Service
+          </GuardedButton>
+        </div>
       )}
 
       <ConfirmDeleteDialog
-        open={deleteOpen}
+        open={deleteOpen && canWrite}
         onOpenChange={setDeleteOpen}
         title="Remove service"
-        description={`This removes "${service?.type_label}". This cannot be undone.`}
+        description={`This removes "${service.type_label}". This cannot be undone.`}
         onConfirm={handleDelete}
         isPending={isDeleting}
       />

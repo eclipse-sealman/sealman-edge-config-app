@@ -3,7 +3,7 @@ import Toggle from "./Toggle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { isListRow, orderedItemFields } from "./listFields";
+import { isListRow, newListRow, orderedItemFields } from "./listFields";
 
 // Radix Select can't hold an empty-string item, so "no selection" is represented by this sentinel.
 const NO_SELECTION = "__none__";
@@ -33,7 +33,7 @@ export function formatMetadataValue(
     if (!Array.isArray(value) || !value.every(isListRow)) return `Invalid list value: ${JSON.stringify(value)}`;
     return value.map((row) => orderedItemFields(definition)
       .map(([key, column]) => {
-        const text = formatMetadataValue(row[key] ?? column.default, column);
+        const text = formatMetadataValue(Object.hasOwn(row, key) ? row[key] : column.default, column);
         return text ? `${column.label}: ${text}` : "";
       })
       .filter(Boolean)
@@ -218,9 +218,7 @@ function ListValueInput({ definition, value, onChange, disabled }: FieldValueInp
         </fieldset>
       ))}
       <Button type="button" variant="outline" size="sm" disabled={disabled}
-        onClick={() => onChange([...rows, Object.fromEntries(columns.map(([key, column]) => [
-          key, column.default ?? (column.type === "boolean" ? false : null),
-        ]))])}>
+        onClick={() => onChange([...rows, newListRow(definition)])}>
         Add row
       </Button>
     </div>

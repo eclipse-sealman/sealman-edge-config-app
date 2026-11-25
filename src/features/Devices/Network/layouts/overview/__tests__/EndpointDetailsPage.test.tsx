@@ -22,7 +22,10 @@ const endpointFixture = {
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-query")>()),
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQueryClient: () => ({
+    invalidateQueries: vi.fn(),
+    setQueryData: (_key: unknown, data: unknown) => { mocks.endpoint = data; },
+  }),
 }));
 vi.mock("@/features/Extensions/outlets/ExtensionOutlet", () => ({
   default: (props: Record<string, unknown>) => <div data-testid="slot">{JSON.stringify(props)}</div>,
@@ -55,9 +58,10 @@ vi.mock("@/generated/edge-administration/hooks/endpoints/useDeleteEndpoint", () 
 vi.mock("../AssignServiceDialog", () => ({ default: () => null }));
 vi.mock("../ConfirmDeleteDialog", () => ({ default: () => null }));
 vi.mock("../ReassignEndpointDialog", () => ({ default: () => null }));
+vi.mock("../EndpointServices", () => ({ default: () => <div>Service tabs</div> }));
 
 const renderPage = () =>
-  render(<EndpointDetailsPage endpointId="e1" onBack={() => {}} onOpenServiceDetails={() => {}} onUpdated={() => {}} />);
+  render(<EndpointDetailsPage endpointId="e1" onBack={() => {}} onUpdated={() => {}} />);
 
 describe("EndpointDetailsPage endpoint.details slot", () => {
   beforeEach(() => {
@@ -106,6 +110,7 @@ describe("EndpointDetailsPage endpoint.details slot", () => {
     });
     mocks.refetch.mockResolvedValue({ isError: true, data: mocks.endpoint });
     renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Edit endpoint" }));
     await userEvent.click(screen.getByRole("button", { name: "Add row" }));
     await userEvent.type(screen.getByRole("textbox", { name: "Identifier, row 2" }), "B");
     await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
@@ -114,11 +119,31 @@ describe("EndpointDetailsPage endpoint.details slot", () => {
       original, { identifier: "B" },
     ]);
 
+    await userEvent.click(screen.getByRole("button", { name: "Edit endpoint" }));
     await userEvent.type(screen.getByRole("textbox", { name: "Identifier, row 2" }), "2");
     await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => expect(mocks.updateEndpoint).toHaveBeenCalledTimes(2));
     expect(mocks.updateEndpoint.mock.calls[1][0].body.endpoint_data.equipment).toEqual([
       original, { id: "assigned-id", identifier: "B2" },
     ]);
+  });
+
+  it("keeps endpoint information collapsed independently from the service tabs and supports cancelling edits", async () => {
+    mocks.fields = {
+      serial: { type: "string", ui: "input", label: "Serial", required: false, changeable: true, show_in_list: true },
+    };
+    mocks.endpoint = { ...endpointFixture, endpoint_data: { serial: { value: "SN-1" } } };
+    renderPage();
+    expect(screen.getByRole("button", { name: "Endpoint details" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("Service tabs")).toBeVisible();
+    expect(screen.getByText("SN-1")).not.toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Endpoint details" }));
+    expect(screen.getByText("SN-1")).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Edit endpoint" }));
+    await userEvent.clear(screen.getByDisplayValue("SN-1"));
+    await userEvent.type(screen.getAllByRole("textbox")[0], "draft");
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByText("SN-1")).toBeVisible();
+    expect(mocks.updateEndpoint).not.toHaveBeenCalled();
   });
 });

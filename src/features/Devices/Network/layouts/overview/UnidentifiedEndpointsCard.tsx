@@ -27,16 +27,14 @@ export default function UnidentifiedEndpointsCard({ endpoints, deviceId, onEndpo
         </p>
       </div>
 
-      <div className="border border-orange-200 rounded-lg overflow-hidden bg-background">
-        <Accordion type="single" collapsible className="w-full">
+      <div>
+        <Accordion type="multiple" className="w-full space-y-3">
           {endpoints.map((endpoint) => (
             <EndpointAccordionItem
               key={endpointListKey(endpoint)}
               endpoint={endpoint}
               deviceId={deviceId}
               onCreated={onEndpointCreated}
-              onOpenDetails={() => {}}
-              onOpenServiceDetails={() => {}}
             />
           ))}
         </Accordion>

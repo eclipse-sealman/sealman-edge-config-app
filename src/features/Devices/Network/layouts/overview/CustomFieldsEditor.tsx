@@ -10,6 +10,7 @@ interface props {
   onChange: (key: string, value: unknown) => void;
   onDelete: (key: string) => void;
   onAdd: (key: string, value: unknown) => void;
+  addOnly?: boolean;
 }
 
 function toInputValue(value: unknown): string {
@@ -22,7 +23,7 @@ function toInputValue(value: unknown): string {
  * Freeform key/value editor for instance data that has nothing to do with the endpoint/service
  * type's defined fields - lets a user attach arbitrary extra data to a single instance.
  */
-export default function CustomFieldsEditor({ customValues, onChange, onDelete, onAdd }: props) {
+export default function CustomFieldsEditor({ customValues, onChange, onDelete, onAdd, addOnly = false }: props) {
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
 
@@ -43,11 +44,11 @@ export default function CustomFieldsEditor({ customValues, onChange, onDelete, o
 
   return (
     <div className="space-y-3">
-      {Object.entries(customValues).length === 0 && (
+      {!addOnly && Object.entries(customValues).length === 0 && (
         <p className="text-sm text-muted-foreground">No custom fields added yet.</p>
       )}
 
-      {Object.entries(customValues).map(([key, value]) => (
+      {!addOnly && Object.entries(customValues).map(([key, value]) => (
         <div key={key} className="flex items-end gap-2">
           <div className="flex-1 space-y-1">
             <label className="text-xs font-medium text-muted-foreground font-mono">{key}</label>

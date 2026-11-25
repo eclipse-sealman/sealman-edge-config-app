@@ -3,11 +3,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError, client, edgeApi } from "../api";
 import type { components } from "../types";
 import { isDevicePasswordEnabled } from "@/config/devicePassword";
+import { useAuth } from "@/auth";
 
 export default function usePostDeviceRequestPassword(device: string) {
   const [password, setPassword] = useState<components["schemas"]["DeviceSecretValue"] | null>(null);
   const controller = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
+  const auth = useAuth();
+  const infoQueryKey = [...edgeApi.queryOptions("get", "/{device}/password/info", {
+    params: { path: { device } },
+    cache: "no-store",
+  }).queryKey, auth.user?.iss, auth.user?.sub];
   const mutation = useMutation({
     mutationKey: ["revealDevicePassword", device],
     // Only local dialog state receives plaintext; the mutation's cached result is void.
@@ -25,11 +31,10 @@ export default function usePostDeviceRequestPassword(device: string) {
     gcTime: 0,
     retry: false,
     meta: { skipGlobalInvalidate: true },
-    onSuccess: () => {
+    // Aborting a response cannot undo a schedule already persisted by the server.
+    onSettled: () => {
       void queryClient.invalidateQueries({
-        queryKey: edgeApi.queryOptions("get", "/{device}/password/info", {
-          params: { path: { device } },
-        }).queryKey,
+        queryKey: infoQueryKey,
       });
     },
   });

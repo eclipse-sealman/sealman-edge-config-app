@@ -1,33 +1,36 @@
 import { useEffect, useRef, useState } from "react";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { EndpointStatus, Port, LastStatusChange } from "@/features/Devices/Network/components";
-import { MappedEndpoint, MappedPort } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
-import { EndpointDialogs, EndpointIdentity, EndpointPrimaryAction, PortActions, } from "./endpointShared";
-import { BrowseTarget, portNeedsAssignment, useEndpointDisplay } from "./endpointLogic";
+import { EndpointStatus, LastStatusChange } from "@/features/Devices/Network/components";
+import { MappedEndpoint } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
+import { EndpointIdentity } from "./endpointShared";
+import { useEndpointDisplay } from "./endpointLogic";
 import { endpointListKey, portListKey } from "./overviewMerge";
 import { useShowConnectionState } from "./connectionStateContext";
+import EndpointDetailsPage from "./EndpointDetailsPage";
+import EndpointServices from "./EndpointServices";
+import AssignEndpointDialog from "./AssignEndpointDialog";
+import { Button } from "@/components/ui/button";
+import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
+import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
+
+const GuardedButton = withPermissionRequiredTooltip(Button);
 
 interface props {
   endpoint: MappedEndpoint;
   deviceId: string;
   onCreated: () => void;
-  onOpenDetails: (endpointId: string) => void;
-  onOpenServiceDetails: (serviceId: string) => void;
   highlighted?: boolean;
   onHighlightDone?: () => void;
 }
 
 const HIGHLIGHT_DURATION_MS = 4000;
 
-export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, onOpenDetails, onOpenServiceDetails, highlighted = false, onHighlightDone }: props) {
+export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, highlighted = false, onHighlightDone }: props) {
   const display = useEndpointDisplay(endpoint);
   const showState = useShowConnectionState();
   const { needsAssignment, isConfigured } = display;
   const [assignEndpointOpen, setAssignEndpointOpen] = useState(false);
-  const [assignPort, setAssignPort] = useState<MappedPort | null>(null);
-  const [browsing, setBrowsing] = useState<BrowseTarget | null>(null);
+  const [hasExpanded, setHasExpanded] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const onHighlightDoneRef = useRef(onHighlightDone);
   useEffect(() => {
@@ -43,111 +46,58 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
   }, [highlighted]);
 
   return (
-    <AccordionItem value={endpointListKey(endpoint)} className="last:border-b-0">
+    <AccordionItem value={endpointListKey(endpoint)} className="overflow-hidden rounded-lg border bg-background [&>[data-state=closed]]:hidden">
       <div
         ref={rowRef}
         data-highlighted={highlighted || undefined}
         className={`flex items-center pr-4 ${needsAssignment ? "bg-amber-50" : ""} ${highlighted ? "animate-search-highlight" : ""}`}
       >
-        <div className="flex-1">
-          <AccordionTrigger className="px-4 hover:no-underline hover:bg-muted/40">
-            <div className="flex items-center justify-between w-full gap-4">
-              <EndpointIdentity display={display} />
-              <div className="flex items-center gap-3 shrink-0">
-                {showState && <EndpointStatus value={endpoint.status} type="icon" />}
+        <div className="min-w-0 flex-1">
+          <AccordionTrigger className="px-4 hover:no-underline hover:bg-muted/40" onClick={() => setHasExpanded(true)}>
+            <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3 pr-3">
+              <div className="min-w-0 flex-1 basis-52">
+                <EndpointIdentity display={display} typeLabel={endpoint.type_label ?? "Unidentified"} />
+                {endpoint.ports.length > 0 && <div className="ml-12 mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs font-normal text-muted-foreground">
+                  {endpoint.ports.slice(0, 4).map((port) => <span key={port.service_id ?? portListKey(port)}>
+                    {port.type_label ?? "Unidentified"}{port.port != null ? ` :${port.port}` : ""}
+                  </span>)}
+                  {endpoint.ports.length > 4 && <span>+{endpoint.ports.length - 4} more</span>}
+                </div>}
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {showState && <EndpointStatus value={endpoint.status} type="text" />}
+                <span className="min-w-20 rounded bg-muted px-2 py-1 text-center text-xs font-normal text-muted-foreground">
+                  {endpoint.ports.length} {endpoint.ports.length === 1 ? "service" : "services"}
+                </span>
+                {showState && endpoint.lastStatusChange && <LastStatusChange date={endpoint.lastStatusChange} variant="outline" />}
               </div>
             </div>
           </AccordionTrigger>
         </div>
-        <div className="flex items-center gap-2 shrink-0 ml-2">
-          <EndpointPrimaryAction
-            endpoint={endpoint}
-            display={display}
-            deviceId={deviceId}
-            onOpenDetails={onOpenDetails}
-            onAssign={() => setAssignEndpointOpen(true)}
-          />
-        </div>
+        {!isConfigured && <div className="flex items-center gap-2 shrink-0 ml-2">
+          <GuardedButton deviceId={deviceId} permissionKey={PERMISSION_KEYS.DEVICE_ENDPOINT_WRITE}
+            variant="outline" size="sm" onClick={() => setAssignEndpointOpen(true)}>
+            Assign
+          </GuardedButton>
+        </div>}
       </div>
-      <AccordionContent className="px-4">
-        {endpoint.ports.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No services detected on this endpoint.</p>
+      {/* Fetch on first expansion, then retain drafts when the endpoint is collapsed. */}
+      <AccordionContent forceMount={hasExpanded || undefined} className="border-t px-4 pt-1">
+        {isConfigured && endpoint.endpoint_id ? (
+          <EndpointDetailsPage endpointId={endpoint.endpoint_id} embedded networkEndpoint={endpoint}
+            onBack={onCreated} onUpdated={onCreated} />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {showState && <TableHead className="w-[100px]">Status</TableHead>}
-                <TableHead className="w-[100px]">Port</TableHead>
-                <TableHead>Service</TableHead>
-                {showState && <TableHead>Last status change</TableHead>}
-                <TableHead className="text-right"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {endpoint.ports.map((port) => {
-                const needsPortAssignment = portNeedsAssignment(port);
-                // Only an already-assigned service has a detail page to jump to - clicking an
-                // unassigned/unidentified port's row wouldn't have anywhere to go.
-                const serviceId = port.service_id;
-                return (
-                <TableRow
-                  key={portListKey(port)}
-                  className={[needsPortAssignment ? "bg-amber-50" : "", serviceId ? "cursor-pointer hover:bg-muted/40" : ""].join(" ")}
-                  onClick={serviceId ? () => onOpenServiceDetails(serviceId) : undefined}
-                >
-                  {showState && (
-                    <TableCell>
-                      <EndpointStatus value={port.status} type="text" />
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    <Port value={port.port != null ? port.port.toString() : "-"} />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className={needsPortAssignment ? "text-amber-700 font-medium" : ""}>
-                        {port.type_label ?? "Unidentified"}
-                      </span>
-                      {needsPortAssignment && (
-                        <Badge variant="outline" className="text-amber-700 border-amber-400 bg-amber-100">
-                          Not assigned
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  {showState && (
-                    <TableCell>
-                      <LastStatusChange date={port.lastStatusChange ?? undefined} variant="outline" />
-                    </TableCell>
-                  )}
-                  <TableCell className="text-right">
-                    <PortActions
-                      endpoint={endpoint}
-                      port={port}
-                      deviceId={deviceId}
-                      isConfigured={isConfigured}
-                      onAssignPort={setAssignPort}
-                      onBrowse={setBrowsing}
-                    />
-                  </TableCell>
-                </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <EndpointServices endpoint={endpoint} deviceId={deviceId} onUpdated={onCreated} />
         )}
       </AccordionContent>
 
-      <EndpointDialogs
-        endpoint={endpoint}
+      <AssignEndpointDialog
+        open={assignEndpointOpen}
+        onOpenChange={setAssignEndpointOpen}
         deviceId={deviceId}
+        ip={endpoint.ip ?? undefined}
+        defaultTypeId={endpoint.source === "default" ? endpoint.type_id : null}
         onCreated={onCreated}
-        assignEndpointOpen={assignEndpointOpen}
-        setAssignEndpointOpen={setAssignEndpointOpen}
-        assignPort={assignPort}
-        setAssignPort={setAssignPort}
-        browsing={browsing}
-        setBrowsing={setBrowsing}
       />
     </AccordionItem>
   );

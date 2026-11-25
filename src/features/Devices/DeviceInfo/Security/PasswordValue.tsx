@@ -3,7 +3,6 @@ import { Input } from "@/components/ui/input";
 import { InlineAlert } from "@/components/ui/page-state";
 import { useState } from "react";
 import type { components } from "@/generated/edge-administration/types";
-import PasswordRenewalStatus from "./PasswordRenewalStatus";
 
 export interface PasswordValueProps {
   password: components["schemas"]["DeviceSecretValue"];
@@ -30,7 +29,6 @@ export default function PasswordValue({ password }: PasswordValueProps) {
         <Button onClick={() => { void handleCopy(); }}>{copied ? "Copied" : "Copy"}</Button>
       </div>
       {copyError && <InlineAlert className="mb-3">{copyError}</InlineAlert>}
-      <PasswordRenewalStatus task={password.renewalTask ?? null} />
     </div>
   );
 }

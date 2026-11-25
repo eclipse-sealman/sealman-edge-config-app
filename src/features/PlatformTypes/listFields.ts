@@ -12,6 +12,12 @@ export function orderedItemFields(definition: Pick<FieldDefinition, "item_fields
   return [...keys].filter((key) => Object.hasOwn(fields, key)).map((key) => [key, fields[key]] as const);
 }
 
+export function newListRow(definition: Pick<FieldDefinition, "item_fields" | "item_order">): Record<string, unknown> {
+  return Object.fromEntries(orderedItemFields(definition).map(([key, column]) => [
+    key, column.default ?? (column.type === "boolean" ? false : null),
+  ]));
+}
+
 export type FieldDefinitionWrite = Omit<FieldDefinition, "item_fields" | "item_order"> & {
   item_fields?: Record<string, FieldDefinition | null> | null;
 };

@@ -23,7 +23,7 @@ const endpointWith = (data: Record<string, unknown>) => ({
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-query")>()),
-  useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }),
+  useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries, setQueryData: vi.fn() }),
 }));
 vi.mock("@/features/Extensions/outlets/ExtensionOutlet", () => ({
   default: (props: { onDataChanged?: () => void }) => {
@@ -59,6 +59,7 @@ vi.mock("@/generated/edge-administration/hooks/endpoints/useDeleteEndpoint", () 
 vi.mock("../AssignServiceDialog", () => ({ default: () => null }));
 vi.mock("../ConfirmDeleteDialog", () => ({ default: () => null }));
 vi.mock("../ReassignEndpointDialog", () => ({ default: () => null }));
+vi.mock("../EndpointServices", () => ({ default: () => null }));
 vi.mock("../TypeFieldsForm", () => ({ default: () => null }));
 vi.mock("../CustomFieldsEditor", () => ({
   default: (props: { customValues: Record<string, unknown>; onChange: (k: string, v: unknown) => void }) => (
@@ -70,8 +71,11 @@ vi.mock("../CustomFieldsEditor", () => ({
 }));
 
 const onUpdated = vi.fn();
-const renderPage = () =>
-  render(<EndpointDetailsPage endpointId="e1" onBack={() => {}} onOpenServiceDetails={() => {}} onUpdated={onUpdated} />);
+const renderPage = () => {
+  const result = render(<EndpointDetailsPage endpointId="e1" onBack={() => {}} onUpdated={onUpdated} />);
+  fireEvent.click(screen.getByRole("button", { name: "Edit endpoint" }));
+  return result;
+};
 
 const shownValues = () => JSON.parse(screen.getByTestId("values").textContent!);
 

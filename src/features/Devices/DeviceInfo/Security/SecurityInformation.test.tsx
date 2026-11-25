@@ -106,9 +106,9 @@ it("reveals explicitly, shows the persisted schedule, and never caches plaintext
   expect(requests("POST")).toHaveLength(0);
   expect(await reveal()).toHaveValue("test-password");
   const dialog = screen.getByRole("dialog");
-  expect(within(dialog).getByText(/Automatic renewal scheduled around .*UTC/)).toBeInTheDocument();
+  expect(within(dialog).queryByText(/Automatic renewal scheduled around/)).not.toBeInTheDocument();
   expect(within(dialog).queryByText("Automatic renewal details")).not.toBeInTheDocument();
-  await waitFor(() => expect(screen.getAllByText(/Automatic renewal scheduled around/)).toHaveLength(2));
+  await waitFor(() => expect(screen.getAllByText(/Automatic renewal scheduled around/)).toHaveLength(1));
 
   await act(async () => {
     window.dispatchEvent(new Event("focus"));
@@ -143,7 +143,7 @@ it("clears the reveal on renewal and distinguishes requested from rotated", asyn
 it.each(["forceRenewal", "secretUpdatedAt"] as const)("clears a revealed value when live %s changes", async (field) => {
   render(page());
   await reveal();
-  await waitFor(() => expect(screen.getAllByText(/Automatic renewal scheduled around/)).toHaveLength(2));
+  await waitFor(() => expect(screen.getAllByText(/Automatic renewal scheduled around/)).toHaveLength(1));
   info = field === "forceRenewal" ? { ...info, forceRenewal: true } : { ...info, secretUpdatedAt: "2026-11-16T13:00:00Z" };
   await act(async () => { await queryClient.invalidateQueries(); });
   await waitFor(() => expect(screen.queryByRole("textbox", { name: "Device password" })).not.toBeInTheDocument());
@@ -273,6 +273,64 @@ it("cannot restore a late password into a closed or reopened dialog", async () =
   expect(JSON.stringify(queryClient.getMutationCache().getAll().map((mutation) => mutation.state))).not.toContain("late-password");
 });
 
+it.each(["close", "unmount"] as const)("reconciles an already persisted schedule after reveal %s aborts its response", async (action) => {
+  apiRequest.mockImplementation(async (request: Request) => {
+    if (request.method === "GET") return json(info);
+    info = { ...info, renewalTask: task };
+    return new Promise<Response>((_resolve, reject) => {
+      request.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+    });
+  });
+  const mounted = render(page());
+  fireEvent.click(await screen.findByRole("button", { name: "Show password value" }));
+  await waitFor(() => expect(requests("POST")).toHaveLength(1));
+  const sourceKey = queryClient.getQueryCache().getAll()[0].queryKey;
+  const otherAccountKey = [...sourceKey.slice(0, -1), "another-reader"];
+  queryClient.setQueryData(otherAccountKey, { ...info, renewalTask: null });
+  if (action === "close") {
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[1]);
+  } else {
+    mounted.unmount();
+    await waitFor(() => expect(queryClient.getQueryCache().getAll()[0].state.isInvalidated).toBe(true));
+    render(page());
+  }
+  await screen.findByText(/Automatic renewal scheduled around/);
+  expect(requests("GET")).toHaveLength(2);
+  expect(requests("POST")).toHaveLength(1);
+  expect(requests("POST")[0].signal.aborted).toBe(true);
+  expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  expect(queryClient.getQueryState(otherAccountKey)?.isInvalidated).toBe(false);
+});
+
+it.each(["Error", "Canceled", "Completed"] as const)("keeps live %s scheduling state out of the revealed password snapshot", async (status) => {
+  render(page());
+  await reveal();
+  await screen.findByText(/Automatic renewal scheduled around/);
+  info = { ...info, renewalTask: { ...task, status } };
+  await act(async () => { await queryClient.invalidateQueries(); });
+  await waitFor(() => expect(screen.queryByText(/Automatic renewal scheduled around/)).not.toBeInTheDocument());
+  const dialog = screen.getByRole("dialog");
+  expect(within(dialog).getByRole("textbox")).toHaveValue("test-password");
+  expect(within(dialog).queryByText(/Automatic.*renewal/)).not.toBeInTheDocument();
+  if (status === "Error") expect(screen.getByRole("alert", { hidden: true })).toHaveTextContent("Automatic password renewal failed.");
+  expect(requests("POST")).toHaveLength(1);
+});
+
+it("closes confirmation when a live renewal becomes pending without sending a duplicate", async () => {
+  render(page());
+  fireEvent.click(await screen.findByRole("button", { name: "Renew password" }));
+  expect(screen.getByRole("button", { name: "OK" })).toBeEnabled();
+  info = { ...info, forceRenewal: true };
+  await act(async () => { await queryClient.invalidateQueries(); });
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(screen.getByText("Password renewal pending. Waiting for the device to connect.")).toBeInTheDocument();
+  info = { ...info, forceRenewal: false };
+  await act(async () => { await queryClient.invalidateQueries(); });
+  await screen.findByRole("button", { name: "Renew password" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(requests("POST")).toHaveLength(0);
+});
+
 it("handles failed renewal without an unhandled promise and keeps confirmation actionable", async () => {
   apiRequest.mockImplementation(async (request: Request) =>
     request.method === "GET" ? json(info) : json({ message: "SEMS unavailable" }, 502),
@@ -330,7 +388,7 @@ it.each([
 ] as const)("labels SEMS record timestamps truthfully (updated=%s, created=%s)", async (updated, created, label) => {
   info = { ...info, secretUpdatedAt: updated, secretCreatedAt: created, forceRenewal: true };
   render(page());
-  const recordLabel = await screen.findByText("Password information");
+  const recordLabel = await screen.findByText("Device Password Last Updated");
   const record = recordLabel.closest("li");
   expect(record).not.toBeNull();
   expect(within(record!).getByText((text) => text.startsWith(label))).toBeInTheDocument();
@@ -360,7 +418,7 @@ it("shows pending device connection without canceled-task clutter", async () => 
 it.each(["Completed", "Canceled", "Error"] as const)("keeps %s state user-facing without history or diagnostics", async (status) => {
   info.renewalTask = { ...task, status, errorCount: status === "Error" ? 2 : 0, latestError: status === "Error" ? "SEMS unavailable" : null };
   render(page());
-  await screen.findByText("Password information");
+  await screen.findByText("Device Password Last Updated");
   expect(document.querySelector("details")).toBeNull();
   expect(screen.queryByText(/Originally scheduled|Automatic renewal scheduled|Task last updated|Failed attempts|SEMS unavailable|Completed|Canceled|request accepted/)).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Renew password" })).toBeEnabled();

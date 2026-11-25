@@ -52,6 +52,23 @@ describe("list field values", () => {
     expect(formatMetadataValue("legacy", definition)).toContain("Invalid list value");
   });
 
+  it.each([
+    { name: "explicit nulls", row: { identifier: null, quantity: null, enabled: null }, expected: "(empty row)" },
+    { name: "missing keys", row: {}, expected: "Quantity: 1, Identifier: DEFAULT-ID, Enabled: Yes" },
+    { name: "explicit values", row: { identifier: "A", quantity: 2, enabled: true }, expected: "Quantity: 2, Identifier: A, Enabled: Yes" },
+    { name: "explicit falsy values", row: { identifier: "", quantity: 0, enabled: false }, expected: "Quantity: 0, Enabled: No" },
+  ])("uses defaults only for missing keys, preserving $name", ({ row, expected }) => {
+    const definition: FieldDefinition = {
+      ...equipment,
+      item_fields: {
+        identifier: { ...column, required: false, default: "DEFAULT-ID" },
+        quantity,
+        enabled: { ...column, type: "boolean", label: "Enabled", ui: "toggle", required: false, default: true },
+      },
+    };
+    expect(formatMetadataValue([row], definition)).toBe(expected);
+  });
+
   it("edits and removes whole rows, preserves server IDs and unknown data, and initializes new rows without IDs", async () => {
     const existing = { id: "server-id", identifier: "A", quantity: 2, extra: { nested: ["keep"] } };
     let latest: unknown;

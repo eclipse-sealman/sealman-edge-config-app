@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { focusManager, onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MappedPort } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import OverviewContentContainer from "../OverviewContentContainer";
 import { queryClient } from "@/config/queryConfig";
 
@@ -22,8 +23,16 @@ vi.mock("@/generated/edge-administration/hooks/network/usePostNetworkOverview", 
 vi.mock("@/generated/edge-administration/hooks/network/usePostDeviceScanPorts", () => ({ default: () => ({ mutateAsync: mocks.savePorts }) }));
 vi.mock("react-toastify", () => ({ toast: { error: mocks.notify } }));
 vi.mock("../DiscoveredEndpointsCard", () => ({
-  default: ({ endpoints, onScan, scanDisabled, scanAvailable }: { endpoints: { ip: string }[]; onScan: () => void; scanDisabled: boolean; scanAvailable?: boolean }) => (
-    <div>{endpoints.map((endpoint) => <span key={endpoint.ip}>{endpoint.ip}</span>)}{scanAvailable !== false && <button disabled={scanDisabled} onClick={onScan}>Custom scan</button>}</div>
+  default: ({ endpoints, onScan, scanDisabled, scanAvailable }: {
+    endpoints: { ip: string; ports: { service_id?: string | null }[] }[];
+    onScan: () => void; scanDisabled: boolean; scanAvailable?: boolean;
+  }) => (
+    <div>{endpoints.map((endpoint) => <div key={endpoint.ip}>
+      <span>{endpoint.ip}</span>
+      <output aria-label={`Services for ${endpoint.ip}`}>
+        {endpoint.ports.length} services: {endpoint.ports.map((port) => port.service_id).join(", ")}
+      </output>
+    </div>)}{scanAvailable !== false && <button disabled={scanDisabled} onClick={onScan}>Custom scan</button>}</div>
   ),
 }));
 vi.mock("../EndpointCanvas", () => ({
@@ -43,6 +52,8 @@ vi.mock("@/features/Devices/Gateway/DeviceGatewayCard", () => ({ default: () => 
 
 const definition = { networkDefinition: "10.0.0.0", subnetMask: 24, ports: [80] };
 const persisted = { scanDefinition: definition, endpoints: [{ ip: "10.0.0.1", endpoint_id: "one", source: "configured", ports: [] }] };
+const configuredService: MappedPort = { service_id: "s1", port: 4840, source: "configured", status: "online" };
+const withService = { ...persisted, endpoints: [{ ...persisted.endpoints[0], ports: [configuredService] }] };
 const scan = { payload: { scanDefinition: definition, scanResults: [] } };
 const forbidden = () => Object.assign(new Error("Denied"), { statusCode: 403 });
 
@@ -65,6 +76,111 @@ describe("Assets reactive authorization", () => {
     client = new QueryClient({ defaultOptions: queryClient.getDefaultOptions() });
   });
   afterEach(() => { client.clear(); vi.useRealTimers(); });
+
+  it.each([
+    { change: "deletion", ports: [], count: 0 },
+    { change: "same-port addition", ports: [configuredService, { ...configuredService, service_id: "s2" }], count: 2 },
+  ])("keeps a successful $change visible when baseline and custom scans remain stale", async ({ ports, count }) => {
+    let current = withService;
+    const get = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) => path.endsWith("last-known") ? Promise.resolve({ data: current }) : get(path));
+    mocks.overview.mockResolvedValue(withService);
+    render(tree());
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Custom scan" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run custom scan" }));
+    await flush();
+    expect(screen.getByLabelText("Services for 10.0.0.1")).toHaveTextContent("1 services: s1");
+
+    mocks.overview.mockRejectedValue(new Error("Device scan unavailable"));
+    current = { ...withService, endpoints: [{ ...withService.endpoints[0], ports }] };
+    await act(async () => { await client.invalidateQueries({ queryKey: ["network-offline-fallback"] }); });
+    await flush(7000);
+    expect(screen.getByLabelText("Services for 10.0.0.1")).toHaveTextContent(`${count} services:`);
+    if (count === 0) expect(screen.getByLabelText("Services for 10.0.0.1")).not.toHaveTextContent("s1");
+    else expect(screen.getByLabelText("Services for 10.0.0.1")).toHaveTextContent("s1, s2");
+
+    mocks.overview.mockResolvedValue(current);
+    await flush(10000);
+    expect(screen.getByLabelText("Services for 10.0.0.1")).toHaveTextContent(`${count} services:`);
+  });
+
+  it("accepts newer configured membership from a successful scan without waiting for another last-known read", async () => {
+    const get = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) => path.endsWith("last-known") ? Promise.resolve({ data: withService }) : get(path));
+    mocks.overview.mockResolvedValue(withService);
+    render(tree());
+    await flush();
+    expect(screen.getByLabelText("Services for 10.0.0.1")).toHaveTextContent("1 services: s1");
+    mocks.overview.mockResolvedValue({ ...withService, endpoints: [{
+      ...withService.endpoints[0], ports: [configuredService, { ...configuredService, service_id: "s2" }],
+    }] });
+    await flush(3000);
+    expect(screen.getByLabelText("Services for 10.0.0.1")).toHaveTextContent("2 services: s1, s2");
+    expect(mocks.get.mock.calls.filter(([path]) => path.endsWith("last-known"))).toHaveLength(1);
+  });
+
+  it.each(["last-known", "overview"])("removes a deleted endpoint using the latest complete %s snapshot despite cached custom scans", async (source) => {
+    let current = withService;
+    const get = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) => path.endsWith("last-known") ? Promise.resolve({ data: current }) : get(path));
+    mocks.overview.mockResolvedValue(withService);
+    render(tree());
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Custom scan" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run custom scan" }));
+    await flush();
+    expect(screen.getByText("10.0.0.1")).toBeInTheDocument();
+
+    current = { ...withService, endpoints: [] };
+    if (source === "last-known") {
+      mocks.overview.mockRejectedValue(new Error("Device scan unavailable"));
+      await act(async () => { await client.invalidateQueries({ queryKey: ["network-offline-fallback"] }); });
+    } else {
+      mocks.overview.mockResolvedValue(current);
+    }
+    await flush(7000);
+    expect(screen.queryByText("10.0.0.1")).not.toBeInTheDocument();
+  });
+
+  it("uses a freshly edited endpoint host while retaining stale scan caches", async () => {
+    let current = withService;
+    const get = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) => path.endsWith("last-known") ? Promise.resolve({ data: current }) : get(path));
+    mocks.overview.mockResolvedValue(withService);
+    render(tree());
+    await flush();
+    expect(screen.getByText("10.0.0.1")).toBeInTheDocument();
+
+    current = { ...withService, endpoints: [{ ...withService.endpoints[0], ip: "10.0.0.9" }] };
+    mocks.overview.mockRejectedValue(new Error("Device scan unavailable"));
+    await act(async () => { await client.invalidateQueries({ queryKey: ["network-offline-fallback"] }); });
+    await flush(7000);
+    expect(screen.getByText("10.0.0.9")).toBeInTheDocument();
+    expect(screen.queryByText("10.0.0.1")).not.toBeInTheDocument();
+  });
+
+  it.each(["loading", "failed", "missing body"])("does not treat a %s configuration refresh as deletion of newer scan membership", async (state) => {
+    const get = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) => path.endsWith("last-known")
+      ? Promise.resolve({ data: { ...persisted, endpoints: [] } }) : get(path));
+    mocks.overview.mockResolvedValue(withService);
+    render(tree());
+    await flush();
+    await flush(3000);
+    expect(screen.getByText("10.0.0.1")).toBeInTheDocument();
+
+    mocks.get.mockImplementation((path: string) => {
+      if (!path.endsWith("last-known")) return get(path);
+      if (state === "loading") return new Promise(() => {});
+      if (state === "failed") return Promise.reject(new Error("Configuration read unavailable"));
+      return Promise.resolve({ data: undefined });
+    });
+    mocks.overview.mockRejectedValue(new Error("Device scan unavailable"));
+    act(() => { void client.invalidateQueries({ queryKey: ["network-offline-fallback"] }); });
+    await flush(7000);
+    expect(screen.getByLabelText("Services for 10.0.0.1")).toHaveTextContent("1 services: s1");
+  });
 
   it("never scans while the network scan is disabled platform-wide but still shows configured endpoints", async () => {
     mocks.scanEnabled = false;

@@ -22,7 +22,7 @@ interface props {
 /** "Scan Network" and "Add Endpoint" - the same actions in the list and the canvas view. */
 export default function EndpointActions({ deviceId, onScan, isScanning, scanDisabled = false, scanAvailable = true, onAddEndpoint, leading }: props) {
   return (
-    <div className="flex items-center gap-2 shrink-0">
+    <div className="flex flex-wrap items-center gap-2">
       {leading}
       {scanAvailable && (
         <Button variant="outline" onClick={onScan} disabled={isScanning || scanDisabled}>
