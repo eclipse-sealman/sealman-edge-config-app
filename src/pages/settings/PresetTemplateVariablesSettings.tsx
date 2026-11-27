@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { toast } from "react-toastify";
+import { AlertTriangle } from "lucide-react";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
-import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import { ErrorState, InlineAlert, LoadingState } from "@/components/ui/page-state";
 import PageTitle from "@/components/Typography/PageTitle";
 import { getErrorMessage } from "@/lib/errors";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +22,8 @@ import { usePendingChanges } from "./pendingChanges";
 export type PresetVariableSection = {
   title: string;
   description?: string;
+  /** Marks the section as a danger zone and says what a wrong value can cause. */
+  danger?: string;
   variables: PresetTemplateVariable[];
 };
 
@@ -89,13 +93,25 @@ export default function PresetTemplateVariablesSettings({
       {header}
 
       {sections.map((section) => (
-        <section key={section.title} className="space-y-3">
+        <section
+          key={section.title}
+          className={cn("space-y-3", section.danger && "rounded-lg border-2 border-red-300 bg-red-50/50 p-4")}
+        >
           <div className="space-y-1">
-            <h3 className="text-base font-semibold">{section.title}</h3>
+            <div className="flex items-center gap-2">
+              {section.danger && <AlertTriangle className="h-5 w-5 text-red-600" aria-hidden="true" />}
+              <h3 className="text-base font-semibold">{section.title}</h3>
+              {section.danger && (
+                <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-white">
+                  Danger zone
+                </span>
+              )}
+            </div>
             {section.description && (
               <p className="text-sm text-muted-foreground">{section.description}</p>
             )}
           </div>
+          {section.danger && <InlineAlert variant="error">{section.danger}</InlineAlert>}
           <div className="bg-card border rounded-lg p-4">
             <div className="border rounded-md overflow-hidden">
               <table className="w-full text-sm border-separate border-spacing-0">

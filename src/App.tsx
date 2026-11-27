@@ -170,7 +170,14 @@ export default function App() {
                   <PresetTemplateVariablesSettings
                     title="SEMS"
                     description="Template variables for the connection of devices to the SEALMAN Edge Management System. Empty fields fall back to the template default."
-                    sections={[{ title: "Connection", variables: SEALMAN_EMS_VARIABLES }]}
+                    sections={[
+                      {
+                        title: "Connection",
+                        danger:
+                          "Wrong values here can take the entire fleet offline at once, with no way to recover the devices remotely. Only change these settings if you are sure.",
+                        variables: SEALMAN_EMS_VARIABLES,
+                      },
+                    ]}
                   >
                     <ContainerRegistriesSection />
                     <StaticComposeDeploymentsSection />

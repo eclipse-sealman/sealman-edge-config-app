@@ -1,9 +1,10 @@
-import { useId, useMemo, useRef } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import _AceEditor from "react-ace";
 import "ace-builds/src-noconflict/theme-github";
 import "ace-builds/src-noconflict/mode-yaml";
 import "ace-builds/src-noconflict/ext-searchbox";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Maximize2, Minimize2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { yamlProblems } from "./yamlProblem";
 
@@ -14,18 +15,34 @@ const AceEditor: typeof _AceEditor = (_AceEditor as any).default ?? _AceEditor;
 interface YamlEditorProps {
   value: string;
   onChange: (value: string) => void;
-  /** Sizes the editor, e.g. "h-72". */
+  /** Sizes the editor, e.g. "h-72"; ignored while the editor is fullscreen. */
   className?: string;
   label?: string;
 }
 
-/** YAML editor with highlighting and live syntax check (gutter marks plus a status line to jump to the first error). */
+/** YAML editor with highlighting, live syntax check (gutter marks plus a status line to jump to the first error) and a fullscreen mode. */
 export default function YamlEditor({ value, onChange, className, label = "YAML editor" }: YamlEditorProps) {
   const id = useId();
-  const ace = useRef<{ editor: { focus(): void; gotoLine(line: number, column?: number, animate?: boolean): void } } | null>(null);
+  const ace = useRef<{ editor: { focus(): void; gotoLine(line: number, column?: number, animate?: boolean): void; resize(force?: boolean): void } } | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const problems = useMemo(() => yamlProblems(value), [value]);
   const first = problems[0];
   const blank = value.trim() === "";
+
+  // the editor does not notice by itself that its box changed
+  useEffect(() => {
+    const timer = setTimeout(() => ace.current?.editor.resize(true), 0);
+    return () => clearTimeout(timer);
+  }, [fullscreen]);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
 
   const annotations = useMemo(
     () => problems.map((p) => ({ row: p.line - 1, column: p.column - 1, type: "error", text: p.message })),
@@ -39,7 +56,14 @@ export default function YamlEditor({ value, onChange, className, label = "YAML e
   };
 
   return (
-    <div role="group" aria-label={label} className={cn("flex flex-col overflow-hidden rounded-md border bg-background", className)}>
+    <div
+      role="group"
+      aria-label={label}
+      className={cn(
+        "flex flex-col overflow-hidden rounded-md border bg-background",
+        fullscreen ? "fixed inset-0 z-50 h-auto rounded-none border-0" : className,
+      )}
+    >
       <div className="flex shrink-0 items-center gap-2 border-b bg-muted/40 px-3 py-1.5 text-xs">
         {first ? (
           <button
@@ -61,6 +85,20 @@ export default function YamlEditor({ value, onChange, className, label = "YAML e
             <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Valid YAML
           </span>
         )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="ml-auto h-6 shrink-0 gap-1 px-2 text-xs"
+          aria-pressed={fullscreen}
+          onClick={() => setFullscreen((f) => !f)}
+        >
+          {fullscreen ? (
+            <><Minimize2 className="h-3.5 w-3.5" aria-hidden="true" /> Exit fullscreen</>
+          ) : (
+            <><Maximize2 className="h-3.5 w-3.5" aria-hidden="true" /> Fullscreen</>
+          )}
+        </Button>
       </div>
       <div className="min-h-0 flex-1">
         <AceEditor
