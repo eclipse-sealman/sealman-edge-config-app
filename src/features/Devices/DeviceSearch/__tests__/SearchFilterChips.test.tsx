@@ -43,6 +43,7 @@ beforeEach(() => {
 
 async function openValueStep(user: ReturnType<typeof userEvent.setup>, parameter: string) {
   await user.click(screen.getByRole("button", { name: /apply filters|add filter/i }));
+  await user.click(screen.getByRole("menuitem", { name: "Devices" }));
   await user.click(screen.getByRole("menuitem", { name: parameter }));
   return screen.getByRole("combobox", { name: `${parameter} value` });
 }
@@ -53,21 +54,25 @@ describe("Add Filter", () => {
     render(<SearchFilterChips />);
     await user.click(screen.getByRole("button", { name: "Apply Filters" }));
     expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
-      "Device ID",
-      "Country Code",
-      "City",
+      "Devices",
       "Endpoints",
       "Services",
     ]);
+    await user.click(screen.getByRole("menuitem", { name: "Devices" }));
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+      "Device ID",
+      "Country Code",
+      "City",
+    ]);
   });
 
-  it("marks Endpoints and Services as opening more options", async () => {
+  it("marks Devices, Endpoints and Services as opening more options", async () => {
     const user = userEvent.setup();
     render(<SearchFilterChips />);
     await user.click(screen.getByRole("button", { name: "Apply Filters" }));
+    expect(screen.getByRole("menuitem", { name: "Devices" })).toHaveAttribute("aria-haspopup", "menu");
     expect(screen.getByRole("menuitem", { name: "Endpoints" })).toHaveAttribute("aria-haspopup", "menu");
     expect(screen.getByRole("menuitem", { name: "Services" })).toHaveAttribute("aria-haspopup", "menu");
-    expect(screen.getByRole("menuitem", { name: "City" })).not.toHaveAttribute("aria-haspopup");
   });
 
   it("narrows the field list down by typing and says when it is capped", async () => {
@@ -164,6 +169,7 @@ describe("Add Filter", () => {
     await openValueStep(user, "City");
     expect(screen.getByText("Matches the whole value, ignoring case.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back to filter list" }));
+    await user.click(screen.getByRole("button", { name: "Back to filter list" }));
     await user.click(screen.getByRole("menuitem", { name: "Endpoints" }));
     await user.click(screen.getByRole("menuitem", { name: "Any field" }));
     expect(screen.getByText("Matches values containing the text.")).toBeInTheDocument();
@@ -199,7 +205,7 @@ describe("Add Filter", () => {
     await user.click(screen.getByRole("button", { name: "Back to filter list" }));
     expect(screen.getByRole("menuitem", { name: "Any field" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back to filter list" }));
-    expect(screen.getByRole("menuitem", { name: "Device ID" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Devices" })).toBeInTheDocument();
   });
 
   it("does not add the same filter twice", async () => {

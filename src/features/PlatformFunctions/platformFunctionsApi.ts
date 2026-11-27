@@ -4,6 +4,7 @@ import { queryClient } from "@/config/queryConfig";
 
 export interface PlatformFunctions {
   network_scan_enabled: boolean;
+  azure_iot_edge_enabled: boolean;
 }
 
 export const PLATFORM_FUNCTIONS_QUERY_KEY = ["platformFunctions"] as const;
@@ -23,6 +24,13 @@ export function useNetworkScanEnabled(): boolean | undefined {
   const { data, isError } = usePlatformFunctions();
   if (isError) return false;
   return data?.network_scan_enabled;
+}
+
+export function useIotHubInfo() {
+  return useQuery({
+    queryKey: ["iotHubInfo"],
+    queryFn: async () => (await edgeConfigApiInstance.get<{ hostname?: string }>("/platform/iot-hub")).data,
+  });
 }
 
 export function useUpdatePlatformFunctions() {

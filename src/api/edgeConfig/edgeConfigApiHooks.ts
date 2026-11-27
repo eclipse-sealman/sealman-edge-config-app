@@ -204,6 +204,15 @@ const useDeviceTemplates = () => {
   };
 };
 
+const useDeviceCreationReadiness = () => {
+  const readinessQuery = useQuery({
+    queryKey: ["deviceCreationReadiness"],
+    queryFn: () => edgeConfigApi.getDeviceCreationReadiness(),
+  });
+
+  return { readinessQuery };
+};
+
 const useDeviceTemplateVariables = () => {
   const variablesQuery = useQuery({
     queryKey: ["deviceTemplateVariables"],
@@ -215,6 +224,8 @@ const useDeviceTemplateVariables = () => {
       edgeConfigApi.setDeviceTemplateVariable(name, value),
     onSuccess: (variables) => {
       queryClient.setQueryData(["deviceTemplateVariables"], variables);
+      // The saved base deployment is re-rendered server-side when registry settings change.
+      queryClient.invalidateQueries({ queryKey: ["baseDeployment"] });
     },
   });
 
@@ -222,6 +233,7 @@ const useDeviceTemplateVariables = () => {
     mutationFn: (name: string) => edgeConfigApi.deleteDeviceTemplateVariable(name),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["deviceTemplateVariables"] });
+      await queryClient.invalidateQueries({ queryKey: ["baseDeployment"] });
     },
   });
 
@@ -415,6 +427,7 @@ export const edgeConfigApiHooks = {
   useGetSmartEmsConfigLan,
   useDeviceTemplates,
   useDeviceTemplateVariables,
+  useDeviceCreationReadiness,
   useGetScopes,
   useGetScopeDetails,
   useDeleteScope,

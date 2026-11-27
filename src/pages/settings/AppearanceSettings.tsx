@@ -289,9 +289,9 @@ export default function AppearanceSettings() {
       setDraft(toDraft(latest));
       setLogo(KEEP);
       setFavicon(KEEP);
-      toast.success("Appearance saved for all users");
+      toast.success("UI-Styling saved for all users");
     } catch (error) {
-      toast.error(`Could not save appearance: ${getErrorMessage(error)}`);
+      toast.error(`Could not save UI-Styling: ${getErrorMessage(error)}`);
     } finally {
       setSaving(false);
     }
@@ -302,13 +302,13 @@ export default function AppearanceSettings() {
   return (
     <div className="space-y-8 pb-20">
       <PageTitle
-        title="Appearance"
+        title="UI-Styling"
         description="Customize the colors, the header logo and the browser tab of the platform for all users."
       />
 
       {!isPermissionLoading && !canWrite && (
         <p className="rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground">
-          You can view the appearance settings, but changing them requires the platform configuration write permission.
+          You can view the UI-Styling settings, but changing them requires the platform configuration write permission.
         </p>
       )}
 

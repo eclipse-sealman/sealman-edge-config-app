@@ -15,6 +15,9 @@ vi.mock("@/generated/edge-administration/hooks/device_types/useGetDeviceTypes", 
   default: () => ({ data: [], refetch: vi.fn() }),
 }));
 vi.mock("@/api/edgeConfig/edgeConfigApi", () => ({ edgeConfigApi: { deleteDevice: mocks.deleteDevice } }));
+vi.mock("@/api/edgeConfig/edgeConfigApiHooks", () => ({
+  edgeConfigApiHooks: { useDeviceCreationReadiness: () => ({ readinessQuery: { isSuccess: false, refetch: vi.fn() } }) },
+}));
 
 describe("device management permissions", () => {
   beforeEach(() => {

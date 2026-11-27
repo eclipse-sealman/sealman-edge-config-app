@@ -22,8 +22,11 @@ import TemplatesLayout from "./features/ModuleConfigTemplates/TemplatesLayout";
 import SealAgentSettings from "./pages/settings/SealAgentSettings";
 import AppearanceSettings from "./pages/settings/AppearanceSettings";
 import PlatformFunctionsSettings from "./pages/settings/PlatformFunctionsSettings";
+import DevicesSettings from "./pages/settings/DevicesSettings";
 import PresetTemplateVariablesSettings from "./pages/settings/PresetTemplateVariablesSettings";
-import { DeviceTemplateVariablesSection, IOTEDGE_AGENT_VARIABLES, IOTEDGE_REGISTRY_VARIABLES, SEALMAN_EMS_VARIABLES } from "./pages/settings/TemplatesSettings";
+import AzureIotEdgeSettings from "./pages/settings/AzureIotEdgeSettings";
+import { DeviceTemplateVariablesSection, SEALMAN_EMS_VARIABLES } from "./pages/settings/TemplatesSettings";
+import { ContainerRegistriesSection, StaticComposeDeploymentsSection } from "./pages/settings/SemsRegistriesAndCompose";
 import DeploymentsLayout from "./pages/deployments/DeploymentsLayout";
 import AssetConfigurationLayout from "./pages/assetConfiguration/AssetConfigurationLayout";
 import AssetConfigurationAccess from "./pages/assetConfiguration/AssetConfigurationAccess";
@@ -104,7 +107,7 @@ export default function App() {
               <Route path="platform-types" element={<AssetConfigurationLayout />}>
                 <Route index element={<Navigate to="asset-types" replace />} />
                 <Route path="asset-types" element={<PlatformTypesSettings />} />
-                <Route path="templates" element={<Navigate to="/settings/sealman-ems" replace />} />
+                <Route path="templates" element={<Navigate to="/settings/devices/sealman-ems" replace />} />
               </Route>
             </Route>
             <Route path="deployments" element={<DeploymentsLayout />}>
@@ -150,31 +153,16 @@ export default function App() {
 
             <Route path="settings/smartems" element={<SmartEmsAuthCallback />} />
             <Route path="settings" element={<SettingsLayout />}>
-              <Route index element={<Navigate to="seal-agent" replace />} />
+              <Route index element={<Navigate to="devices" replace />} />
               <Route path="platform-types" element={<Navigate to="/platform-types/asset-types" replace />} />
               <Route path="seal-agent" element={<SealAgentSettings />} />
               <Route path="appearance" element={<AppearanceSettings />} />
               <Route path="platform-functions" element={<PlatformFunctionsSettings />} />
+              <Route path="devices" element={<DevicesSettings />}>
+              <Route index element={<Navigate to="azure-iot-edge" replace />} />
               <Route
                 path="azure-iot-edge"
-                element={
-                  <PresetTemplateVariablesSettings
-                    title="Azure IoT Edge"
-                    description="Template variables used to provision the Azure IoT Edge runtime on devices. Empty fields fall back to the template default."
-                    sections={[
-                      {
-                        title: "Container Registry",
-                        description: "Registry from which the IoT Edge daemon pulls its containers.",
-                        variables: IOTEDGE_REGISTRY_VARIABLES,
-                      },
-                      {
-                        title: "Edge Agent",
-                        description: "Image of the IoT Edge agent started by the IoT Edge daemon.",
-                        variables: IOTEDGE_AGENT_VARIABLES,
-                      },
-                    ]}
-                  />
-                }
+                element={<AzureIotEdgeSettings />}
               />
               <Route
                 path="sealman-ems"
@@ -182,8 +170,17 @@ export default function App() {
                   <PresetTemplateVariablesSettings
                     title="SEMS"
                     description="Template variables for the connection of devices to the SEALMAN Edge Management System. Empty fields fall back to the template default."
-                    sections={[{ title: "Connection", variables: SEALMAN_EMS_VARIABLES }]}
+                    sections={[
+                      {
+                        title: "Connection",
+                        danger:
+                          "Wrong values here can take the entire fleet offline at once, with no way to recover the devices remotely. Only change these settings if you are sure.",
+                        variables: SEALMAN_EMS_VARIABLES,
+                      },
+                    ]}
                   >
+                    <ContainerRegistriesSection />
+                    <StaticComposeDeploymentsSection />
                     <div className="space-y-6">
                       <PageTitle
                         title="Variables"
@@ -194,7 +191,10 @@ export default function App() {
                   </PresetTemplateVariablesSettings>
                 }
               />
-              <Route path="templates" element={<Navigate to="/settings/sealman-ems" replace />} />
+              </Route>
+              <Route path="azure-iot-edge" element={<Navigate to="/settings/devices/azure-iot-edge" replace />} />
+              <Route path="sealman-ems" element={<Navigate to="/settings/devices/sealman-ems" replace />} />
+              <Route path="templates" element={<Navigate to="/settings/devices/sealman-ems" replace />} />
               <Route path="module-templates" element={<Navigate to="/module-templates" replace />} />
               <Route path="extensions" element={<ExtensionAccess />}>
                 <Route index element={<ExtensionsSettings />} />
