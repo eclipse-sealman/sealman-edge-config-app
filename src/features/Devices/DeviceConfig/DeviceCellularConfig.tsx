@@ -1,11 +1,11 @@
 import { AxiosError } from "axios";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { ErrorState, LoadingState } from "@/components/ui/page-state";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { WifiIcon } from "@heroicons/react/24/outline";
+import { InformationCircleIcon, WifiIcon } from "@heroicons/react/24/outline";
 import { edgeConfigApi } from "../../../api/edgeConfig/edgeConfigApi";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
@@ -33,6 +33,15 @@ interface CellularConfig {
 
   const GuardedButton = withPermissionRequiredTooltip(Button);
 
+/** The device's cellular config; `data.cellular` says whether the device has a modem. */
+export function useDeviceCellularConfig(deviceId: string | undefined) {
+  return useQuery<InterfaceDataCellular, AxiosError>({
+    queryKey: ['getDeviceCellularConfig', deviceId],
+    queryFn: () => edgeConfigApi.getDeviceCellularConfig(deviceId),
+    staleTime: Infinity,  // We don't want to refetch the form data
+  });
+}
+
 
 export function Cellular() {
 
@@ -46,11 +55,7 @@ export function Cellular() {
       state: ""
     });
     const { deviceId } = useParams();
-    const { isPending, isError, data, error } = useQuery<InterfaceDataCellular, AxiosError>({
-      queryKey: ['getDeviceCellularConfig', deviceId],
-      queryFn: () => edgeConfigApi.getDeviceCellularConfig(deviceId),
-      staleTime: Infinity,  // We don't want to refetch the form data
-    });
+    const { isPending, isError, data, error } = useDeviceCellularConfig(deviceId);
 
     useEffect(() => {
       if (!isPending && !isError && data) {
@@ -76,10 +81,10 @@ export function Cellular() {
       });
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (ev: FormEvent<HTMLFormElement>) => {
+      ev.preventDefault();
       try {
         await edgeConfigApi.postDeviceCellularConfig(deviceId, formData)
-        // const data = await response.json();
       } catch (error: unknown) {
         toast.error(`Could not save the cellular config: ${getErrorMessage(error)}`)
         return
@@ -87,12 +92,34 @@ export function Cellular() {
       toast.success("Cellular config saved. Activate the config to apply it.")
     };
 
+    if (!data.cellular) {
+      return (
+        <div className="flex gap-2 rounded-md border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
+          <InformationCircleIcon className="h-5 w-5 shrink-0" />
+          <p>This device has no cellular interface.</p>
+        </div>
+      );
+    }
+
+    const fields = [
+      { name: "apn", label: "APN" },
+      { name: "pin", label: "Pin" },
+      { name: "access_number", label: "Access Number" },
+      { name: "auth_method", label: "Auth Method" },
+      { name: "username", label: "Username" },
+      { name: "password", label: "Password", type: "password" },
+    ] as const;
+
     return (
-      <div className="grid grid-cols-2 gap-2">
-        {data.cellular && (
-          <div className="space-y-2">
-            <div className="flex flex-col gap-2">
-              <div className="flex font-medium"><><WifiIcon className="w-6 mr-1" />Cellular</></div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="space-y-6 rounded-lg border bg-background p-5">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground"><WifiIcon className="h-5 w-5" /></span>
+              <h3 className="text-base font-semibold leading-none tracking-tight">Cellular</h3>
+            </div>
+
+            <div className="space-y-1.5">
               <Label>State</Label>
               <Select
                 value={formData.state}
@@ -106,54 +133,29 @@ export function Cellular() {
                   <SelectItem value="off">off</SelectItem>
                 </SelectContent>
               </Select>
-              <Label>APN</Label>
-              <Input
-                type="text"
-                name="apn"
-                value={formData.apn}
-                onChange={handleChange}
-              />
-              <Label>Pin</Label>
-              <Input
-                type="text"
-                name="pin"
-                value={formData.pin}
-                onChange={handleChange}
-              />
-              <Label>Access Number</Label>
-              <Input
-                type="text"
-                name="access_number"
-                value={formData.access_number}
-                onChange={handleChange}
-              />
-              <Label>Auth Method</Label>
-              <Input
-                type="text"
-                name="auth_method"
-                value={formData.auth_method}
-                onChange={handleChange}
-              />
-              <Label>Username</Label>
-              <Input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-              />
-              <Label>Password</Label>
-              <Input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-              />
             </div>
-            <GuardedButton
-            permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE}
-            deviceId={deviceId}
-            onClick={handleSubmit}>Apply Cellular</GuardedButton></div>
-        )}
-      </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {fields.map((field) => (
+                <div key={field.name} className="space-y-1.5">
+                  <Label htmlFor={`cellular-${field.name}`}>{field.label}</Label>
+                  <Input
+                    id={`cellular-${field.name}`}
+                    type={"type" in field ? field.type : "text"}
+                    name={field.name}
+                    value={formData[field.name]}
+                    onChange={handleChange}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <GuardedButton permissionKey={PERMISSION_KEYS.DEVICE_NETWORK_WRITE} deviceId={deviceId} type="submit">
+            Save
+          </GuardedButton>
+        </div>
+      </form>
     );
   }

@@ -1,6 +1,7 @@
 import { NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
 import DeviceIpSetup from "./DeviceIpSetup";
 import { Cellular } from "./DeviceCellularConfig";
+import NetworkInterfaces from "./NetworkInterfaces";
 import DeviceNatConfigProvided from "./NatConfig/DeviceNatConfigProvided";
 import PortForwardingConfigProvider from "./PortForwardingConfig/provider";
 import PortForwardingConfig from "./PortForwardingConfig/PortForwardingConfig";
@@ -66,15 +67,11 @@ export default function DeviceConfig() {
           <Route path="config-activity" element={<CommandHistory />} />
           <Route path="command-history" element={<Navigate to={`${base}/config-activity`} replace />} />
           <Route path="security" element={<SecurityInformation />} />
-          <Route
-            path="network-interfaces"
-            element={
-              <div className="space-y-4">
-                <DeviceIpSetup />
-                <Cellular />
-              </div>
-            }
-          />
+          <Route path="network-interfaces" element={<NetworkInterfaces />}>
+            <Route index element={<Navigate to={`${base}/network-interfaces/lan`} replace />} />
+            <Route path="lan" element={<DeviceIpSetup />} />
+            <Route path="lte" element={<Cellular />} />
+          </Route>
           <Route path="nat" element={<DeviceNatConfigProvided />} />
           <Route
             path="port-forwarding"
