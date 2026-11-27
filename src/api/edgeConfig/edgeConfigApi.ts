@@ -384,6 +384,11 @@ const testDeviceConfig = async (): Promise<{ valid: boolean; message: string }> 
   return data;
 };
 
+const getDeviceCreationReadiness = async (): Promise<{ ready: boolean; missing: string[] }> => {
+  const { data } = await edgeConfigApiInstance.get('/platform/device-creation-readiness');
+  return data;
+};
+
 
 export const edgeConfigApi = {
   getDevices,
@@ -449,5 +454,6 @@ export const edgeConfigApi = {
   getDeviceTemplateVariables,
   setDeviceTemplateVariable,
   deleteDeviceTemplateVariable,
-  testDeviceConfig
+  testDeviceConfig,
+  getDeviceCreationReadiness
 }

@@ -3,7 +3,6 @@ import { TrashIcon } from "@heroicons/react/24/outline";
 import { WaterLoader } from "@/components/ui/water-loader";
 import { edgeConfigApi } from "@/api/edgeConfig/edgeConfigApi";
 import { edgeConfigApiHooks } from "@/api/edgeConfig/edgeConfigApiHooks";
-import { PRESET_VARIABLE_NAMES } from "@/pages/settings/TemplatesSettings";
 import { useQueryClient } from "@tanstack/react-query";
 import useGetDeviceTypes from "@/generated/edge-administration/hooks/device_types/useGetDeviceTypes";
 import FieldValueInput, { validateFields } from "@/features/PlatformTypes/FieldValueInput";
@@ -31,17 +30,16 @@ export default function DeviceManageDialog({ canCreate }: { canCreate: boolean }
   const [success, setSuccess] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const deviceTypesQuery = useGetDeviceTypes();
-  const { variablesQuery } = edgeConfigApiHooks.useDeviceTemplateVariables();
+  const { readinessQuery } = edgeConfigApiHooks.useDeviceCreationReadiness();
 
   useEffect(() => {
-    if (open) { deviceTypesQuery.refetch(); variablesQuery.refetch(); }
+    if (open) { deviceTypesQuery.refetch(); readinessQuery.refetch(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Only block when the variables could be read; a failed read must not hide the form.
-  const platformIncomplete =
-    variablesQuery.isSuccess &&
-    PRESET_VARIABLE_NAMES.some((name) => !variablesQuery.data?.[name]?.trim());
+  // Only block when readiness could be read; a failed read must not hide the form (the API still enforces it).
+  const missingSettings = readinessQuery.isSuccess ? readinessQuery.data.missing : [];
+  const platformIncomplete = readinessQuery.isSuccess && !readinessQuery.data.ready;
 
   const deviceTypes = deviceTypesQuery.data ?? [];
   const selectedType = deviceTypes.find((t) => t.type_id === typeId);
@@ -113,8 +111,8 @@ export default function DeviceManageDialog({ canCreate }: { canCreate: boolean }
           <div className="flex flex-col gap-4">
             {platformIncomplete && (
               <Message kind="warning">
-                Devices can only be created once the platform is fully configured. The platform has not been
-                fully configured yet - please contact a platform admin.
+                Devices can only be created once the platform is fully configured. Missing device settings:{" "}
+                {missingSettings.join(", ")}. Please contact a platform admin.
               </Message>
             )}
             <div className="space-y-1.5">

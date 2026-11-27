@@ -3,9 +3,8 @@ import { usePermissions } from "@/features/authorization/permissions/use-permiss
 import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
 
 const SETTINGS_TABS = [
-  { label: "Seal-Agent", path: "seal-agent" },
-  { label: "Devices", path: "devices" },
-  { label: "Appearance", path: "appearance" },
+  { label: "Global Device Settings", path: "devices" },
+  { label: "UI-Styling", path: "appearance" },
   { label: "Platform Functions", path: "platform-functions" },
 ];
 

@@ -11,6 +11,9 @@ import useDeviceStore from "../deviceStore";
 import { addSearchChip, buildSearchParameters, MAX_SEARCH_VALUE_LENGTH, SearchParameter } from "./deviceSearch";
 import useDebouncedValue from "./useDebouncedValue";
 
+const groupItemClass =
+  "mt-1 flex w-full items-center justify-between rounded-sm border border-blue-100 bg-blue-50/60 px-2 py-1.5 text-left text-sm font-medium text-blue-700 hover:bg-blue-100 focus-visible:bg-blue-100 focus-visible:outline-hidden";
+
 /** "Add Filter": pick what to filter on, enter the value (with suggestions), and it becomes a chip. */
 export default function AddFilterPopover({ hasFilters }: { hasFilters: boolean }) {
   const { fields } = useDeviceMetadataFields();
@@ -22,12 +25,16 @@ export default function AddFilterPopover({ hasFilters }: { hasFilters: boolean }
   const [parameter, setParameter] = useState<SearchParameter | null>(null);
   // The field picked for endpoints / services; `field` is undefined for "Any field".
   const [pickedField, setPickedField] = useState<{ field?: string; label: string } | null>(null);
+  const [devicesOpen, setDevicesOpen] = useState(false);
+  const deviceParameters = parameters.filter((item) => !item.fieldPicker);
+  const pickerParameters = parameters.filter((item) => item.fieldPicker);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (!next) {
       setParameter(null);
       setPickedField(null);
+      setDevicesOpen(false);
     }
   };
 
@@ -70,23 +77,23 @@ export default function AddFilterPopover({ hasFilters }: { hasFilters: boolean }
           <FieldStep parameter={parameter} kind={parameter.fieldPicker} onBack={goBack} onPick={setPickedField} />
         ) : valueParameter ? (
           <ValueStep parameter={valueParameter} onBack={goBack} onSubmit={addFilter} />
-        ) : (
-          <div role="menu" aria-label="Filter by" className="max-h-72 overflow-y-auto p-1">
-            <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by</p>
-            {parameters.map((item) =>
-              item.fieldPicker ? (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="menuitem"
-                  aria-haspopup="menu"
-                  onClick={() => setParameter(item)}
-                  className="mt-1 flex w-full items-center justify-between rounded-sm border border-blue-100 bg-blue-50/60 px-2 py-1.5 text-left text-sm font-medium text-blue-700 hover:bg-blue-100 focus-visible:bg-blue-100 focus-visible:outline-hidden"
-                >
-                  {item.label}
-                  <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
-                </button>
-              ) : (
+        ) : devicesOpen ? (
+          <div className="space-y-1 p-1">
+            <div className="flex items-center gap-2 px-1 py-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setDevicesOpen(false)}
+                aria-label="Back to filter list"
+              >
+                <ArrowLeftIcon />
+              </Button>
+              <span className="text-sm font-medium">Devices</span>
+            </div>
+            <div role="menu" aria-label="Devices" className="max-h-60 overflow-y-auto">
+              {deviceParameters.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -96,8 +103,35 @@ export default function AddFilterPopover({ hasFilters }: { hasFilters: boolean }
                 >
                   {item.label}
                 </button>
-              ),
-            )}
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div role="menu" aria-label="Filter by" className="max-h-72 overflow-y-auto p-1">
+            <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by</p>
+            <button
+              type="button"
+              role="menuitem"
+              aria-haspopup="menu"
+              onClick={() => setDevicesOpen(true)}
+              className={groupItemClass}
+            >
+              Devices
+              <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
+            </button>
+            {pickerParameters.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="menuitem"
+                aria-haspopup="menu"
+                onClick={() => setParameter(item)}
+                className={groupItemClass}
+              >
+                {item.label}
+                <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
+              </button>
+            ))}
           </div>
         )}
       </PopoverContent>

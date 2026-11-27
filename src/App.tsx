@@ -24,8 +24,9 @@ import AppearanceSettings from "./pages/settings/AppearanceSettings";
 import PlatformFunctionsSettings from "./pages/settings/PlatformFunctionsSettings";
 import DevicesSettings from "./pages/settings/DevicesSettings";
 import PresetTemplateVariablesSettings from "./pages/settings/PresetTemplateVariablesSettings";
-import AzureIotEdgeSwitch from "./pages/settings/AzureIotEdgeSwitch";
-import { DeviceTemplateVariablesSection, IOTEDGE_AGENT_VARIABLES, IOTEDGE_PROVISIONING_VARIABLES, IOTEDGE_REGISTRY_VARIABLES, SEALMAN_EMS_REGISTRY_VARIABLES, SEALMAN_EMS_VARIABLES } from "./pages/settings/TemplatesSettings";
+import AzureIotEdgeSettings from "./pages/settings/AzureIotEdgeSettings";
+import { DeviceTemplateVariablesSection, SEALMAN_EMS_VARIABLES } from "./pages/settings/TemplatesSettings";
+import { ContainerRegistriesSection, StaticComposeDeploymentsSection } from "./pages/settings/SemsRegistriesAndCompose";
 import DeploymentsLayout from "./pages/deployments/DeploymentsLayout";
 import AssetConfigurationLayout from "./pages/assetConfiguration/AssetConfigurationLayout";
 import AssetConfigurationAccess from "./pages/assetConfiguration/AssetConfigurationAccess";
@@ -152,7 +153,7 @@ export default function App() {
 
             <Route path="settings/smartems" element={<SmartEmsAuthCallback />} />
             <Route path="settings" element={<SettingsLayout />}>
-              <Route index element={<Navigate to="seal-agent" replace />} />
+              <Route index element={<Navigate to="devices" replace />} />
               <Route path="platform-types" element={<Navigate to="/platform-types/asset-types" replace />} />
               <Route path="seal-agent" element={<SealAgentSettings />} />
               <Route path="appearance" element={<AppearanceSettings />} />
@@ -161,30 +162,7 @@ export default function App() {
               <Route index element={<Navigate to="azure-iot-edge" replace />} />
               <Route
                 path="azure-iot-edge"
-                element={
-                  <PresetTemplateVariablesSettings
-                    title="Azure IoT Edge"
-                    description="Template variables used to provision the Azure IoT Edge runtime on devices. Empty fields fall back to the template default."
-                    header={<AzureIotEdgeSwitch />}
-                    sections={[
-                      {
-                        title: "Container Registry",
-                        description: "Registry from which the IoT Edge daemon pulls its containers.",
-                        variables: IOTEDGE_REGISTRY_VARIABLES,
-                      },
-                      {
-                        title: "Edge Agent",
-                        description: "Image of the IoT Edge agent started by the IoT Edge daemon.",
-                        variables: IOTEDGE_AGENT_VARIABLES,
-                      },
-                      {
-                        title: "IoT Edge Provisioning",
-                        description: "ID scope of the Azure Device Provisioning Service used by devices with TPM (DPS) provisioning.",
-                        variables: IOTEDGE_PROVISIONING_VARIABLES,
-                      },
-                    ]}
-                  />
-                }
+                element={<AzureIotEdgeSettings />}
               />
               <Route
                 path="sealman-ems"
@@ -192,15 +170,10 @@ export default function App() {
                   <PresetTemplateVariablesSettings
                     title="SEMS"
                     description="Template variables for the connection of devices to the SEALMAN Edge Management System. Empty fields fall back to the template default."
-                    sections={[
-                      { title: "Connection", variables: SEALMAN_EMS_VARIABLES },
-                      {
-                        title: "Container Registry",
-                        description: "Registry and credentials used for the SEMS Docker deployments.",
-                        variables: SEALMAN_EMS_REGISTRY_VARIABLES,
-                      },
-                    ]}
+                    sections={[{ title: "Connection", variables: SEALMAN_EMS_VARIABLES }]}
                   >
+                    <ContainerRegistriesSection />
+                    <StaticComposeDeploymentsSection />
                     <div className="space-y-6">
                       <PageTitle
                         title="Variables"

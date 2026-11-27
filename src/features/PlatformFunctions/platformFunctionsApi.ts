@@ -26,6 +26,13 @@ export function useNetworkScanEnabled(): boolean | undefined {
   return data?.network_scan_enabled;
 }
 
+export function useIotHubInfo() {
+  return useQuery({
+    queryKey: ["iotHubInfo"],
+    queryFn: async () => (await edgeConfigApiInstance.get<{ hostname?: string }>("/platform/iot-hub")).data,
+  });
+}
+
 export function useUpdatePlatformFunctions() {
   return useMutation({
     mutationFn: async (functions: PlatformFunctions) =>

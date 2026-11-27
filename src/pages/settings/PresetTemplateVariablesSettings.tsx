@@ -14,7 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PresetTemplateVariable, TemplateVariableRow } from "./TemplatesSettings";
+import { BooleanVariableRow, PresetTemplateVariable, TemplateVariableRow } from "./TemplatesSettings";
+import { usePendingChanges } from "./pendingChanges";
 
 export type PresetVariableSection = {
   title: string;
@@ -38,19 +39,31 @@ export default function PresetTemplateVariablesSettings({
   const { variablesQuery, setVariableMutation, deleteVariableMutation } =
     edgeConfigApiHooks.useDeviceTemplateVariables();
   const [pendingDelete, setPendingDelete] = useState<PresetTemplateVariable | null>(null);
+  // Edited values that are not saved yet, by variable name.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  const variables = variablesQuery.data ?? {};
+  const savedValue = (v: PresetTemplateVariable) =>
+    v.type === "boolean" ? (variables[v.name] ?? v.defaultValue) : (variables[v.name] ?? "");
+  const changedVariables = sections
+    .flatMap((s) => s.variables)
+    .filter((v) => drafts[v.name] !== undefined && drafts[v.name] !== savedValue(v));
+
+  usePendingChanges(`preset-variables:${title}`, {
+    label: `${title} variables`,
+    dirty: changedVariables.length > 0,
+    save: async () => {
+      for (const { name } of changedVariables) await setVariableMutation.mutateAsync({ name, value: drafts[name] });
+      setDrafts({});
+    },
+  });
 
   if (variablesQuery.isLoading) return <LoadingState label={`Loading ${title} settings...`} />;
   if (variablesQuery.isError) return <ErrorState title={`Could not load ${title} settings`} message={getErrorMessage(variablesQuery.error)} onRetry={() => variablesQuery.refetch()} />;
 
-  const variables = variablesQuery.data ?? {};
   const saving = setVariableMutation.isPending || deleteVariableMutation.isPending;
 
-  const handleSave = (name: string, value: string) => {
-    setVariableMutation.mutate(
-      { name, value },
-      { onError: () => toast.error(`Could not save "${name}"`) }
-    );
-  };
+  const setDraft = (name: string, value: string) => setDrafts({ ...drafts, [name]: value });
 
   const deleteVariable = (name: string) => {
     deleteVariableMutation.mutate(name, {
@@ -59,6 +72,7 @@ export default function PresetTemplateVariablesSettings({
   };
 
   const handleDelete = (name: string) => {
+    setDrafts(Object.fromEntries(Object.entries(drafts).filter(([key]) => key !== name)));
     if (!(name in variables)) return;
     const preset = sections.flatMap((s) => s.variables).find((v) => v.name === name);
     if (preset?.deleteWarning) {
@@ -97,17 +111,30 @@ export default function PresetTemplateVariablesSettings({
                   </tr>
                 </thead>
                 <tbody>
-                  {section.variables.map(({ name, defaultValue, placeholder }) => (
+                  {section.variables.map(({ name, defaultValue, placeholder, type, plainText }) =>
+                    type === "boolean" ? (
+                      <BooleanVariableRow
+                        key={name}
+                        name={name}
+                        value={(drafts[name] ?? variables[name] ?? defaultValue) === "true"}
+                        changed={changedVariables.some((v) => v.name === name)}
+                        onChange={(checked) => setDraft(name, checked ? "true" : "false")}
+                        saving={saving}
+                      />
+                    ) : (
                     <TemplateVariableRow
                       key={name}
                       name={name}
-                      value={variables[name] ?? ""}
+                      value={drafts[name] ?? variables[name] ?? ""}
+                      changed={changedVariables.some((v) => v.name === name)}
                       placeholder={placeholder ?? (defaultValue ? `Default: ${defaultValue}` : "Optional")}
-                      onSave={handleSave}
+                      plainText={plainText}
+                      onChange={(value) => setDraft(name, value)}
                       onDelete={handleDelete}
                       saving={saving}
                     />
-                  ))}
+                    )
+                  )}
                 </tbody>
               </table>
             </div>

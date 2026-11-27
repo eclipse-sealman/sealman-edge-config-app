@@ -78,7 +78,7 @@ export default function SideNavigation() {
     if (!isPlatformConfigPermissionsLoading && hasPlatformConfigReadPermission) {
       items.push({
         name: "Platform Configuration",
-        href: "/settings/seal-agent",
+        href: "/settings/devices",
         icon: Cog6ToothIcon,
         separatorBefore: true,
       });
