@@ -10,12 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes";
 import { useUpdateEndpoint } from "@/generated/edge-administration/hooks/endpoints/useUpdateEndpoint";
 import { components } from "@/generated/edge-administration/types";
 import TypeFieldsForm from "./TypeFieldsForm";
-import { initialRetypeValues, nonEmptyValues } from "./retypeData";
+import { withoutFileFields } from "@/features/PlatformTypes/fileField";
+import { initialRetypeValues, retypePatchValues, validateRetypeValues } from "./retypeData";
 
 type ResolvedField = components["schemas"]["ResolvedField"];
 
@@ -42,6 +42,7 @@ export default function ReassignEndpointDialog({
 
   const [typeId, setTypeId] = useState("");
   const [values, setValues] = useState<Record<string, unknown>>({});
+  const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   const selectedType = (endpointTypes ?? []).find((t) => t.type_id === typeId);
@@ -60,6 +61,7 @@ export default function ReassignEndpointDialog({
     // Retyping keeps all stored data (the API merges the patch onto it). Matching keys start with
     // their stored value; everything else stays on the endpoint as Custom Fields.
     setValues(initialRetypeValues(selectedType.fields, currentData));
+    setChangedKeys(new Set());
   }, [selectedType, currentData]);
 
   const handleSubmit = async () => {
@@ -67,14 +69,14 @@ export default function ReassignEndpointDialog({
       setError("Select an endpoint type");
       return;
     }
-    const validationError = validateFields(values, selectedType.fields);
+    const validationError = validateRetypeValues(values, selectedType.fields, changedKeys);
     if (validationError) {
       setError(validationError);
       return;
     }
     setError(null);
     try {
-      await updateEndpoint({ endpointId, body: { type_id: selectedType.type_id, endpoint_data: nonEmptyValues(values, selectedType.fields) } });
+      await updateEndpoint({ endpointId, body: { type_id: selectedType.type_id, endpoint_data: retypePatchValues(withoutFileFields(values, selectedType.fields), changedKeys) } });
       toast.success(`Endpoint reassigned to "${selectedType.label}"`);
       onReassigned();
       onOpenChange(false);
@@ -115,7 +117,10 @@ export default function ReassignEndpointDialog({
             <TypeFieldsForm
               fields={selectedType.fields}
               values={values}
-              onChange={(key, value) => setValues((v) => ({ ...v, [key]: value }))}
+              onChange={(key, value) => {
+                setValues((v) => ({ ...v, [key]: value }));
+                setChangedKeys((keys) => new Set(keys).add(key));
+              }}
               lockSavedValues={false}
             />
           )}

@@ -45,7 +45,7 @@ describe("buildFieldsPayload list definitions", () => {
       changeable: true,
       show_in_list: true,
       item_fields: {
-        serial: stringField("Serial"),
+        serial: { ...stringField("Serial"), item_fields: null, item_order: null },
         model: stringField("Model"),
       },
       item_order: ["serial", "model"],
@@ -63,6 +63,19 @@ describe("buildFieldsPayload list definitions", () => {
       item_fields: { serial: stringField("Serial"), model: null },
     });
     expect(payload.equipment).not.toHaveProperty("item_order");
+    expect(payload.equipment?.item_fields?.serial).not.toHaveProperty("item_order");
+    expect(payload.equipment?.item_fields?.serial).not.toHaveProperty("item_fields");
+  });
+
+  it("clears the previous item schema when converting a list to a scalar", () => {
+    const original: FieldDefinition = {
+      ...stringField("Equipment"), type: "list", ui: null,
+      item_fields: { serial: stringField("Serial") }, item_order: ["serial"],
+    };
+    const rows = rowsFromFields({ equipment: original });
+    rows[0] = { ...rows[0], definition: stringField("Equipment") };
+    expect(buildFieldsPayload(rows, ["equipment"], { equipment: original }).equipment)
+      .toMatchObject({ type: "string", item_fields: null });
   });
 });
 
@@ -262,5 +275,20 @@ describe("FieldsEditor file type", () => {
       required: false,
       show_in_list: false,
     });
+  });
+});
+
+describe("FieldsEditor default removal", () => {
+  it.each([
+    { type: "string" as const, ui: "input" as const, value: "" },
+    { type: "integer" as const, ui: "number" as const, value: 0 },
+    { type: "boolean" as const, ui: "toggle" as const, value: false },
+  ])("explicitly clears a $type default without substituting an empty value", async ({ type, ui, value }) => {
+    const original: FieldDefinition = { ...stringField("Value"), type, ui, default: value };
+    const onChange = vi.fn();
+    render(<FieldsEditor rows={rowsFromFields({ value: original })} onChange={onChange} />);
+    await userEvent.click(screen.getByRole("button", { name: "Clear default for value" }));
+    const rows: FieldRow[] = onChange.mock.calls[0][0];
+    expect(buildFieldsPayload(rows, ["value"], { value: original }).value).toHaveProperty("default", null);
   });
 });

@@ -961,6 +961,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/{device}/password/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Device Password Info */
+        get: operations["get_device_password_info__device__password_info_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/password/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Device Password Request */
+        post: operations["post_device_password_request__device__password_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{device}/password/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Device Password Renew */
+        post: operations["post_device_password_renew__device__password_renew_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/{device}/smartems/secret/info": {
         parameters: {
             query?: never;
@@ -2336,6 +2387,7 @@ export interface components {
             secretCreatedAt?: string | null;
             /** Secretupdatedat */
             secretUpdatedAt?: string | null;
+            renewalTask?: components["schemas"]["PasswordRenewalTaskInformation"] | null;
         };
         /** DeviceSecretValue */
         DeviceSecretValue: {
@@ -2343,6 +2395,45 @@ export interface components {
             id: number;
             /** Secretvalue */
             secretValue: string;
+            renewalTask?: components["schemas"]["PasswordRenewalTaskInformation"] | null;
+        };
+        /** PasswordRenewalTaskInformation */
+        PasswordRenewalTaskInformation: {
+            /** Taskid */
+            taskId: string;
+            /**
+             * Scheduledtime
+             * Format: date-time
+             */
+            scheduledTime: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "Pending" | "Canceled" | "Completed" | "Error";
+            /** Errorcount */
+            errorCount: number;
+            /** Latesterror */
+            latestError?: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** PasswordRenewalAccepted */
+        PasswordRenewalAccepted: {
+            /**
+             * Requestaccepted
+             * @default true
+             * @constant
+             */
+            requestAccepted: true;
         };
         /** DeviceTypeCreate */
         DeviceTypeCreate: {
@@ -2795,11 +2886,8 @@ export interface components {
              * @description type=file only: if true, the file is a secret (a private key) that is never shown or downloaded
              */
             secret?: boolean | null;
-            /**
-             * Item Order
-             * @description Server-maintained; accepted only as null so a returned definition can be echoed back
-             */
-            item_order?: string[] | null;
+            /** Response-only; omit on writes (only null is accepted). */
+            item_order?: null;
         };
         /**
          * FieldValidation
@@ -4596,6 +4684,99 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_device_password_info__device__password_info_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSecretInformation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_device_password_request__device__password_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSecretValue"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_device_password_renew__device__password_renew_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordRenewalAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_roles_auth_roles_get: {
         parameters: {
             query?: never;

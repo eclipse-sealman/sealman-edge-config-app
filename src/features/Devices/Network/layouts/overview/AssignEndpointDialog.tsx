@@ -18,7 +18,7 @@ import { usePostEndpoint } from "@/generated/edge-administration/hooks/endpoints
 import { useUpdateEndpoint } from "@/generated/edge-administration/hooks/endpoints/useUpdateEndpoint";
 import TypeFieldsForm from "./TypeFieldsForm";
 import { withoutFileFields } from "@/features/PlatformTypes/fileField";
-import { initialRetypeValues, nonEmptyValues } from "./retypeData";
+import { initialRetypeValues, retypePatchValues, validateRetypeValues } from "./retypeData";
 
 type ResolvedField = components["schemas"]["ResolvedField"];
 
@@ -62,6 +62,7 @@ export default function AssignEndpointDialog({
 
   const [typeId, setTypeId] = useState("");
   const [values, setValues] = useState<Record<string, unknown>>({});
+  const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   const selectedType = (endpointTypes ?? []).find((t) => t.type_id === typeId);
@@ -89,7 +90,7 @@ export default function AssignEndpointDialog({
     // An existing endpoint (same type or a retype) starts from its stored values for every
     // matching key; a new endpoint starts from the type's defaults.
     const initial: Record<string, unknown> = existingEndpoint
-      ? initialRetypeValues(selectedType.fields, existingEndpoint.endpoint_data)
+      ? initialRetypeValues(selectedType.fields, existingEndpoint.endpoint_data, !isSameExistingType)
       : Object.fromEntries(
           Object.entries(selectedType.fields).map(([key, definition]) => [key, definition.default ?? null])
         );
@@ -97,14 +98,18 @@ export default function AssignEndpointDialog({
       initial[ipFieldKey] = ip;
     }
     setValues(initial);
-  }, [selectedType, ipFieldKey, ip, existingEndpoint]);
+    setChangedKeys(new Set());
+  }, [selectedType, ipFieldKey, ip, existingEndpoint, isSameExistingType]);
 
   const handleSubmit = async () => {
     if (!selectedType) {
       setError("Select an endpoint type");
       return;
     }
-    const validationError = validateFields(values, selectedType.fields);
+    const isRetype = existingEndpoint != null && existingEndpoint.type_id !== selectedType.type_id;
+    const validationError = isRetype
+      ? validateRetypeValues(values, selectedType.fields, changedKeys)
+      : validateFields(values, selectedType.fields);
     if (validationError) {
       setError(validationError);
       return;
@@ -112,14 +117,12 @@ export default function AssignEndpointDialog({
     setError(null);
     try {
       if (existingEndpoint) {
-        const isRetype = existingEndpoint.type_id !== selectedType.type_id;
-        // A retype is a PATCH with the new type_id: the API merges onto the stored data, so the
-        // endpoint keeps its services and every value. Empty fields are left out because null
-        // would delete the stored value.
+        // A retype preserves stored/custom data through the API merge, while explicit clears
+        // suppress default initialization for those keys.
         await updateEndpoint({
           endpointId: existingEndpoint.endpoint_id,
           body: isRetype
-            ? { type_id: selectedType.type_id, endpoint_data: nonEmptyValues(values, selectedType.fields) }
+            ? { type_id: selectedType.type_id, endpoint_data: retypePatchValues(withoutFileFields(values, selectedType.fields), changedKeys) }
             : { endpoint_data: withoutFileFields(values, selectedType.fields) },
         });
         toast.success(
@@ -181,7 +184,10 @@ export default function AssignEndpointDialog({
             <TypeFieldsForm
               fields={selectedType.fields}
               values={values}
-              onChange={(key, value) => setValues((v) => ({ ...v, [key]: value }))}
+              onChange={(key, value) => {
+                setValues((v) => ({ ...v, [key]: value }));
+                setChangedKeys((keys) => new Set(keys).add(key));
+              }}
               lockedFieldKey={ipFieldKey}
               lockSavedValues={isSameExistingType}
             />

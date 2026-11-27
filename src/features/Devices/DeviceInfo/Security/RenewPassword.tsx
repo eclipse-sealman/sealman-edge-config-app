@@ -1,87 +1,78 @@
 import { WaterLoader } from "@/components/ui/water-loader";
 import { Button } from "@/components/ui/button";
-import { InlineAlert, LoadingState } from "@/components/ui/page-state";
+import { InlineAlert } from "@/components/ui/page-state";
 import SimpleDialog from "@/components/Modal/SimpleDialog";
-import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
-import useGetSmartEmsSecretInfo from "@/generated/edge-administration/hooks/useGetSmartEmsSecretInfo";
-import { usePostSmartEmsSecret } from "@/generated/edge-administration/hooks/usePostSmartEmsSecret";
+import { RestrictedTooltip } from "@/components/ui/restricted-tooltip";
+import { useRenewDevicePassword } from "@/generated/edge-administration/hooks/useRenewDevicePassword";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission-keys";
+import type { components } from "@/generated/edge-administration/types";
+import { getErrorMessage, isForbidden } from "@/lib/errors";
 
 export interface RenewPasswordParams {
   deviceId: string;
+  info: components["schemas"]["DeviceSecretInformation"];
+  canRenew: boolean;
+  noPermissionsMessage?: string;
+  onRenewalStart: () => void;
 }
 
-const GuardedButton = withPermissionRequiredTooltip(Button);
-
-export default function RenewPassword({ deviceId }: RenewPasswordParams) {
+export default function RenewPassword({ deviceId, info, canRenew, noPermissionsMessage, onRenewalStart }: RenewPasswordParams) {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
-  const { data, isLoading, isError: isGetSmartEmsSecretError } = useGetSmartEmsSecretInfo(deviceId);
-  const { postDeviceSmartEmsSecret, isPending, isError, reset } = usePostSmartEmsSecret();
+  const { mutate, isPending, error, reset } = useRenewDevicePassword();
 
-  if (isLoading) {
-    return <LoadingState />;
-  }
-
-  if (data) {
-    if (!data.deviceTypeHasAuthSecret) {
-      return <div>Password not configured for this Device Type. {data.error}</div>;
-    }
-
-    if (!data.id) {
-      return <div>Password for the device does not exist and it will be auto-generated on next communication.</div>;
-    }
-  }
-
-  if (isGetSmartEmsSecretError) {
-    return <div>Error fetching password information.</div>;
+  if (info.forceRenewal && isConfirmModalOpen) {
+    setIsConfirmModalOpen(false);
   }
 
   const renewPassword = () => {
-    postDeviceSmartEmsSecret({
-      deviceId: deviceId,
-      onSuccess: () => {
-        setIsConfirmModalOpen(false);
-        reset();
-        toast.success(`Password for device ${deviceId} renewed`);
+    if (!canRenew || isPending || info.forceRenewal) return;
+    onRenewalStart();
+    mutate(
+      { params: { path: { device: deviceId } }, cache: "no-store" },
+      {
+        onSuccess: () => {
+          setIsConfirmModalOpen(false);
+          reset();
+          toast.success(`Password renewal requested for ${deviceId}. Waiting for the device to connect.`);
+        },
       },
-    });
+    );
   };
 
-  const secretLastUpdate = data?.secretUpdatedAt ? data.secretUpdatedAt : data?.secretCreatedAt;
-
   return (
-    <div className="flex flex-row gap-4">
-      <div>{secretLastUpdate ? new Date(secretLastUpdate).toLocaleString() : "N/A"}</div>
+    <div className="space-y-2">
       <div>
-        {data?.forceRenewal ? (
-          <span>Device password will be automatically renewed during next device communication.</span>
+        {info.forceRenewal ? (
+          <p className="text-sm">Password renewal pending. Waiting for the device to connect.</p>
         ) : (
-          <GuardedButton
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setIsConfirmModalOpen(true);
-              }}
-              deviceId={deviceId}
-              permissionKey={PERMISSION_KEYS.DEVICE_PASSWORD_WRITE}
-            >
-              Force password renew
-            </GuardedButton>
+            <RestrictedTooltip show={!canRenew} message={noPermissionsMessage}>
+              <span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsConfirmModalOpen(true)}
+                  disabled={!canRenew}
+                >
+                  Renew password
+                </Button>
+              </span>
+            </RestrictedTooltip>
         )}
       </div>
-      <SimpleDialog isOpen={isConfirmModalOpen} title={`Force password renew for device ${deviceId}`}>
+      <SimpleDialog isOpen={isConfirmModalOpen} title={`Renew password for ${deviceId}`}>
         <>
-          {isError ? <InlineAlert className="mb-3">Error forcing password renew.</InlineAlert> : null}
+          <p className="mt-3 text-sm">Renew the password the next time the device connects?</p>
+          {error && <InlineAlert className="my-3">{isForbidden(error) ? "Not permitted to renew this device password." : `Could not request password renewal: ${getErrorMessage(error)}`}</InlineAlert>}
           <div className="mt-6 flex justify-center space-x-4">
-            <Button size="sm" disabled={isPending} onClick={renewPassword}>
+            <Button size="sm" disabled={isPending || !canRenew || isForbidden(error)} onClick={renewPassword}>
               {isPending && <WaterLoader />}
               OK
             </Button>
             <Button
               size="sm"
               variant="outline"
+              disabled={isPending}
               onClick={() => {
                 setIsConfirmModalOpen(false);
                 reset();

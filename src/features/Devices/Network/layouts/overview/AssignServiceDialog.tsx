@@ -90,7 +90,7 @@ export default function AssignServiceDialog({
       if (key === portFieldKey && isLocked) {
         initial[key] = port;
       } else if (isSameExistingType) {
-        initial[key] = existingService?.service_data[key]?.value ?? definition.default ?? null;
+        initial[key] = existingService?.service_data[key]?.value ?? null;
       } else {
         initial[key] = definition.default ?? null;
       }

@@ -117,13 +117,13 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
 
   const detailRows = metadata
     ? [
-        { key: "__device_type", label: "Device Type", value: currentType?.label ?? metadata.typeId, fixed: true },
+        { key: "__device_type", label: "Device Type", value: currentType?.label ?? metadata.typeId, fixed: true, definition: undefined },
         ...Object.entries(fields)
-          .map(([key, definition]) => ({ key, label: definition.label, value: merged[key] ?? null, definition }))
+          .map(([key, definition]) => ({ key, label: definition.label, value: merged[key] ?? null, definition, fixed: false }))
           .sort((a, b) => a.label.localeCompare(b.label)),
         ...Object.entries(merged)
           .filter(([key]) => !(key in fields))
-          .map(([key, value]) => ({ key, label: metadata.deviceMetadata[key]?.field?.label ?? key, value, definition: metadata.deviceMetadata[key]?.field }))
+          .map(([key, value]) => ({ key, label: metadata.deviceMetadata[key]?.field?.label ?? key, value, definition: metadata.deviceMetadata[key]?.field, fixed: false }))
           .sort((a, b) => a.label.localeCompare(b.label)),
       ]
     : [];
