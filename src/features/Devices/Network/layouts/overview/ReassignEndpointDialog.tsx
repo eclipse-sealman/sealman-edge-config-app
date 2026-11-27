@@ -14,6 +14,7 @@ import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_
 import { useUpdateEndpoint } from "@/generated/edge-administration/hooks/endpoints/useUpdateEndpoint";
 import { components } from "@/generated/edge-administration/types";
 import TypeFieldsForm from "./TypeFieldsForm";
+import { withoutFileFields } from "@/features/PlatformTypes/fileField";
 import { initialRetypeValues, retypePatchValues, validateRetypeValues } from "./retypeData";
 
 type ResolvedField = components["schemas"]["ResolvedField"];
@@ -75,7 +76,7 @@ export default function ReassignEndpointDialog({
     }
     setError(null);
     try {
-      await updateEndpoint({ endpointId, body: { type_id: selectedType.type_id, endpoint_data: retypePatchValues(values, changedKeys) } });
+      await updateEndpoint({ endpointId, body: { type_id: selectedType.type_id, endpoint_data: retypePatchValues(withoutFileFields(values, selectedType.fields), changedKeys) } });
       toast.success(`Endpoint reassigned to "${selectedType.label}"`);
       onReassigned();
       onOpenChange(false);

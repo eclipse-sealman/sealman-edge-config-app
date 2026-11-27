@@ -17,9 +17,12 @@ import { PERMISSION_KEYS } from "@/features/authorization/permissions/permission
 import {
   findingsOf, invalidateTemplates, moduleConfigApi, useBlocks, useTemplateGroups, useTemplates, useTemplateVersion, useTemplateVersions,
   type ExampleDevice, type Finding, type InputEndpoint, type InputList, type InputVariable, type TemplateGroup, type Template, type TemplateKind,
-  type TemplateVersionSummary, type VariableDecl, type LintResult,
+  type SlotDecl, type TemplateVersionSummary, type VariableDecl, type LintResult,
 } from "./api";
-import { GroupBadges } from "./badges";
+import { GroupBadges, TypeBadge } from "./badges";
+import BadgeMultiSelect from "./BadgeMultiSelect";
+import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes";
+import useGetServiceTypes from "@/generated/edge-administration/hooks/service_types/useGetServiceTypes";
 import InsertMenu from "./InsertMenu";
 import TemplateHelp from "./TemplateHelp";
 import Box from "./Box";
@@ -29,7 +32,7 @@ import ExampleDevicePicker from "./ExampleDevicePicker";
 import { TemplateInputs, useTemplateInputs } from "@/features/Devices/ModuleConfig/TemplateInputs";
 import SearchableSelect from "@/components/Input/SearchableSelect";
 import {
-  TEMPLATES_PATH, EDITOR_HEIGHT, canonical, cleanVariables, endpointReferences, formatDate, insertList, insertPlaceholder, insertRef,
+  TEMPLATES_PATH, EDITOR_HEIGHT, canonical, cleanVariables, endpointReferences, sentSlots, formatDate, insertList, insertPlaceholder, insertRef,
   placeholderAnnotations, placeholderHelp, placeholderMarkers, refMarkers, syncVariables, templatePath, useDebounced, variableProblems,
 } from "./utils";
 
@@ -46,11 +49,12 @@ interface Draft {
   groupId: number | null;
   body: string;
   variables: VariableDecl[];
+  slots: SlotDecl[];
   comment: string;
 }
 
 const emptyDraft = (groupId: number | null): Draft => ({
-  name: "", description: "", groupId, body: EXAMPLE_BODY, comment: "",
+  name: "", description: "", groupId, body: EXAMPLE_BODY, comment: "", slots: [],
   variables: [{ name: "interval", type: "integer", required: true }],
 });
 
@@ -158,11 +162,20 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
       groupId: template.group_id,
       body: JSON.stringify(loaded.data.body, null, 2),
       variables: loaded.data.variables,
+      slots: loaded.data.slots ?? [],
       comment: "",
     });
     setServerFindings([]);
   }, [template, loaded.data]);
 
+  const endpointTypes = useGetEndpointTypes().data;
+  const serviceTypes = useGetServiceTypes().data;
+  const typeOptions = (types?: { type_id: string; label: string }[]) => (types ?? []).map((t) => ({ value: t.type_id, label: t.label }));
+  const setSlot = (name: string, patch: Partial<SlotDecl>) => setDraft((d) => {
+    const current = d.slots.find((s) => s.name === name) ?? { name, endpoint_types: [], service_types: [] };
+    const next = { ...current, ...patch };
+    return { ...d, slots: d.slots.some((s) => s.name === name) ? d.slots.map((s) => (s.name === name ? next : s)) : [...d.slots, next] };
+  });
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
   const parsed = useMemo(() => parseBody(draft.body), [draft.body]);
   const viewed = loaded.data;
@@ -178,8 +191,9 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
   const insertable = useMemo(() => (blocks.data ?? []).filter((b) => b.id !== template?.id), [blocks.data, template?.id]);
 
   // the server's view of the body: its block copies and the inputs of every copy
+  const slots = useMemo(() => sentSlots(draft.slots, parsed.body), [draft.slots, parsed.body]);
   const lintRequest = useDebounced({
-    body: parsed.body, variables: cleanVariables(draft.variables), kind, group_id: draft.groupId ?? undefined,
+    body: parsed.body, variables: cleanVariables(draft.variables), slots, kind, group_id: draft.groupId ?? undefined,
   });
   const lint = useQuery({
     queryKey: ["moduleConfigTemplateLint", lintRequest],
@@ -201,7 +215,8 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
   const contentChanged = !template || !viewed
     || viewed.version !== template.latest_version
     || (!parsed.error && canonical(parsed.body) !== canonical(viewed.body))
-    || canonical(cleanVariables(draft.variables)) !== canonical(cleanVariables(viewed.variables));
+    || canonical(cleanVariables(draft.variables)) !== canonical(cleanVariables(viewed.variables))
+    || (!parsed.error && canonical(slots) !== canonical(sentSlots(viewed.slots ?? [], parsed.body)));
   const metaChanged = !!template && (
     draft.name.trim() !== template.name
     || draft.description !== (template.description ?? "")
@@ -223,7 +238,7 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
     setSaving(true);
     setServerFindings([]);
     const content = {
-      body: parsed.body, variables: cleanVariables(draft.variables), comment: draft.comment.trim() || undefined,
+      body: parsed.body, variables: cleanVariables(draft.variables), slots, comment: draft.comment.trim() || undefined,
     };
     try {
       if (!template) {
@@ -366,41 +381,58 @@ function TemplateForm({ template, kind, groups, initialGroupId, canWrite, onOpen
 
       <Box label="Template variables" title="Variables"
            description={`The values asked for when the ${kind === "block" ? "template using this block" : "template"} is applied. Writing \${name} in the ${noun} adds a variable here, removing its last use removes it; set its type and label below.`}>
-        <VariablesEditor variables={draft.variables} disabled={readOnly} onChange={(variables) => set({ variables })} />
+        <VariablesEditor templateId={template?.id} variables={draft.variables} disabled={readOnly} onChange={(variables) => set({ variables })} />
         {blockVariables.length > 0 && <BlockVariables variables={blockVariables} />}
         {lists.length > 0 && <ListInputs lists={lists} what="variables" />}
       </Box>
 
       <Box label="Template endpoint slots" title="Endpoint slots"
-           description="The endpoint (and service) dropdowns shown when applying, one per endpoint name used in the template. Nothing to declare: write ${endpoint.ip} or ${service.port}.">
+           description="The endpoint (and service) dropdowns shown when applying, one per endpoint name used in the template. Nothing to declare: write ${endpoint.ip}, ${service.port} or ${endpoint.equipment.identifier}.">
         {endpointSlots.length === 0 && !lists.some((l) => l.blocks.some((b) => b.inputs.endpoints.length > 0)) ? (
           <p className="text-sm text-muted-foreground">This {noun} uses no endpoint fields.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs text-muted-foreground"><th className="py-1 pr-4 font-medium">Slot</th><th className="py-1 font-medium">Fields read from the chosen endpoint</th></tr>
+              <tr className="text-left text-xs text-muted-foreground"><th className="py-1 pr-4 font-medium">Slot</th><th className="py-1 pr-4 font-medium">Fields read from the chosen endpoint</th><th className="py-1 pr-4 font-medium">Endpoint types</th><th className="py-1 font-medium">Service types</th></tr>
             </thead>
             <tbody>
-              {endpointSlots.map(({ key, fields, service_fields = [] }) => (
+              {endpointSlots.map(({ key, copy, fields, service_fields = [], row_fields = {}, endpoint_types = [], service_types = [] }) => {
+                const own = !copy;
+                const decl = draft.slots.find((s) => s.name === key);
+                return (
                 <tr key={key} className="border-t">
                   <td className="py-1.5 pr-4 font-medium">{copyLabel(key)}</td>
-                  <td className="py-1.5">{fields.map((f) => <code key={f} className="mr-1 rounded bg-purple-100 px-1 text-purple-900">{f}</code>)}
+                  <td className="py-1.5 pr-4">{fields.map((f) => <code key={f} className="mr-1 rounded bg-purple-100 px-1 text-purple-900">{f}</code>)}
+                    {Object.entries(row_fields).flatMap(([field, subs]) => subs.map((sub) => `${field}.${sub}`))
+                      .map((f) => <code key={`row-${f}`} className="mr-1 rounded bg-purple-100 px-1 text-purple-900">{f}</code>)}
                     {service_fields.length > 0 && (
                       <div className="mt-1 text-xs text-muted-foreground">
                         service: {service_fields.map((f) => <code key={f} className="mr-1 rounded bg-purple-100 px-1 text-purple-900">{f}</code>)}
                       </div>
                     )}
                   </td>
+                  <td className="py-1.5 pr-4 align-top">
+                    <SlotTypes id={`slot-endpoint-types-${key}`} what="endpoint" options={typeOptions(endpointTypes)}
+                               selected={own ? decl?.endpoint_types ?? [] : endpoint_types} disabled={!own || readOnly}
+                               onChange={(types) => setSlot(key, { endpoint_types: types })} />
+                  </td>
+                  <td className="py-1.5 align-top">
+                    <SlotTypes id={`slot-service-types-${key}`} what="service" options={typeOptions(serviceTypes)}
+                               selected={own ? decl?.service_types ?? [] : service_types}
+                               disabled={!own || readOnly || service_fields.length === 0}
+                               onChange={(types) => setSlot(key, { service_types: types })} />
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
-        {lists.length > 0 && <ListInputs lists={lists} what="endpoints" />}
+        {lists.length > 0 && <ListInputs lists={lists} what="endpoints" endpointTypes={endpointTypes} serviceTypes={serviceTypes} />}
       </Box>
 
-      <Preview body={parsed.body} bodyError={parsed.error} variables={draft.variables} groupId={draft.groupId} kind={kind}
-               lint={lint.data} />
+      <Preview body={parsed.body} bodyError={parsed.error} variables={draft.variables} slots={slots} groupId={draft.groupId} kind={kind}
+               lint={lint.data} templateId={template?.id} />
 
       {serverFindings.length > 0 && (
         <Box label={`${Noun} findings`} title="Findings"><FindingsList findings={serverFindings} /></Box>
@@ -503,10 +535,12 @@ function CompareDialog({ open, onOpenChange, templateId, versions }: {
 }
 
 /** Live render of the edited template with sample values and sample device metadata. */
-function Preview({ body, bodyError, variables, groupId, kind, lint }: {
+function Preview({ body, bodyError, variables, slots, groupId, kind, lint, templateId }: {
+  templateId?: number;
   body: unknown;
   bodyError?: string;
   variables: VariableDecl[];
+  slots: SlotDecl[];
   groupId: number | null;
   kind: TemplateKind;
   /** the server's view of the body (its inputs), once known */
@@ -522,15 +556,17 @@ function Preview({ body, bodyError, variables, groupId, kind, lint }: {
   });
   // choices belong to one device: a new device starts an empty form
   return (
-    <PreviewBox key={device?.device_id ?? "none"} body={body} bodyError={bodyError} variables={variables} groupId={groupId} kind={kind}
+    <PreviewBox key={device?.device_id ?? "none"} body={body} bodyError={bodyError} variables={variables} slots={slots} groupId={groupId} kind={kind} templateId={templateId}
                 lint={lint} device={device} onDevice={(d) => setChosen({ device: d, groupId })} collapsed={collapsed} onToggle={toggle} />
   );
 }
 
-function PreviewBox({ body, bodyError, variables, groupId, kind, lint, device, onDevice, collapsed, onToggle }: {
+function PreviewBox({ body, bodyError, variables, slots, groupId, kind, templateId, lint, device, onDevice, collapsed, onToggle }: {
+  templateId?: number;
   body: unknown;
   bodyError?: string;
   variables: VariableDecl[];
+  slots: SlotDecl[];
   groupId: number | null;
   kind: TemplateKind;
   lint?: LintResult;
@@ -544,8 +580,10 @@ function PreviewBox({ body, bodyError, variables, groupId, kind, lint, device, o
   const source = lint?.references && { variables: declared, references: lint.references, inputs: lint.inputs };
   const form = useTemplateInputs(device?.device_id, source, groupId);
   const request = useDebounced({
-    body, variables: declared, kind, ...form.sent, endpoints: form.sent.endpoints ?? {},
+    body, variables: declared, slots, kind, ...form.sent, endpoints: form.sent.endpoints ?? {},
     ...(groupId !== null ? { group_id: groupId } : {}),
+    // the saved template's default files take part in the render
+    ...(templateId !== undefined ? { template_id: templateId } : {}),
     ...(device ? { device_id: device.device_id } : {}),
   });
   const preview = useQuery({
@@ -670,14 +708,39 @@ function DuplicateDialog({ open, onOpenChange, template, groups, noun, version, 
   );
 }
 
+/** The endpoint or service types one slot accepts; nothing selected means any. Read-only where the slot is not edited here. */
+function SlotTypes({ id, what, options, selected, disabled, onChange }: {
+  id: string;
+  what: "endpoint" | "service";
+  options: { value: string; label: string }[];
+  selected: string[];
+  disabled: boolean;
+  onChange: (types: string[]) => void;
+}) {
+  return (
+    <BadgeMultiSelect
+      id={id} selected={selected} onChange={onChange} options={options} disabled={disabled} emptyText="Any"
+      addLabel={`Add ${what} type`} searchPlaceholder={`Search ${what} types`}
+      className="min-h-8 py-1" renderBadge={(value, label, onRemove) => <TypeBadge key={value} name={label} onRemove={onRemove} />}
+    />
+  );
+}
+
+type TypeList = { type_id: string; label: string }[] | undefined;
+const typeLabel = (types: TypeList, id: string) => types?.find((t) => t.type_id === id)?.label ?? id;
+
+/** The restriction of a slot of a block in a list, as text ("; endpoint types: PLC"); a type that no longer exists is shown by its id. */
+const typeNote = (e: InputEndpoint, endpointTypes: TypeList, serviceTypes: TypeList) =>
+  `${e.endpoint_types?.length ? `; endpoint types: ${e.endpoint_types.map((t) => typeLabel(endpointTypes, t)).join(", ")}` : ""}${e.service_types?.length ? `; service types: ${e.service_types.map((t) => typeLabel(serviceTypes, t)).join(", ")}` : ""}`;
+
 /** The lists of blocks the body offers: each once, with the inputs of every block allowed in it. */
-function ListInputs({ lists, what }: { lists: InputList[]; what: "variables" | "endpoints" }) {
+function ListInputs({ lists, what, endpointTypes, serviceTypes }: { lists: InputList[]; what: "variables" | "endpoints"; endpointTypes?: TypeList; serviceTypes?: TypeList }) {
   const rows = lists.map((l) => ({
     list: l,
     blocks: l.blocks
       .map((b) => ({ b, items: what === "variables"
         ? b.inputs.variables.map((v) => `${copyLabel(v.key)} (${v.type}${v.required === false ? "" : ", required"})`)
-        : b.inputs.endpoints.map((e) => `${copyLabel(e.key)}: ${e.fields.join(", ")}${e.service_fields?.length ? `; service: ${e.service_fields.join(", ")}` : ""}`) }))
+        : b.inputs.endpoints.map((e) => `${copyLabel(e.key)}: ${e.fields.join(", ")}${e.service_fields?.length ? `; service: ${e.service_fields.join(", ")}` : ""}${typeNote(e, endpointTypes, serviceTypes)}`) }))
       .filter(({ items }) => items.length > 0),
   }));
   return (

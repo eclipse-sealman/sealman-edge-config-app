@@ -19,7 +19,10 @@ interface Props {
   onList: (names: string[], label?: string) => void;
 }
 
-type View = "menu" | "variable" | "device" | "endpoint" | "list";
+type View = "menu" | "variable" | "device" | "endpoint" | "row" | "list";
+
+const SEGMENT = /^[A-Za-z0-9_-]+$/;
+const SLOT = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 const Hint = ({ children }: { children: string }) => (
   <code className="ml-auto shrink-0 pl-3 text-xs text-muted-foreground">{children}</code>
@@ -30,16 +33,18 @@ export default function InsertMenu({ variables, blocks, allowLists, onPlaceholde
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
   const [text, setText] = useState("");
+  const [sub, setSub] = useState("");
+  const [slot, setSlot] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const names = variables.map((v) => v.name.trim()).filter(Boolean);
   const usable = blocks.filter((b) => b.latest_version != null && !b.archived);
   const done = (action: () => void) => { action(); setOpen(false); };
-  const go = (next: View) => { setText(""); setPicked([]); setView(next); };
+  const go = (next: View) => { setText(""); setSub(""); setSlot(""); setPicked([]); setView(next); };
   const toggle = (name: string) => setPicked((p) => (p.includes(name) ? p.filter((n) => n !== name) : [...p, name]));
 
   const named = (title: string, placeholder: string, example: string, insert: (value: string) => void) => {
     const value = text.trim();
-    const valid = /^[A-Za-z_][A-Za-z0-9_]*$/.test(value) || (view === "device" && /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/.test(value));
+    const valid = SLOT.test(value) || (view === "device" && /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/.test(value));
     return (
       <form className="space-y-2 p-3" onSubmit={(e) => { e.preventDefault(); if (valid) done(() => insert(value)); }}>
         <label className="block space-y-1 text-sm">
@@ -47,6 +52,35 @@ export default function InsertMenu({ variables, blocks, allowLists, onPlaceholde
           <Input autoFocus value={text} placeholder={placeholder} onChange={(e) => setText(e.target.value)} />
         </label>
         <p className="text-xs text-muted-foreground">{example}</p>
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant="ghost" onClick={() => setView("menu")}>Back</Button>
+          <Button type="submit" size="sm" disabled={!valid}>Insert</Button>
+        </div>
+      </form>
+    );
+  };
+
+  const rowField = () => {
+    const field = text.trim();
+    const part = sub.trim();
+    const name = slot.trim();
+    const valid = SEGMENT.test(field) && SEGMENT.test(part) && (name === "" || SLOT.test(name));
+    const reference = `endpoint${name ? `[${name}]` : ""}.${field}.${part}`;
+    return (
+      <form className="space-y-2 p-3" onSubmit={(e) => { e.preventDefault(); if (valid) done(() => onPlaceholder(reference)); }}>
+        <label className="block space-y-1 text-sm">
+          <span>List field</span>
+          <Input autoFocus value={text} placeholder="e.g. equipment" onChange={(e) => setText(e.target.value)} />
+        </label>
+        <label className="block space-y-1 text-sm">
+          <span>Field of the row</span>
+          <Input value={sub} placeholder="e.g. identifier" onChange={(e) => setSub(e.target.value)} />
+        </label>
+        <label className="block space-y-1 text-sm">
+          <span>Endpoint name (optional)</span>
+          <Input value={slot} placeholder="e.g. plc" onChange={(e) => setSlot(e.target.value)} />
+        </label>
+        <p className="text-xs text-muted-foreground">One row of a list field of the chosen endpoint. With several rows, the user picks the row when applying. Give the endpoint a name when the template needs more than one.</p>
         <div className="flex gap-2">
           <Button type="button" size="sm" variant="ghost" onClick={() => setView("menu")}>Back</Button>
           <Button type="submit" size="sm" disabled={!valid}>Insert</Button>
@@ -93,6 +127,9 @@ export default function InsertMenu({ variables, blocks, allowLists, onPlaceholde
                 <CommandItem value="service port" onSelect={() => done(() => onPlaceholder("service.port"))}>
                   Service port<Hint>{"${service.port}"}</Hint>
                 </CommandItem>
+                <CommandItem value="endpoint list row field" onSelect={() => go("row")}>
+                  List row field…<Hint>{"${endpoint.equipment.identifier}"}</Hint>
+                </CommandItem>
                 <CommandItem value="named endpoint second more than one" onSelect={() => go("endpoint")}>
                   Another endpoint (named)…<Hint>{"${endpoint[plc].ip}"}</Hint>
                 </CommandItem>
@@ -123,6 +160,7 @@ export default function InsertMenu({ variables, blocks, allowLists, onPlaceholde
                                     (f) => onPlaceholder(`device.${f}`))}
         {view === "endpoint" && named("Endpoint name", "e.g. plc", "Use a name when the template needs more than one endpoint: each name gets its own dropdown. Inserts its IP; write .name or a service with ${service[plc].port}.",
                                       (n) => onPlaceholder(`endpoint[${n}].ip`))}
+        {view === "row" && rowField()}
         {view === "list" && (
           <div className="space-y-2 p-3">
             <p className="text-sm">Blocks the user can choose for each entry</p>

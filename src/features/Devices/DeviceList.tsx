@@ -32,6 +32,7 @@ import useDeviceSearch, { DeviceSearchState } from "./DeviceSearch/useDeviceSear
 import useGetDevices from "@/generated/edge-administration/hooks/useGetDevices/useGetDevices";
 import useDeviceMetadataFields from "@/features/PlatformTypes/useDeviceMetadataFields";
 import { formatMetadataValue } from "@/features/PlatformTypes/FieldValueInput";
+import { isFileRef } from "@/features/PlatformTypes/fileField";
 import { DeviceDataDisplay, DeviceListProps } from "./Devices.types";
 import { DeviceCards } from "./DeviceCards";
 import DeviceManageDialog, { DeleteDeviceButton, DeleteDeviceDialog } from "./DeviceManageDialog";
@@ -147,7 +148,7 @@ export default function DeviceList() {
         Object.values(row.deviceMetadata ?? {})
           .map((entry) => entry?.value)
           .filter((value) => value !== null && value !== undefined && value !== "")
-          .map(String)
+          .map((value) => (isFileRef(value) ? value.name : String(value)))
           .join(" "),
       { id: "metadataSearchIndex", header: () => null },
     );

@@ -49,6 +49,7 @@ const UI_OPTIONS_BY_TYPE: Record<FieldType, { value: FieldUi; label: string }[]>
     { value: "slider", label: "Slider" },
   ],
   list: [],
+  file: [],
 };
 
 export function emptyFieldRow(): FieldRow {
@@ -125,8 +126,24 @@ export function buildFieldsPayload(
   }
 
   for (const row of rows) {
+    if (row.definition.type === "file") {
+      // only the keys the server accepts on a file field
+      const { label, description, secret, show_in_list } = row.definition;
+      payload[row.key.trim()] = {
+        type: "file",
+        label,
+        ...(description ? { description } : {}),
+        required: false,
+        secret: secret ?? false,
+        show_in_list,
+      };
+      continue;
+    }
     const original = row.originalKey === row.key.trim() ? originalFields[row.originalKey] : undefined;
-    payload[row.key.trim()] = fieldDefinitionWrite(row.definition, original);
+    const definition = fieldDefinitionWrite(row.definition, original);
+    // a row that was a file keeps no secret flag under another type
+    delete definition.secret;
+    payload[row.key.trim()] = definition;
   }
 
   return payload;
@@ -207,6 +224,8 @@ interface FieldsEditorProps {
   roleOptions?: RoleOption[];
   /** Enables list fields. Supported only for endpoint types, never for list sub-fields. */
   supportsListFields?: boolean;
+  /** Offers the File type. On by default; off for list sub-fields. */
+  supportsFileFields?: boolean;
   /** Reserved field keys used by list item schemas. */
   reservedKeys?: string[];
   /** Reports invalid nested field rows to the containing type form. */
@@ -265,6 +284,7 @@ function ListItemFieldsEditor({
           onChange(fields);
         }}
         reservedKeys={["id"]}
+        supportsFileFields={false}
         duplicateKeys={findDuplicateKeys(rows)}
       />
       {validationError && <p className="text-xs text-destructive">{validationError}</p>}
@@ -277,7 +297,7 @@ function ListItemFieldsEditor({
  * add/remove/edit rows, and for each row render exactly the controls that
  * make sense for its current type/ui (options, default value, etc).
  */
-export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVisibility, roleOptions, supportsListFields, reservedKeys = [], onNestedErrorsChange }: FieldsEditorProps) {
+export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVisibility, roleOptions, supportsListFields, supportsFileFields = true, reservedKeys = [], onNestedErrorsChange }: FieldsEditorProps) {
   // Which rows currently show their validation-constraint inputs (Pattern/Min length/Minimum/
   // etc.) and the "Test this field" sandbox - hidden by default so the common case (no
   // constraints needed) stays uncluttered.
@@ -311,6 +331,15 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
   };
 
   const handleTypeChange = (row: FieldRow, type: FieldType) => {
+    if (type === "file") {
+      const { label, description, show_in_list } = row.definition;
+      updateRow(row.id, {
+        definition: { type, label, description, required: false, changeable: true, show_in_list, secret: false },
+        optionsText: "",
+        role: null,
+      });
+      return;
+    }
     if (type === "list") {
       updateRow(row.id, {
         definition: {
@@ -391,6 +420,8 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
         const uiOptions = UI_OPTIONS_BY_TYPE[row.definition.type];
         const ui = row.definition.ui ?? uiOptions[0]?.value;
         const isList = row.definition.type === "list";
+        const isFile = row.definition.type === "file";
+        const isScalar = !isList && !isFile;
         const showOptions = ui === "select" || ui === "radio";
         const trimmedKey = row.key.trim();
         const isDuplicate = duplicateKeys?.has(trimmedKey.toLowerCase()) && trimmedKey !== "";
@@ -427,7 +458,7 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
               </div>
 
               <div className="col-span-2">
-                <Field label="Type" info="The data type accepted for this field. Changing the type resets incompatible widget and validation settings.">
+                <Field label="Type" info="The data type accepted for this field; File is an uploaded certificate or key. Changing the type resets incompatible widget and validation settings.">
                   <Select value={row.definition.type} onValueChange={(v) => handleTypeChange(row, v as FieldType)}>
                     <SelectTrigger className="h-8">
                       <SelectValue />
@@ -438,12 +469,13 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
                       <SelectItem value="integer">Integer</SelectItem>
                       <SelectItem value="number">Number</SelectItem>
                       {supportsListFields && <SelectItem value="list">List of objects</SelectItem>}
+                      {supportsFileFields && <SelectItem value="file">File</SelectItem>}
                     </SelectContent>
                   </Select>
                 </Field>
               </div>
 
-              {!isList && <div className="col-span-2">
+              {isScalar && <div className="col-span-2">
                 <Field label="Widget" info="Controls how users enter this value. Available widgets depend on the selected data type. Dropdown and radio widgets require options.">
                   <Select
                     value={ui}
@@ -484,15 +516,25 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
             </div>
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
-                <Toggle
-                  checked={row.definition.required}
-                  onChange={(val) => updateDefinition(row.id, { required: val })}
-                />
-                Required <FieldInfoTooltip text="When enabled, users must provide a value before the form can be saved. When disabled, the field may be left empty." />
-              </label>
+              {isFile ? (
+                <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
+                  <Toggle
+                    checked={row.definition.secret === true}
+                    onChange={(val) => updateDefinition(row.id, { secret: val })}
+                  />
+                  Secret <FieldInfoTooltip text="A secret file can be replaced or removed, never downloaded. Required for private keys." />
+                </label>
+              ) : (
+                <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
+                  <Toggle
+                    checked={row.definition.required}
+                    onChange={(val) => updateDefinition(row.id, { required: val })}
+                  />
+                  Required <FieldInfoTooltip text="When enabled, users must provide a value before the form can be saved. When disabled, the field may be left empty." />
+                </label>
+              )}
 
-              {!isList && <label
+              {isScalar && <label
                 className="flex items-center gap-2 text-xs font-medium text-muted-foreground whitespace-nowrap"
                 title="If off, an instance's value for this field can no longer be edited once it's been set"
               >
@@ -516,7 +558,7 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
                 </label>
               )}
 
-              {roleOptions && !isList && (
+              {roleOptions && isScalar && (
                 <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground whitespace-nowrap">
                   Role <FieldInfoTooltip text="Maps this field to a built-in endpoint or service role. Only roles compatible with this field's data type can be selected." />
                   <select
@@ -558,7 +600,7 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
                 </Field>
               </div>
 
-              {!isList && showOptions && (
+              {isScalar && showOptions && (
                 <div className="col-span-4">
                   <Field label="Options (comma separated)" info="Choices offered by the Select or Radio widget. Enter one option per comma-separated value.">
                     <input
@@ -572,7 +614,7 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
                 </div>
               )}
 
-              {!isList && <div className={showOptions ? "col-span-3" : "col-span-7"}>
+              {isScalar && <div className={showOptions ? "col-span-3" : "col-span-7"}>
                 <Field label="Default value" info="Used to initialize new values. Changing or clearing a default does not replace values already saved. It must match the field's type and validation rules.">
                   <div className="flex items-center gap-2">
                     <div className="min-w-0 flex-1">
@@ -608,12 +650,12 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
                   onValidationError={(error) => onNestedErrorsChange?.(row.id, error)}
                 />
               </Field>
-            ) : <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
+            ) : isScalar && <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
               <Toggle checked={showValidation} onChange={() => toggleValidationVisibility(row.id)} />
               Validation options <FieldInfoTooltip text="Optional constraints checked when users enter a value. The available constraints depend on the field's data type." />
             </label>}
 
-            {!isList && showValidation && (
+            {isScalar && showValidation && (
               <div className="pt-2 border-t space-y-3">
                 {row.definition.type === "string" && (
                   <div className="grid grid-cols-12 gap-3">

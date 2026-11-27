@@ -6,12 +6,14 @@ import { useContributions, type Contribution } from "./useExtensionUi";
 
 type ExtensionOutletProps = {
   target: OutletTarget;
-  placement: "section" | "replace:config" | "replace:page";
+  placement: "section" | "field-row" | "replace:config" | "replace:page";
   /** Passed to each panel as `props.context`; also filters contributions by their `when`. */
   context: object;
   onDataChanged?: () => void;
   /** Replace placement: the built-in view, shown when no extension matches or the panel fails. */
   fallback?: ReactNode;
+  /** field-row placement: row props (fieldKey, item, updateItem) passed to the panel. */
+  extraProps?: Record<string, unknown>;
 };
 
 export default function ExtensionOutlet({
@@ -20,6 +22,7 @@ export default function ExtensionOutlet({
   context,
   onDataChanged,
   fallback = null,
+  extraProps,
 }: ExtensionOutletProps) {
   const { contributions } = useContributions(
     target,
@@ -30,7 +33,13 @@ export default function ExtensionOutlet({
   const isReplace = placement.startsWith("replace:");
 
   const render = (c: Contribution, errorFallback: ReactNode) => (
-    <PanelHost contribution={c} contextKey={contextKey} onDataChanged={onDataChanged} errorFallback={errorFallback} />
+    <PanelHost
+      contribution={c}
+      contextKey={contextKey}
+      onDataChanged={onDataChanged}
+      extraProps={extraProps}
+      errorFallback={errorFallback}
+    />
   );
 
   if (isReplace) {
@@ -41,6 +50,16 @@ export default function ExtensionOutlet({
       <>
         <p className="text-sm text-muted-foreground">{first.label} unavailable, showing the built-in view</p>
         {fallback}
+      </>
+    );
+  }
+
+  if (placement === "field-row") {
+    return (
+      <>
+        {contributions.map((c) => (
+          <Fragment key={`${c.extension}|${c.module}`}>{render(c, null)}</Fragment>
+        ))}
       </>
     );
   }

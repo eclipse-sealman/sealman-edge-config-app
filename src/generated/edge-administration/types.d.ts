@@ -607,6 +607,63 @@ export interface paths {
         patch: operations["update_service_services__service_id__patch"];
         trace?: never;
     };
+    "/endpoints/{endpoint_id}/files/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download an endpoint file */
+        get: operations["download_endpoint_file_endpoints__endpoint_id__files__field__get"];
+        /** Upload an endpoint file */
+        put: operations["upload_endpoint_file_endpoints__endpoint_id__files__field__put"];
+        post?: never;
+        /** Remove an endpoint file */
+        delete: operations["remove_endpoint_file_endpoints__endpoint_id__files__field__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/services/{service_id}/files/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a service file */
+        get: operations["download_service_file_services__service_id__files__field__get"];
+        /** Upload a service file */
+        put: operations["upload_service_file_services__service_id__files__field__put"];
+        post?: never;
+        /** Remove a service file */
+        delete: operations["remove_service_file_services__service_id__files__field__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{device_id}/files/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a device file */
+        get: operations["download_device_file_devices__device_id__files__field__get"];
+        /** Upload a device file */
+        put: operations["upload_device_file_devices__device_id__files__field__put"];
+        post?: never;
+        /** Remove a device file */
+        delete: operations["remove_device_file_devices__device_id__files__field__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/device-types": {
         parameters: {
             query?: never;
@@ -2717,7 +2774,7 @@ export interface components {
              * @description Data type of the field value
              * @enum {string}
              */
-            type: "string" | "boolean" | "integer" | "number" | "list";
+            type: "string" | "boolean" | "integer" | "number" | "list" | "file";
             /**
              * Label
              * @description Human-readable label for UI display
@@ -2768,6 +2825,11 @@ export interface components {
             } | null;
             /** Server-provided display order of list item fields. */
             item_order?: string[] | null;
+            /**
+             * Secret
+             * @description type=file only: if true, the file is a secret (a private key) that is never shown or downloaded
+             */
+            secret?: boolean | null;
         };
         /** FieldDefinitionUpdate */
         FieldDefinitionUpdate: {
@@ -2775,7 +2837,7 @@ export interface components {
              * Type
              * @description Data type of the field value
              */
-            type?: ("string" | "boolean" | "integer" | "number" | "list") | null;
+            type?: ("string" | "boolean" | "integer" | "number" | "list" | "file") | null;
             /**
              * Label
              * @description Human-readable label for UI display
@@ -2819,6 +2881,11 @@ export interface components {
             item_fields?: {
                 [key: string]: components["schemas"]["FieldDefinition"] | null;
             } | null;
+            /**
+             * Secret
+             * @description type=file only: if true, the file is a secret (a private key) that is never shown or downloaded
+             */
+            secret?: boolean | null;
             /** Response-only; omit on writes (only null is accepted). */
             item_order?: null;
         };
@@ -6497,6 +6564,309 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ServiceResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_endpoint_file_endpoints__endpoint_id__files__field__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                endpoint_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_endpoint_file_endpoints__endpoint_id__files__field__put: {
+        parameters: {
+            query: {
+                /** @description File name */
+                name: string;
+            };
+            header?: never;
+            path: {
+                endpoint_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_endpoint_file_endpoints__endpoint_id__files__field__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                endpoint_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_service_file_services__service_id__files__field__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_service_file_services__service_id__files__field__put: {
+        parameters: {
+            query: {
+                /** @description File name */
+                name: string;
+            };
+            header?: never;
+            path: {
+                service_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_service_file_services__service_id__files__field__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_device_file_devices__device_id__files__field__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_device_file_devices__device_id__files__field__put: {
+        parameters: {
+            query: {
+                /** @description File name */
+                name: string;
+            };
+            header?: never;
+            path: {
+                device_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_device_file_devices__device_id__files__field__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

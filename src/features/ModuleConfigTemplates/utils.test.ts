@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { insertList, insertPlaceholder, insertRef, placeholderHelp, placeholderMarkers, refMarkers, syncVariables } from "./utils";
+import { endpointReferences, insertList, insertPlaceholder, insertRef, placeholderHelp, placeholderMarkers, refMarkers, syncVariables } from "./utils";
 
 const classes = (text: string, declared: string[]) =>
   placeholderMarkers(text, declared).map((m) => [m.className, text.split("\n")[m.startRow].slice(m.startCol, m.endCol)]);
@@ -97,5 +97,27 @@ describe("syncVariables", () => {
     const after = syncVariables('{ "a": "${line}", "d": "${device.city}", "e": "${endpoint.ip}" }', [speed], stash);
     expect(after).toEqual([{ name: "line", type: "string", required: true }]);
     expect(syncVariables('{ "a": "${line}", "b": "${speed}" }', after, stash)).toEqual([after[0], speed]);
+  });
+});
+
+describe("list-row placeholders", () => {
+  it("treats a list-row reference as an endpoint placeholder", () => {
+    const text = '{"a": "${endpoint.equipment.identifier}", "b": "${endpoint.a.b.c}"}';
+    expect(placeholderMarkers(text, []).map((m) => m.className)).toEqual(["tpl-ph-endpoint", "tpl-ph-invalid"]);
+  });
+
+  it("lists the row fields a slot reads, apart from its whole fields", () => {
+    const body = { a: "${endpoint[plc].equipment.identifier}", b: "${endpoint[plc].equipment.crm_id}", c: "${endpoint[plc].ip}", d: "${endpoint.equipment.identifier}" };
+    expect(endpointReferences(body)).toEqual([
+      { slot: "endpoint", fields: [], service_fields: [], row_fields: { equipment: ["identifier"] } },
+      { slot: "plc", fields: ["ip"], service_fields: [], row_fields: { equipment: ["crm_id", "identifier"] } },
+    ]);
+  });
+
+  it("explains a list-row reference", () => {
+    const text = '"${endpoint[plc].equipment.identifier}"';
+    expect(placeholderHelp(text, { row: 0, column: 5 }, [])).toBe(
+      'Field "identifier" of one row of "equipment" of the endpoint the user picks in the "Endpoint: plc" dropdown when applying. With several rows, the row is chosen there too.',
+    );
   });
 });

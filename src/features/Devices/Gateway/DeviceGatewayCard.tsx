@@ -4,6 +4,7 @@ import { ChevronDown, Cpu, Pencil } from "lucide-react";
 import { WaterLoader } from "@/components/ui/water-loader";
 import { Button } from "@/components/ui/button";
 import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
+import { withoutFileFields } from "@/features/PlatformTypes/fileField";
 import InlineMetadataField from "@/features/Devices/Network/layouts/overview/InlineMetadataField";
 import InlineCustomFieldAdder from "@/features/Devices/Network/layouts/overview/InlineCustomFieldAdder";
 import { withPermissionRequiredTooltip } from "@/features/authorization/permissions/withPermissionRequiredTooltip";
@@ -63,6 +64,12 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
   };
 
   const setValue = (key: string, value: unknown) => {
+    if (fields[key]?.type === "file") {
+      // The upload or removal is already saved: show it, and reload the stored value for the view.
+      setEdits((prev) => ({ ...prev, [key]: value }));
+      void metadataQuery.refetch();
+      return;
+    }
     setEdits((prev) => ({ ...prev, [key]: value }));
     setDeletedKeys((prev) => {
       if (!prev.has(key)) return prev;
@@ -91,7 +98,7 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
 
     // In a PATCH, null removes a key - so emptied or deleted fields that were stored are sent as null.
     const payload: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries({ ...formValues, ...customValues })) {
+    for (const [key, value] of Object.entries({ ...withoutFileFields(formValues, fields), ...customValues })) {
       if (!isEmpty(value)) payload[key] = value;
       else if (key in stored) payload[key] = null;
     }
@@ -190,6 +197,8 @@ export default function DeviceGatewayCard({ deviceId }: { deviceId: string }) {
                   value={row.value}
                   definition={row.definition}
                   editing={editing && !row.fixed}
+                  fieldKey={row.key}
+                  fileOwner={{ kind: "device", id: deviceId }}
                   onChange={(value) => setValue(row.key, value)}
                   onDelete={row.fixed || row.definition?.required ? undefined : () => deleteValue(row.key)}
                 />

@@ -12,6 +12,16 @@ vi.mock("@/components/Input/JsonEditor", () => ({
     <div data-testid={`editor-${label}`} className={className}>{value}</div>
   ),
 }));
+vi.mock("@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes", () => ({
+  default: () => ({ data: [{ type_id: "plc", label: "PLC" }, { type_id: "modbus", label: "Modbus device" }] }),
+}));
+vi.mock("@/generated/edge-administration/hooks/service_types/useGetServiceTypes", () => ({
+  default: () => ({ data: [{ type_id: "opcua", label: "OPC UA" }] }),
+}));
+const files = vi.hoisted(() => ({ upload: vi.fn(), remove: vi.fn(), download: vi.fn() }));
+vi.mock("@/features/PlatformTypes/fileFieldApi", () => ({
+  uploadFieldFile: files.upload, removeFieldFile: files.remove, downloadFieldFile: files.download,
+}));
 vi.mock("react-toastify", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const GROUP = {
@@ -192,6 +202,162 @@ describe("TemplatePage", () => {
     const dialog = await screen.findByRole("dialog", { name: "Rendered configuration" });
     expect(within(dialog).getByTestId("editor-Rendered configuration")).toHaveTextContent('"rendered": true');
     localStorage.removeItem("moduleTemplatePreviewCollapsed");
+  });
+
+  it("shows the row fields of a slot and previews with the chosen row", async () => {
+    localStorage.setItem("moduleTemplatePreviewCollapsed", "0");
+    const slot = { key: "endpoint", slot: "endpoint", copy: null, fields: [], service_fields: [], row_fields: { equipment: ["identifier"] } };
+    const base = http.get.getMockImplementation()!;
+    http.get.mockImplementation(async (url: string) => {
+      if (url === "/module-config-templates/1/versions/2") return { data: { ...version(2), body: { m: "${endpoint.equipment.identifier}" } } };
+      if (url === "/module-config-template-groups/1/example-devices") return { data: [{ device_id: "dev-1", device_data: { description: "Test bench" } }] };
+      if (url === "/dev-1/config/endpoints") {
+        return { data: [{ endpoint_id: "e1", type_id: "t", type_label: "PLC", name: "plc-1",
+          fields: { equipment: [{ id: "r1", identifier: 41233 }, { id: "r2", identifier: 41234 }] } }] };
+      }
+      return base(url);
+    });
+    const post = http.post.getMockImplementation()!;
+    http.post.mockImplementation(async (url: string, payload: unknown) =>
+      url.endsWith("/lint")
+        ? { data: { ok: true, findings: [], references: { variables: [], device: [] }, inputs: { variables: [], endpoints: [slot], device: [], copies: [], lists: [] } } }
+        : post(url, payload));
+    renderAt("/module-templates/1/templates/1");
+    const slots = await screen.findByRole("region", { name: "Template endpoint slots" });
+    const row = (await within(slots).findByText("endpoint", { selector: "td" })).closest("tr")!;
+    expect(within(row).getByText("equipment.identifier")).toBeInTheDocument();
+
+    const before = await screen.findByRole("region", { name: "Preview" });
+    fireEvent.click(within(before).getByRole("combobox"));
+    fireEvent.click(await screen.findByText("dev-1 · Test bench"));
+    const preview = await screen.findByRole("region", { name: "Preview" });
+    fireEvent.click(await within(preview).findByRole("combobox", { name: "Endpoint: endpoint" }));
+    fireEvent.click(await screen.findByText("plc-1", { selector: "span.block" }));
+    fireEvent.click(await within(preview).findByRole("combobox", { name: "equipment: endpoint" }));
+    fireEvent.click(await screen.findByText("2: identifier 41234"));
+    await waitFor(() => expect(http.post).toHaveBeenLastCalledWith("/module-config-templates/preview", expect.objectContaining({
+      endpoints: { endpoint: "e1" }, rows: { endpoint: { equipment: "r2" } },
+    })), { timeout: 2000 });
+    localStorage.removeItem("moduleTemplatePreviewCollapsed");
+  });
+
+  it("saves the allowed types of a slot and drops declarations of slots the body no longer uses", async () => {
+    const base = http.get.getMockImplementation()!;
+    http.get.mockImplementation(async (url: string) =>
+      url.includes("/versions/")
+        ? { data: { ...version(2), body: { a: "${endpoint.ip}" }, slots: [
+          { name: "endpoint", endpoint_types: ["plc"], service_types: [] },
+          { name: "gone", endpoint_types: ["plc"], service_types: [] },
+        ] } }
+        : base(url));
+    renderAt("/module-templates/1/templates/1");
+    const slots = await screen.findByRole("region", { name: "Template endpoint slots" });
+    const row = (await within(slots).findByText("endpoint", { selector: "td" })).closest("tr")!;
+    expect(within(row).getByText("PLC")).toBeInTheDocument();
+    // no service field is read, so the services cannot be restricted
+    expect(within(row).queryByRole("button", { name: "Add service type" })).not.toBeInTheDocument();
+    fireEvent.click(within(row).getByRole("button", { name: "Add endpoint type" }));
+    fireEvent.click(await screen.findByText("Modbus device"));
+    expect(within(row).getByText("Modbus device")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save new version" }));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith("/module-config-templates/1/versions", expect.objectContaining({
+      slots: [{ name: "endpoint", endpoint_types: ["plc", "modbus"], service_types: [] }],
+    })));
+  });
+
+  describe("file variables", () => {
+    const REF = { $file: "f1", name: "root.crt", kind: "certificate", not_after: null, uploaded_at: "2026-11-25T10:00:00Z" };
+    const withFileVariable = (extra: object = {}) => {
+      const base = http.get.getMockImplementation()!;
+      http.get.mockImplementation(async (url: string) =>
+        url.includes("/versions/")
+          ? { data: { ...version(2), body: { a: "${ca}" }, variables: [{ name: "ca", type: "file", required: true, ...extra }] } }
+          : base(url));
+    };
+    const chooseType = async (label: string) => {
+      fireEvent.click(screen.getByRole("combobox", { name: "Variable type" }));
+      fireEvent.click(await screen.findByRole("option", { name: label }));
+    };
+    const saveBody = async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Save new version" }));
+      await waitFor(() => expect(http.post).toHaveBeenCalledWith("/module-config-templates/1/versions", expect.anything()));
+      return http.post.mock.calls.find(([url]) => url === "/module-config-templates/1/versions")![1] as { variables: unknown[] };
+    };
+
+    beforeEach(() => files.upload.mockReset().mockResolvedValue(REF));
+
+    it("replaces the options editor with the secret toggle and the default file when the type is File", async () => {
+      renderAt("/module-templates/1/templates/1");
+      await screen.findByLabelText("Variable label");
+      await chooseType("File");
+      expect(screen.getByRole("checkbox", { name: "Variable interval secret" })).toBeInTheDocument();
+      expect(screen.getByText("Default file")).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("a, b, c")).not.toBeInTheDocument();
+      expect(screen.getByText("A secret file can be replaced or removed, never downloaded. Required for private keys.")).toBeInTheDocument();
+    });
+
+    it("uploads the default under the template with the secret flag and saves the answered reference", async () => {
+      withFileVariable({ secret: true });
+      renderAt("/module-templates/1/templates/1");
+      const input = await screen.findByTestId("file-input");
+      const file = new File(["pem"], "root.crt");
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() => expect(files.upload).toHaveBeenCalledWith({ kind: "template", id: "1" }, "ca", file, { secret: true }));
+      const sent = await saveBody();
+      expect(sent.variables).toEqual([{ name: "ca", type: "file", required: true, secret: true, default: REF }]);
+    });
+
+    it("cannot hold a default before the first save", async () => {
+      renderAt("/module-templates/1/templates/new");
+      await screen.findByLabelText("Variable label");
+      await chooseType("File");
+      expect(screen.getByText("Add the file after saving")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Upload" })).not.toBeInTheDocument();
+    });
+
+    it("sends neither secret nor default once the type is no longer File", async () => {
+      withFileVariable({ secret: true, default: REF });
+      renderAt("/module-templates/1/templates/1");
+      await screen.findByText("root.crt", { exact: false });
+      await chooseType("String");
+      const sent = await saveBody();
+      expect(sent.variables).toEqual([{ name: "ca", type: "string", required: true }]);
+    });
+
+    it("says a stored secret default stays secret when Secret is turned off, and nothing when it is turned on", async () => {
+      const notice = "The stored file stays secret until it is uploaded again";
+      withFileVariable({ secret: true, default: REF });
+      const { unmount } = renderAt("/module-templates/1/templates/1");
+      const toggle = await screen.findByRole("checkbox", { name: "Variable ca secret" });
+      expect(screen.queryByText(notice)).not.toBeInTheDocument();
+      fireEvent.click(toggle);
+      expect(screen.getByText(notice)).toBeInTheDocument();
+      fireEvent.click(toggle);
+      expect(screen.queryByText(notice)).not.toBeInTheDocument();
+      unmount();
+
+      // saving makes the stored file secret: no notice
+      withFileVariable({ secret: false, default: REF });
+      renderAt("/module-templates/1/templates/1");
+      fireEvent.click(await screen.findByRole("checkbox", { name: "Variable ca secret" }));
+      expect(screen.queryByText(notice)).not.toBeInTheDocument();
+      expect(screen.queryByText("Upload the file again to apply this")).not.toBeInTheDocument();
+    });
+
+    it("lets the preview load the template's default files", async () => {
+      localStorage.setItem("moduleTemplatePreviewCollapsed", "0");
+      const base = http.get.getMockImplementation()!;
+      http.get.mockImplementation(async (url: string) =>
+        url === "/module-config-template-groups/1/example-devices" ? { data: [{ device_id: "dev-1", device_data: {} }] } : base(url));
+      renderAt("/module-templates/1/templates/1");
+      const before = await screen.findByRole("region", { name: "Preview" });
+      fireEvent.click(within(before).getByRole("combobox"));
+      fireEvent.click(await screen.findByText("dev-1"));
+      await waitFor(() => expect(http.post).toHaveBeenCalledWith("/module-config-templates/preview", expect.objectContaining({
+        device_id: "dev-1", template_id: 1,
+      })), { timeout: 2000 });
+      localStorage.removeItem("moduleTemplatePreviewCollapsed");
+    });
   });
 
   it("says so for an unknown template", async () => {

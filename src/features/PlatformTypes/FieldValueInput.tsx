@@ -1,9 +1,12 @@
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { components } from "@/generated/edge-administration/types";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Toggle from "./Toggle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import FileFieldInput from "./FileFieldInput";
+import { isFileRef, type FileOwner } from "./fileField";
 import { isListRow, newListRow, orderedItemFields } from "./listFields";
 
 // Radix Select can't hold an empty-string item, so "no selection" is represented by this sentinel.
@@ -12,7 +15,7 @@ const NO_SELECTION = "__none__";
 export type FieldDefinitionLike = Pick<
   components["schemas"]["FieldDefinition"],
   "type" | "ui" | "options" | "validation"
-> & Partial<Pick<components["schemas"]["FieldDefinition"], "item_fields" | "item_order">>;
+> & Partial<Pick<components["schemas"]["FieldDefinition"], "label" | "item_fields" | "item_order" | "secret">>;
 type FieldDefinition = components["schemas"]["FieldDefinition"];
 type FieldValidation = NonNullable<FieldDefinitionLike["validation"]>;
 
@@ -27,6 +30,7 @@ export const compactInputClass = inputClass.replace("py-2", "py-1") + " h-8";
 /** Read-only counterpart to the input widget above: formats a value for display, driven by the same FieldDefinition. */
 export function formatMetadataValue(value: unknown, definition: Pick<FieldDefinitionLike, "type">): string {
   if (value === null || value === undefined || value === "") return "";
+  if (definition.type === "file") return isFileRef(value) ? value.name : "";
   if (definition.type === "boolean") return value ? "Yes" : "No";
   if (definition.type === "list") return Array.isArray(value) ? `${value.length} ${value.length === 1 ? "item" : "items"}` : "";
   return String(value);
@@ -134,6 +138,8 @@ export function validateFields(
 ): string | null {
   for (const [key, definition] of Object.entries(fields)) {
     const value = values[key];
+    // A file is added by uploading, after the record exists: the API decides whether one is missing.
+    if (definition.type === "file") continue;
     const isEmpty = value === null || value === undefined || (definition.type === "list"
       ? Array.isArray(value) && value.length === 0 : value === "");
     if (definition.required && isEmpty) {
@@ -165,6 +171,20 @@ interface FieldValueInputProps {
   onChange: (value: unknown) => void;
   placeholder?: string;
   disabled?: boolean;
+  /** The record a file field belongs to; without it a file can only be shown, not uploaded. */
+  fileOwner?: FileOwner;
+  /** The key of this field in its record; a file field needs it to address its upload. */
+  fieldKey?: string;
+  /** Extra content at the end of each row of a list field. */
+  renderListRowEnd?: (row: ListRowSlot) => ReactNode;
+}
+
+/** `updateItem` merges into its row as it is when called, and does nothing once the row is removed. */
+export type ListRowSlot = { index: number; item: Record<string, unknown>; updateItem: (patch: Record<string, unknown>) => void };
+
+// Calls the row-end render prop from its own component, so `updateItem` (which reads a ref) is never called during render.
+function RowEnd({ render, ...row }: ListRowSlot & { render: (row: ListRowSlot) => ReactNode }) {
+  return render(row);
 }
 
 function ListFieldValueInput({
@@ -172,10 +192,23 @@ function ListFieldValueInput({
   value,
   onChange,
   disabled,
+  renderListRowEnd,
 }: FieldValueInputProps) {
   const valid = value == null || (Array.isArray(value) && value.every(isListRow));
   const items = Array.isArray(value) && value.every(isListRow) ? value : [];
   const fields = orderedItemFields(definition);
+
+  // The row slot may call back later (after a lookup): it must merge into the rows as they are then.
+  const latest = useRef({ items, onChange });
+  useLayoutEffect(() => {
+    latest.current = { items, onChange };
+  });
+  const patchRow = (index: number, id: unknown, patch: Record<string, unknown>) => {
+    const { items: rows, onChange: emit } = latest.current;
+    const at = typeof id === "string" ? rows.findIndex((row) => row.id === id) : index < rows.length && typeof rows[index].id !== "string" ? index : -1;
+    if (at < 0) return;
+    emit(rows.map((row, rowIndex) => (rowIndex === at ? { ...row, ...patch } : row)));
+  };
 
   const updateItem = (index: number, key: string, nextValue: unknown) => {
     onChange(items.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: nextValue } : item));
@@ -224,6 +257,9 @@ function ListFieldValueInput({
               </div>
             ))}
           </div>
+          {renderListRowEnd && (
+            <RowEnd render={renderListRowEnd} index={index} item={item} updateItem={(patch) => patchRow(index, item.id, patch)} />
+          )}
         </div>
       ))}
       <Button
@@ -245,12 +281,17 @@ function ListFieldValueInput({
  * FieldDefinition's `type`/`ui`/`options` — the single source of truth for
  * how any platform-type field should be edited.
  */
-export default function FieldValueInput({ definition, value, onChange, placeholder, disabled }: FieldValueInputProps) {
+export default function FieldValueInput({ definition, value, onChange, placeholder, disabled, fileOwner, fieldKey, renderListRowEnd }: FieldValueInputProps) {
+  if (definition.type === "file") {
+    return (
+      <FileFieldInput definition={definition} fieldKey={fieldKey} value={value} owner={fileOwner} disabled={disabled} onChange={onChange} />
+    );
+  }
   const ui = definition.ui ?? defaultUiFor(definition.type);
   const options = definition.options ?? [];
 
   if (definition.type === "list") {
-    return <ListFieldValueInput definition={definition} value={value} onChange={onChange} disabled={disabled} />;
+    return <ListFieldValueInput definition={definition} value={value} onChange={onChange} disabled={disabled} renderListRowEnd={renderListRowEnd} />;
   }
 
   if (ui === "toggle") {

@@ -12,7 +12,9 @@ import { endpointListKey, portListKey } from "./overviewMerge";
 import { useShowConnectionState } from "./connectionStateContext";
 import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
 import InlineMetadataField from "./InlineMetadataField";
+import { withoutFileFields } from "@/features/PlatformTypes/fileField";
 import InlineCustomFieldAdder from "./InlineCustomFieldAdder";
+import EndpointListRowOutlet from "./EndpointListRowOutlet";
 import useGetEndpointTypes from "@/generated/edge-administration/hooks/endpoint_types/useGetEndpointTypes";
 import useGetServiceTypes from "@/generated/edge-administration/hooks/service_types/useGetServiceTypes";
 import { useUpdateEndpoint } from "@/generated/edge-administration/hooks/endpoints/useUpdateEndpoint";
@@ -124,6 +126,8 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
   };
 
   const setEndpointValue = (key: string, value: unknown) => {
+    // An upload or removal is already saved: reload, so the view shows it also after Cancel.
+    if (endpointFields[key]?.type === "file") onCreated();
     setEndpointValues((current) => ({ ...current, [key]: value }));
     setDeletedEndpointKeys((current) => {
       if (!current.has(key)) return current;
@@ -148,7 +152,8 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
     const validationError = validateFields(endpointValues, fieldsToValidate);
     if (validationError) return toast.error(validationError);
 
-    const payload: Record<string, unknown> = { ...endpointValues };
+    // File references only change through the upload and remove routes; the API refuses a save that sends one.
+    const payload: Record<string, unknown> = withoutFileFields(endpointValues, endpointFields);
     for (const key of deletedEndpointKeys) payload[key] = null;
     try {
       await updateEndpoint({ endpointId: endpoint.endpoint_id, body: { endpoint_data: payload } });
@@ -176,6 +181,7 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
   };
 
   const setServiceValue = (key: string, value: unknown) => {
+    if (serviceFields[key]?.type === "file") onCreated();
     setServiceValues((current) => ({ ...current, [key]: value }));
     setDeletedServiceKeys((current) => {
       if (!current.has(key)) return current;
@@ -200,7 +206,7 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
     const validationError = validateFields(serviceValues, fieldsToValidate);
     if (validationError) return toast.error(validationError);
 
-    const payload: Record<string, unknown> = { ...serviceValues };
+    const payload: Record<string, unknown> = withoutFileFields(serviceValues, serviceFields);
     for (const key of deletedServiceKeys) payload[key] = null;
     try {
       await updateService({ serviceId: activePort.service_id, body: { service_data: payload } });
@@ -398,6 +404,22 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                   value={editingEndpoint ? endpointValues[key] : resolved.value}
                   definition={resolved.field}
                   editing={editingEndpoint}
+                  fieldKey={key}
+                  fileOwner={endpoint.endpoint_id ? { kind: "endpoint", id: endpoint.endpoint_id } : undefined}
+                  renderListRowEnd={
+                    endpoint.endpoint_id
+                      ? (row) => (
+                          <EndpointListRowOutlet
+                            deviceId={deviceId}
+                            endpointId={endpoint.endpoint_id!}
+                            endpointTypeId={endpoint.type_id ?? ""}
+                            fieldKey={key}
+                            row={row}
+                            onDataChanged={onCreated}
+                          />
+                        )
+                      : undefined
+                  }
                   onChange={(value) => setEndpointValue(key, value)}
                   onDelete={editingEndpoint && !(key in endpointFields) ? () => deleteEndpointValue(key) : undefined}
                 />
@@ -553,6 +575,8 @@ export default function EndpointAccordionItem({ endpoint, deviceId, onCreated, o
                           value={editingServiceId === activePort.service_id ? serviceValues[key] : resolved?.value}
                           definition={definition}
                           editing={editingServiceId === activePort.service_id}
+                          fieldKey={key}
+                          fileOwner={activePort.service_id ? { kind: "service", id: activePort.service_id } : undefined}
                           onChange={(value) => setServiceValue(key, value)}
                         />
                       );

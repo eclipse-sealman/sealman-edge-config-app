@@ -1,6 +1,9 @@
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FieldValueInput, { formatMetadataValue } from "@/features/PlatformTypes/FieldValueInput";
+import type { ReactNode } from "react";
+import FieldValueInput, { formatMetadataValue, type ListRowSlot } from "@/features/PlatformTypes/FieldValueInput";
+import FileFieldInput from "@/features/PlatformTypes/FileFieldInput";
+import type { FileOwner } from "@/features/PlatformTypes/fileField";
 import type { components } from "@/generated/edge-administration/types";
 
 type FieldDefinition = components["schemas"]["FieldDefinition"];
@@ -12,6 +15,11 @@ interface InlineMetadataFieldProps {
   definition?: FieldDefinition | null;
   onChange?: (value: unknown) => void;
   onDelete?: () => void;
+  /** For a file field: the record it belongs to and its key there. A file is uploaded, replaced and removed at once, not with Save. */
+  fileOwner?: FileOwner;
+  fieldKey?: string;
+  /** Extra content at the end of each row of a list field, while editing. */
+  renderListRowEnd?: (row: ListRowSlot) => ReactNode;
 }
 
 function inputValue(value: unknown): string {
@@ -71,7 +79,24 @@ function ListMetadataValue({ value, definition }: { value: unknown; definition: 
   );
 }
 
-export default function InlineMetadataField({ label, value, editing, definition, onChange, onDelete }: InlineMetadataFieldProps) {
+export default function InlineMetadataField({ label, value, editing, definition, onChange, onDelete, fileOwner, fieldKey, renderListRowEnd }: InlineMetadataFieldProps) {
+  if (definition?.type === "file") {
+    return (
+      <div className="min-w-0 space-y-0.5">
+        <dt className="truncate text-xs text-muted-foreground">{label}</dt>
+        <dd className="min-h-8 min-w-0 pt-0.5 text-[13px] font-normal">
+          <FileFieldInput
+            definition={definition}
+            fieldKey={fieldKey}
+            owner={fileOwner}
+            value={value ?? null}
+            disabled={!editing}
+            onChange={(next) => onChange?.(next)}
+          />
+        </dd>
+      </div>
+    );
+  }
   return (
     <div className="min-w-0 space-y-0.5">
       <dt className="truncate text-xs text-muted-foreground">{label}</dt>
@@ -80,7 +105,7 @@ export default function InlineMetadataField({ label, value, editing, definition,
           <div className="flex min-w-0 items-center gap-1.5">
             <div className="min-w-0 flex-1">
               {definition ? (
-                <FieldValueInput definition={definition} value={value ?? null} onChange={(next) => onChange?.(next)} />
+                <FieldValueInput definition={definition} value={value ?? null} onChange={(next) => onChange?.(next)} renderListRowEnd={renderListRowEnd} />
               ) : (
                 <input
                   aria-label={label}

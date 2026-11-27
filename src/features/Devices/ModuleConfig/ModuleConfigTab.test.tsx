@@ -59,8 +59,13 @@ const SERVICES: Record<string, unknown[]> = {
   e2: [{ service_id: "s2", type_id: "opcua", type_label: "OPC UA", name: "opc-b", port: 4841, fields: {} }],
 };
 
+const PLCS = [
+  { endpoint_id: "e1", type_id: "t", type_label: "PLC", name: "plc-1", fields: {} },
+  { endpoint_id: "e2", type_id: "t", type_label: "PLC", name: "plc-2", fields: {} },
+];
+
 /** A template whose version has `inputs` (endpoint slots with services, lists), and the device's endpoints and services. */
-function routeServices(templates: unknown[], inputs: unknown) {
+function routeServices(templates: unknown[], inputs: unknown, endpoints: unknown[] = PLCS) {
   http.get.mockImplementation(async (url: string) => {
     if (url === "/dev-1/modules/seal-demo-x/config/templates") return { data: templates };
     const versions = /^\/module-config-templates\/(\d+)\/versions(\/.*)?$/.exec(url);
@@ -69,12 +74,7 @@ function routeServices(templates: unknown[], inputs: unknown) {
       return { data: versions[2] ? version : [version] };
     }
     if (url === "/module-config-templates") return { data: [] };
-    if (url.endsWith("/config/endpoints")) {
-      return { data: [
-        { endpoint_id: "e1", type_id: "t", type_label: "PLC", name: "plc-1", fields: {} },
-        { endpoint_id: "e2", type_id: "t", type_label: "PLC", name: "plc-2", fields: {} },
-      ] };
-    }
+    if (url.endsWith("/config/endpoints")) return { data: endpoints };
     const services = /\/config\/endpoints\/(\w+)\/services$/.exec(url);
     if (services) return { data: SERVICES[services[1]] };
     if (url.endsWith("/config/revisions")) return { data: { revisions: [] } };
@@ -251,6 +251,91 @@ describe("ModuleConfigTab", () => {
     fireEvent.click(await screen.findByText("plc-2", { selector: "span.block" }));
     expect(service()).toHaveTextContent("Select a service");
     expect(apply()).toBeDisabled();
+  });
+
+  describe("list rows", () => {
+    const ROW_INPUTS = {
+      variables: [] as unknown[], device: [], copies: [],
+      endpoints: [{ key: "endpoint", slot: "endpoint", copy: null, fields: [], service_fields: [], row_fields: { equipment: ["crm_id", "identifier"] } }],
+    };
+    const FIRST_ROW = { id: "r1", identifier: "10330", crm_id: "21289" };
+    const ROW_ENDPOINTS = [
+      { endpoint_id: "ep-many", type_id: "t", type_label: "PLC", name: "plc-many", fields: { equipment: [FIRST_ROW, { id: "r2", identifier: "41234" }] } },
+      { endpoint_id: "ep-one", type_id: "t", type_label: "PLC", name: "plc-one", fields: { equipment: [FIRST_ROW] } },
+    ];
+    const apply = () => screen.getByRole("button", { name: /Apply to/ });
+    const rowSelect = () => screen.getByRole("combobox", { name: "equipment: endpoint" });
+    const lastRender = () => http.post.mock.calls.filter(([url]) => url.endsWith("/config/render")).at(-1)?.[1];
+    const chooseEndpoint = async (name: string) => {
+      fireEvent.click(await screen.findByRole("combobox", { name: "Endpoint: endpoint" }));
+      fireEvent.click(await screen.findByText(name, { selector: "span.block" }));
+    };
+    const chooseRow = async (label: string) => {
+      fireEvent.click(rowSelect());
+      fireEvent.click(await screen.findByText(label, { selector: "span.block" }));
+    };
+
+    beforeEach(() => {
+      routeServices([TEMPLATE], ROW_INPUTS, ROW_ENDPOINTS);
+      http.post.mockImplementation(async (url: string) => {
+        if (url.endsWith("/config/render")) return { data: { ok: true, config: {}, findings: [] } };
+        if (url.endsWith("/config/apply")) return { data: { configId: "c3", revision: { id: 3 }, findings: [] } };
+        throw new Error(`unexpected POST ${url}`);
+      });
+    });
+
+    it("asks for a row only when the endpoint has several, and sends it", async () => {
+      renderTab();
+      await chooseEndpoint("plc-many");
+      expect(rowSelect()).toHaveTextContent("Choose a row");
+      expect(screen.getByText("Choose a row", { selector: "p" })).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText("valid")).toBeInTheDocument(), { timeout: 2000 });
+      expect(apply()).toBeDisabled();
+
+      fireEvent.click(rowSelect());
+      const list = await screen.findByRole("listbox");
+      expect(within(list).getByText("1: crm_id 21289 · identifier 10330")).toBeInTheDocument();
+      expect(within(list).getByText("2: crm_id — · identifier 41234")).toBeInTheDocument();
+      fireEvent.click(within(list).getByText("2: crm_id — · identifier 41234"));
+      await waitFor(() => expect(lastRender().rows).toEqual({ endpoint: { equipment: "r2" } }), { timeout: 2000 });
+      await waitFor(() => expect(apply()).toBeEnabled());
+
+      fireEvent.click(apply());
+      await waitFor(() => expect(http.post).toHaveBeenCalledWith(
+        "/dev-1/modules/seal-demo-x/config/apply",
+        expect.objectContaining({ endpoints: { endpoint: "ep-many" }, rows: { endpoint: { equipment: "r2" } } }),
+      ));
+    });
+
+    it("uses the only row without asking", async () => {
+      renderTab();
+      await chooseEndpoint("plc-one");
+      expect(await screen.findByText("Uses the only equipment row")).toBeInTheDocument();
+      expect(screen.queryByRole("combobox", { name: "equipment: endpoint" })).not.toBeInTheDocument();
+      await waitFor(() => expect(lastRender().rows).toEqual({ endpoint: { equipment: "r1" } }), { timeout: 2000 });
+    });
+
+    it("drops the row when the endpoint changes and when a stored row is gone", async () => {
+      const { unmount } = renderTab();
+      await chooseEndpoint("plc-many");
+      await chooseRow("2: crm_id — · identifier 41234");
+      await waitFor(() => expect(lastRender().rows).toEqual({ endpoint: { equipment: "r2" } }), { timeout: 2000 });
+      await chooseEndpoint("plc-one");
+      await waitFor(() => expect(lastRender().rows).toEqual({ endpoint: { equipment: "r1" } }), { timeout: 2000 });
+      unmount();
+
+      renderTab({ prefill: { templateId: 7, values: { $endpoints: { endpoint: "ep-many" }, $rows: { endpoint: { equipment: "gone" } } } } });
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Endpoint: endpoint" })).toHaveTextContent("plc-many"));
+      expect(await screen.findByRole("combobox", { name: "equipment: endpoint" })).toHaveTextContent("Choose a row");
+      expect(screen.getByText("Choose a row", { selector: "p" })).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText("valid")).toBeInTheDocument(), { timeout: 2000 });
+      expect(apply()).toBeDisabled();
+    });
+
+    it("prefills the row from a revision", async () => {
+      renderTab({ prefill: { templateId: 7, values: { $endpoints: { endpoint: "ep-many" }, $rows: { endpoint: { equipment: "r2" } } } } });
+      expect(await screen.findByRole("combobox", { name: "equipment: endpoint" })).toHaveTextContent("2: crm_id — · identifier 41234");
+    });
   });
 
   it("renders text variables as a multi-line field", async () => {

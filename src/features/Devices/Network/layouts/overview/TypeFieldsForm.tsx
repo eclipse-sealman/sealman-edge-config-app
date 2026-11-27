@@ -1,4 +1,5 @@
 import FieldValueInput from "@/features/PlatformTypes/FieldValueInput";
+import type { FileOwner } from "@/features/PlatformTypes/fileField";
 import { components } from "@/generated/edge-administration/types";
 
 type FieldDefinition = components["schemas"]["FieldDefinition"];
@@ -17,6 +18,8 @@ interface props {
    * false` field (e.g. a service type's default port) would lock the field before anything has
    * actually been saved, making it impossible to type in a different value on first creation. */
   lockSavedValues?: boolean;
+  /** The record whose file fields can be uploaded to; without it they are only shown. */
+  fileOwner?: FileOwner;
 }
 
 export default function TypeFieldsForm({
@@ -25,6 +28,7 @@ export default function TypeFieldsForm({
   onChange,
   lockedFieldKey,
   lockSavedValues = true,
+  fileOwner,
 }: props) {
   const entries = Object.entries(fields);
 
@@ -50,6 +54,8 @@ export default function TypeFieldsForm({
               <div className="flex-1">
                 <FieldValueInput
                   definition={definition}
+                  fieldKey={key}
+                  fileOwner={fileOwner}
                   value={values[key] ?? null}
                   onChange={(value) => onChange(key, value)}
                   disabled={isLocked}

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { WaterLoader } from "@/components/ui/water-loader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateFields } from "@/features/PlatformTypes/FieldValueInput";
+import { withoutFileFields } from "@/features/PlatformTypes/fileField";
 import { components } from "@/generated/edge-administration/types";
 import useGetServiceTypes from "@/generated/edge-administration/hooks/service_types/useGetServiceTypes";
 import { usePostService } from "@/generated/edge-administration/hooks/services/usePostService";
@@ -110,13 +111,13 @@ export default function AssignServiceDialog({
     setError(null);
     try {
       if (existingService && existingService.type_id === selectedType.type_id) {
-        await updateService({ serviceId: existingService.service_id, body: { service_data: values } });
+        await updateService({ serviceId: existingService.service_id, body: { service_data: withoutFileFields(values, selectedType.fields) } });
         toast.success(`Service "${selectedType.label}" updated`);
       } else {
         if (existingService) {
           await deleteService(existingService.service_id);
         }
-        await postService({ endpointId, body: { type_id: selectedType.type_id, service_data: values } });
+        await postService({ endpointId, body: { type_id: selectedType.type_id, service_data: withoutFileFields(values, selectedType.fields) } });
         toast.success(`Service "${selectedType.label}" ${existingService ? "reassigned" : "created"}`);
       }
     } catch {

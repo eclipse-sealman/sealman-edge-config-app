@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { JsonEditorAnnotation, JsonEditorMarker } from "@/components/Input/JsonEditor";
-import type { ExampleDevice, VariableDecl, VariableType } from "./api";
+import type { ExampleDevice, SlotDecl, VariableDecl, VariableType } from "./api";
 
 /**
  * Height of an editor the user works in: the viewport below the page header (never less than ~28 lines, never more
@@ -18,10 +18,10 @@ export const templatePath = (groupId: number, templateId: number | "new") =>
 /** Same rule as the API: an exact module name, no wildcards. */
 export const MODULE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
-export const VARIABLE_TYPES: VariableType[] = ["string", "text", "number", "integer", "boolean", "enum"];
+export const VARIABLE_TYPES: VariableType[] = ["string", "text", "number", "integer", "boolean", "enum", "file"];
 
 export const VARIABLE_TYPE_LABELS: Record<VariableType, string> = {
-  string: "String", text: "Text", number: "Number", integer: "Integer", boolean: "Boolean", enum: "Enum",
+  string: "String", text: "Text", number: "Number", integer: "Integer", boolean: "Boolean", enum: "Enum", file: "File",
 };
 
 export interface VariableProblem {
@@ -65,6 +65,10 @@ export function cleanVariables(variables: VariableDecl[]): VariableDecl[] {
   return variables.map((v) => {
     const out: VariableDecl = { name: v.name.trim(), type: v.type, required: v.required !== false };
     if (v.type === "enum" && v.options?.length) out.options = v.options;
+    if (v.type === "file") {
+      if (v.secret) out.secret = true;
+      if (v.default) out.default = v.default;
+    }
     if (v.label) out.label = v.label;
     if (v.description) out.description = v.description;
     return out;
@@ -85,26 +89,51 @@ export function deviceReferences(body: unknown): string[] {
 
 const ENDPOINT_REF_RE = /^endpoint(?:\[([A-Za-z_][A-Za-z0-9_]*)\])?\.([A-Za-z0-9_-]+)$/;
 
+const ENDPOINT_ROW_REF_RE = /^endpoint(?:\[([A-Za-z_][A-Za-z0-9_]*)\])?\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/;
+
 const SERVICE_REF_RE = /^service(?:\[([A-Za-z_][A-Za-z0-9_]*)\])?\.([A-Za-z0-9_-]+)$/;
 
 /** The endpoint slots a template body uses, each with the endpoint fields it reads
- * (`${endpoint.x}` is the slot "endpoint") and the service fields (`${service[slot].x}`, `${service.x}` likewise). */
-export function endpointReferences(body: unknown): { slot: string; fields: string[]; service_fields: string[] }[] {
+ * (`${endpoint.x}` is the slot "endpoint"), the service fields (`${service[slot].x}`, `${service.x}` likewise) and the
+ * sub-fields it reads from rows of list fields (`${endpoint[slot].list.sub}`, by list field). */
+export function endpointReferences(body: unknown): {
+  slot: string; fields: string[]; service_fields: string[]; row_fields: Record<string, string[]>;
+}[] {
   const text = JSON.stringify(body ?? null);
-  const slots = new Map<string, { fields: Set<string>; service: Set<string> }>();
+  const slots = new Map<string, { fields: Set<string>; service: Set<string>; rows: Map<string, Set<string>> }>();
   const entry = (slot: string) => {
-    const e = slots.get(slot) ?? { fields: new Set<string>(), service: new Set<string>() };
+    const e = slots.get(slot) ?? { fields: new Set<string>(), service: new Set<string>(), rows: new Map<string, Set<string>>() };
     slots.set(slot, e);
     return e;
   };
   for (const m of text.matchAll(/(?<!\$)\$\{([^{}]*)\}/g)) {
     const ref = ENDPOINT_REF_RE.exec(m[1]);
     if (ref) entry(ref[1] ?? "endpoint").fields.add(ref[2]);
+    const row = ENDPOINT_ROW_REF_RE.exec(m[1]);
+    if (row) {
+      const rows = entry(row[1] ?? "endpoint").rows;
+      rows.set(row[2], (rows.get(row[2]) ?? new Set<string>()).add(row[3]));
+    }
     const svc = SERVICE_REF_RE.exec(m[1]);
     if (svc) entry(svc[1] ?? "endpoint").service.add(svc[2]);
   }
   return [...slots].sort(([a], [b]) => a.localeCompare(b))
-    .map(([slot, e]) => ({ slot, fields: [...e.fields].sort(), service_fields: [...e.service].sort() }));
+    .map(([slot, e]) => ({
+      slot,
+      fields: [...e.fields].sort(),
+      service_fields: [...e.service].sort(),
+      row_fields: Object.fromEntries([...e.rows].sort(([a], [b]) => a.localeCompare(b)).map(([f, subs]) => [f, [...subs].sort()])),
+    }));
+}
+
+/** The slot declarations to send: only slots the body still uses (the server rejects the others), only those that
+ * restrict something, and no service types for a slot that reads no service field. */
+export function sentSlots(slots: SlotDecl[], body: unknown): SlotDecl[] {
+  const used = new Map(endpointReferences(body).map((e) => [e.slot, e.service_fields.length > 0]));
+  return slots
+    .filter((s) => used.has(s.name))
+    .map((s) => ({ name: s.name, endpoint_types: s.endpoint_types, service_types: used.get(s.name) ? s.service_types : [] }))
+    .filter((s) => s.endpoint_types.length > 0 || s.service_types.length > 0);
 }
 
 /** JSON with sorted keys, to compare values regardless of key order. */
@@ -158,7 +187,7 @@ export function placeholderMarkers(text: string, declared: Iterable<string>): Js
       let className = "tpl-ph-escape";
       if (reference !== undefined) {
         if (DEVICE_PATH_RE.test(reference)) className = "tpl-ph-device";
-        else if (ENDPOINT_REF_RE.test(reference) || SERVICE_REF_RE.test(reference)) className = "tpl-ph-endpoint";
+        else if (ENDPOINT_REF_RE.test(reference) || ENDPOINT_ROW_REF_RE.test(reference) || SERVICE_REF_RE.test(reference)) className = "tpl-ph-endpoint";
         else if (VARIABLE_NAME_RE.test(reference) && names.has(reference)) className = "tpl-ph-variable";
         else className = "tpl-ph-invalid";
       }
@@ -356,6 +385,11 @@ export function placeholderHelp(text: string, at: { row: number; column: number 
     if (reference === undefined) return "Escape: written as the literal text ${ (nothing is filled in).";
     if (DEVICE_PATH_RE.test(reference)) {
       return `Device field "${reference.slice("device.".length)}": taken from the device's metadata. Nothing is asked when applying.`;
+    }
+    const row = ENDPOINT_ROW_REF_RE.exec(reference);
+    if (row) {
+      const dropdown = row[1] ? `"Endpoint: ${row[1]}"` : `"Endpoint"`;
+      return `Field "${row[3]}" of one row of "${row[2]}" of the endpoint the user picks in the ${dropdown} dropdown when applying. With several rows, the row is chosen there too.`;
     }
     const endpoint = ENDPOINT_REF_RE.exec(reference);
     if (endpoint) {

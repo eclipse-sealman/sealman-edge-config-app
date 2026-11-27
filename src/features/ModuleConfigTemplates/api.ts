@@ -1,9 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { edgeConfigApiInstance } from "@/api/edgeConfig/edgeConfigApi";
+import type { FileRef } from "@/features/PlatformTypes/fileField";
 import { queryClient } from "@/config/queryConfig";
 
-export type VariableType = "string" | "text" | "number" | "integer" | "boolean" | "enum";
+export type VariableType = "string" | "text" | "number" | "integer" | "boolean" | "enum" | "file";
 export type Scalar = string | number | boolean;
 
 export interface VariableDecl {
@@ -13,6 +14,17 @@ export interface VariableDecl {
   options?: Scalar[] | null;
   label?: string | null;
   description?: string | null;
+  /** File variables only: a secret file is never downloadable. */
+  secret?: boolean | null;
+  /** File variables only: the default file, stored with the template under the variable's name. */
+  default?: FileRef | null;
+}
+
+/** The endpoint and service types a slot accepts (type ids); empty means any. */
+export interface SlotDecl {
+  name: string;
+  endpoint_types: string[];
+  service_types: string[];
 }
 
 export interface Finding {
@@ -135,6 +147,11 @@ export interface InputEndpoint {
   fields: string[];
   /** fields read from the slot's chosen service (`${service[slot].field}`); empty if no service is used */
   service_fields?: string[];
+  /** sub-fields read from rows of list fields (`${endpoint[slot].list.sub}`), by list field; the row is chosen when applying */
+  row_fields?: Record<string, string[]>;
+  /** accepted endpoint / service types (type ids); empty means any */
+  endpoint_types?: string[];
+  service_types?: string[];
 }
 
 /** Everything a rendering needs, the body's own and every block copy's. */
@@ -156,12 +173,16 @@ export interface InputList {
   blocks: { block_id: number; name?: string | null; inputs: Inputs }[];
 }
 
+/** Slot key -> list field -> id of the chosen row, as sent on preview/render/apply. */
+export type RowChoices = Record<string, Record<string, string>>;
+
 /** List key -> its entries, as sent on render/apply and stored under `values.$lists`. */
 export type ListsPayload = Record<string, { name: string; block_id: number }[]>;
 
 export interface TemplateVersion extends TemplateVersionSummary {
   body: Record<string, unknown> | unknown[];
   variables: VariableDecl[];
+  slots?: SlotDecl[];
   references: References;
   inputs?: Inputs;
 }
@@ -169,6 +190,7 @@ export interface TemplateVersion extends TemplateVersionSummary {
 export interface TemplateContent {
   body: unknown;
   variables: VariableDecl[];
+  slots?: SlotDecl[];
   comment?: string;
 }
 
@@ -267,10 +289,10 @@ export const moduleConfigApi = {
   duplicate: async (id: number, payload: { name: string; version?: number; group_id?: number }) =>
     (await edgeConfigApiInstance.post<Template>(`${BASE}/${id}/duplicate`, payload)).data,
   preview: async (payload: {
-    body: unknown; variables: VariableDecl[]; values: Values; device?: Values; device_id?: string; group_id?: number; kind?: TemplateKind;
-    endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload;
+    body: unknown; variables: VariableDecl[]; slots?: SlotDecl[]; template_id?: number; values: Values; device?: Values; device_id?: string; group_id?: number; kind?: TemplateKind;
+    endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices;
   }) => (await edgeConfigApiInstance.post<RenderResult>(`${BASE}/preview`, payload)).data,
-  lint: async (payload: { body: unknown; variables: VariableDecl[]; kind: TemplateKind; group_id?: number }) =>
+  lint: async (payload: { body: unknown; variables: VariableDecl[]; slots?: SlotDecl[]; kind: TemplateKind; group_id?: number }) =>
     (await edgeConfigApiInstance.post<LintResult>(`${BASE}/lint`, payload)).data,
   listExampleDevices: async (groupId: number, q?: string) =>
     (await edgeConfigApiInstance.get<ExampleDevice[]>(`${GROUPS}/${groupId}/example-devices`, {
@@ -282,11 +304,11 @@ export const moduleConfigApi = {
   listEndpointServices: async (deviceId: string, endpointId: string) =>
     (await edgeConfigApiInstance.get<DeviceService[]>(`/${enc(deviceId)}/config/endpoints/${enc(endpointId)}/services`)).data,
   render: async (deviceId: string, module: string, payload: {
-    template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload;
+    template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices;
   }) =>
     (await edgeConfigApiInstance.post<RenderResult>(`/${enc(deviceId)}/modules/${enc(module)}/config/render`, payload)).data,
   apply: async (deviceId: string, module: string, payload: {
-    template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; comment?: string;
+    template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices; comment?: string;
   }) =>
     (await edgeConfigApiInstance.post<ApplyResult>(`/${enc(deviceId)}/modules/${enc(module)}/config/apply`, payload)).data,
   getReported: async (deviceId: string, module: string) =>
@@ -402,7 +424,7 @@ export const invalidateDeviceModuleConfig = (deviceId: string, module: string) =
 export const useApplyTemplate = (deviceId: string, module: string) =>
   useMutation({
     mutationFn: (payload: {
-      template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; comment?: string;
+      template_id: number; values: Values; endpoints?: EndpointChoices; services?: ServiceChoices; lists?: ListsPayload; rows?: RowChoices; comment?: string;
     }) =>
       moduleConfigApi.apply(deviceId, module, payload),
     onSuccess: () => invalidateDeviceModuleConfig(deviceId, module),
