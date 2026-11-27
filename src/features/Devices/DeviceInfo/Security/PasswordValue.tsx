@@ -1,34 +1,34 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { InlineAlert, LoadingState } from "@/components/ui/page-state";
-import usePostDeviceRequestPassword from "@/generated/edge-administration/hooks/usePostDeviceRequestPassword";
+import { InlineAlert } from "@/components/ui/page-state";
 import { useState } from "react";
+import type { components } from "@/generated/edge-administration/types";
 
 export interface PasswordValueProps {
-  deviceId: string;
+  password: components["schemas"]["DeviceSecretValue"];
 }
 
-export default function PasswordValue({ deviceId }: PasswordValueProps) {
-  const { data, isLoading, isError } = usePostDeviceRequestPassword(deviceId);
+export default function PasswordValue({ password }: PasswordValueProps) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
-  const handleCopy = () => {
-    if (data?.secretValue) {
-      navigator.clipboard.writeText(data.secretValue);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(password.secretValue);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000); // Reset copied state after 2 seconds
+      setCopyError(null);
+    } catch {
+      setCopyError("Could not copy the password. Select and copy it manually.");
     }
   };
 
   return (
     <div className="pt-4 pb-4">
-      {isError ? <InlineAlert className="mb-3">Error getting password.</InlineAlert> : null}
-      {isLoading ? <LoadingState className="p-2" /> : null}
-      {!isLoading && !isError && data ? 
       <div className="mb-3 flex flex-row gap-2">
-        <Input className="flex-1" type="text" name="password-value" value={data.secretValue} readOnly />
-        <Button onClick={handleCopy}>{copied ? "Copied" : "Copy"}</Button>
-      </div> : null}
+        <Input aria-label="Device password" className="flex-1" type="text" name="password-value" value={password.secretValue} readOnly />
+        <Button onClick={() => { void handleCopy(); }}>{copied ? "Copied" : "Copy"}</Button>
+      </div>
+      {copyError && <InlineAlert className="mb-3">{copyError}</InlineAlert>}
     </div>
   );
 }

@@ -119,6 +119,25 @@ describe("TypeFormDialog roles", () => {
 });
 
 describe("TypeFormDialog list fields", () => {
+  it.each<{ key: string; scalarType: FieldDefinition["type"]; supportsListFields: boolean; mapping: Record<string, string>; error: RegExp }>([
+    { key: "", scalarType: "string" as const, supportsListFields: true, mapping: {}, error: /without a key/ },
+    { key: "nested", scalarType: "list" as const, supportsListFields: true, mapping: {}, error: /must be scalar/ },
+    { key: "serial", scalarType: "string" as const, supportsListFields: false, mapping: {}, error: /only on endpoint types/ },
+    { key: "serial", scalarType: "string" as const, supportsListFields: true, mapping: { equipment: "ip" }, error: /cannot have a role/ },
+  ])("rejects unsupported list definitions before submission: $error", async ({ key, scalarType, supportsListFields, mapping, error }) => {
+    const onSubmit = vi.fn();
+    const list: FieldDefinition = {
+      ...stringField("Equipment"), type: "list", ui: null,
+      item_fields: { [key]: { ...stringField("Serial"), type: scalarType } },
+    };
+    render(<TypeFormDialog isOpen onClose={() => {}} onSubmit={onSubmit} singularLabel="Endpoint Type"
+      initial={{ type_id: "t", label: "Machine", description: null, fields: { equipment: list }, mapping }}
+      supportsListFields={supportsListFields} />);
+    await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(error)).toBeInTheDocument();
+  });
+
   it("only offers list fields when explicitly enabled", async () => {
     Element.prototype.hasPointerCapture ??= () => false;
     Element.prototype.setPointerCapture ??= () => {};

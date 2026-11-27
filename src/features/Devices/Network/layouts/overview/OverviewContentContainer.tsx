@@ -14,7 +14,7 @@ import UnidentifiedEndpointsCard from "./UnidentifiedEndpointsCard";
 import ScanNetworkDialog, { ScanNetworkRange } from "./ScanNetworkDialog";
 import AssignEndpointDialog from "./AssignEndpointDialog";
 import EndpointDetailsDialog from "./EndpointDetailsDialog";
-import { mergeConfiguredEndpoints, mergeEndpointsByIp } from "./overviewMerge";
+import { endpointListKey, mergeConfiguredEndpoints, mergeEndpointsByIp } from "./overviewMerge";
 import EndpointCanvas from "./EndpointCanvas";
 import EndpointActions from "./EndpointActions";
 import DeviceGatewayCard from "@/features/Devices/Gateway/DeviceGatewayCard";
@@ -68,7 +68,8 @@ function excludeIpsCoveredByRanges(ips: string[], ranges: ScanNetworkRange[]): s
 // Hub for a while), since nothing updates these persisted statuses without a live scan.
 async function buildOfflineFallbackOverview(deviceId: string, signal: AbortSignal): Promise<NetworkOverview> {
   const { data } = await client.GET("/{device}/network/last-known", { params: { path: { device: deviceId } }, signal });
-  return data ?? { scanDefinition: { networkDefinition: "0.0.0.0", subnetMask: 32, ports: [] }, endpoints: [] };
+  if (!data) throw new Error("Configured assets returned no result");
+  return data;
 }
 
 export default function OverviewContentContainer() {
@@ -193,6 +194,7 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
   const [rangeMaskInput, setRangeMaskInput] = useState("");
   const [detailsEndpointId, setDetailsEndpointId] = useState<string | null>(null);
   const [detailsServiceId, setDetailsServiceId] = useState<string | null>(null);
+  const [endpointOrder, setEndpointOrder] = useState<string[]>([]);
   // An endpoint to scroll to and flash, named by the page's `?highlight=` (set by the device
   // search's "Jump to Page"). Read from the location directly, once, so this component stays
   // usable without a router.
@@ -351,6 +353,13 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
   // Resolves once the refreshed data has arrived, so callers can keep a loader up until then.
   const handleRefresh = async () => {
     if (stopped.current) return;
+    // Refetch reuses an in-flight first load, so explicitly retire pre-mutation requests.
+    await Promise.all(
+      ["network-offline-fallback", "network-overview", "network-extra-scan"].map((key) =>
+        queryClient.cancelQueries({ queryKey: [key, ...contextKey] }),
+      ),
+    );
+    if (stopped.current) return;
     const refreshes: Promise<unknown>[] = [offlineFallbackQuery.refetch()];
     if (!scanStopped.current) {
       refreshes.push(overviewQuery.refetch());
@@ -452,16 +461,25 @@ function OverviewContent({ deviceId, contextKey, scanEnabled, onRetry }: {
     );
   }
 
-  // Configured endpoints (from the DB) are always merged in underneath whatever the live scan
-  // currently finds - `mergeConfiguredEndpoints` lets live data (fresher) win per endpoint while
-  // still keeping configured-only entries around, shown as offline. Keyed by `endpoint_id` rather
-  // than `ip` here specifically, so multiple configured endpoints that happen to share an IP
-  // (e.g. several instances of the same type before each has its own real IP entered) still all
-  // show up instead of collapsing into one.
+  // Every successful overview includes complete configuration, including custom scans.
+  // Failed/pending refreshes retain their last successful data and timestamp.
+  const configuration = [offlineFallbackQuery, ...(scanDenied ? [] : [overviewQuery, extraScanQuery])]
+    .filter((snapshot) => snapshot.data != null)
+    .sort((a, b) => b.dataUpdatedAt - a.dataUpdatedAt)[0]?.data;
+  // Keep first-seen positions, not old values: DB/scan response order can change independently.
+  const endpointRanks = new Map(endpointOrder.map((key, index) => [key, index]));
   const endpoints = mergeConfiguredEndpoints(
     mergeEndpointsByIp(overview?.endpoints ?? [], extraEndpoints),
-    offlineFallbackQuery.data?.endpoints ?? [],
+    configuration?.endpoints.filter((endpoint) => endpoint.source === "configured"),
+  ).sort((a, b) =>
+    (endpointRanks.get(endpointListKey(a)) ?? endpointOrder.length) -
+    (endpointRanks.get(endpointListKey(b)) ?? endpointOrder.length),
   );
+  const nextEndpointOrder = endpoints.map(endpointListKey);
+  if (endpointOrder.length !== nextEndpointOrder.length ||
+    endpointOrder.some((key, index) => key !== nextEndpointOrder[index])) {
+    setEndpointOrder(nextEndpointOrder);
+  }
   const discovered = endpoints.filter((e) => e.source !== "unidentified");
   const unidentified = endpoints.filter((e) => e.source === "unidentified");
   const viewToggle = <AssetsViewToggle value={viewMode} onChange={changeViewMode} />;

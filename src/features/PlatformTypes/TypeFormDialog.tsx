@@ -168,14 +168,30 @@ function TypeFormDialogContent({
         return;
       }
       if (row.definition.type === "list") {
+        if (!supportsListFields) {
+          setError("List fields are supported only on endpoint types");
+          return;
+        }
+        if (row.role) {
+          setError(`List field "${row.key.trim()}" cannot have a role`);
+          return;
+        }
         const itemFields = row.definition.item_fields ?? {};
         if (Object.keys(itemFields).length === 0) {
           setError(`Field "${row.key.trim()}" needs at least one item field`);
           return;
         }
         for (const [itemKey, itemDefinition] of Object.entries(itemFields)) {
+          if (!itemKey.trim()) {
+            setError(`Field "${row.key.trim()}" has an item field without a key`);
+            return;
+          }
           if (itemKey === "id") {
             setError(`Field "${row.key.trim()}" cannot use "id" as an item field key`);
+            return;
+          }
+          if (itemDefinition.type === "list") {
+            setError(`Item field "${itemKey}" must be scalar`);
             return;
           }
           if (!itemDefinition.label.trim()) {

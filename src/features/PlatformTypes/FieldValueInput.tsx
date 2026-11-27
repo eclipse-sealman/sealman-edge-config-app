@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Toggle from "./Toggle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { isListRow, newListRow, orderedItemFields } from "./listFields";
 
 // Radix Select can't hold an empty-string item, so "no selection" is represented by this sentinel.
 const NO_SELECTION = "__none__";
@@ -39,7 +40,7 @@ export function formatMetadataValue(value: unknown, definition: Pick<FieldDefini
  * pattern/length/bounds violation.
  */
 export function validateFieldValue(label: string, value: unknown, definition: FieldDefinitionLike): string | null {
-  if (value === null || value === undefined || value === "") return null;
+  if (value === null || value === undefined || (value === "" && definition.type !== "list")) return null;
 
   const { type } = definition;
   if (type === "boolean" && typeof value !== "boolean") return `"${label}" must be a boolean`;
@@ -49,10 +50,15 @@ export function validateFieldValue(label: string, value: unknown, definition: Fi
   if (type === "number" && typeof value !== "number") return `"${label}" must be a number`;
   if (type === "string" && typeof value !== "string") return `"${label}" must be a string`;
   if (type === "list") {
-    if (!Array.isArray(value) || !value.every((item) => item !== null && typeof item === "object" && !Array.isArray(item))) {
+    if (!Array.isArray(value) || !value.every(isListRow)) {
       return `"${label}" must be a list of objects`;
     }
+    const ids = new Set<string>();
     for (const [index, item] of value.entries()) {
+      if (item.id != null) {
+        if (typeof item.id !== "string" || ids.has(item.id)) return `"${label}" has an invalid or duplicate row ID`;
+        ids.add(item.id);
+      }
       for (const [key, field] of Object.entries(definition.item_fields ?? {})) {
         const itemValue = (item as Record<string, unknown>)[key];
         const isEmpty = itemValue === null || itemValue === undefined || itemValue === "";
@@ -128,8 +134,8 @@ export function validateFields(
 ): string | null {
   for (const [key, definition] of Object.entries(fields)) {
     const value = values[key];
-    const isEmpty = value === null || value === undefined || value === "" ||
-      (definition.type === "list" && Array.isArray(value) && value.length === 0);
+    const isEmpty = value === null || value === undefined || (definition.type === "list"
+      ? Array.isArray(value) && value.length === 0 : value === "");
     if (definition.required && isEmpty) {
       return `"${definition.label}" is required`;
     }
@@ -161,35 +167,30 @@ interface FieldValueInputProps {
   disabled?: boolean;
 }
 
-function itemFieldEntries(definition: FieldDefinitionLike) {
-  const fields = definition.item_fields ?? {};
-  const order = definition.item_order ?? Object.keys(fields);
-  const orderedKeys = [...order.filter((key) => key in fields), ...Object.keys(fields).filter((key) => !order.includes(key))];
-  return orderedKeys.map((key) => [key, fields[key]] as const);
-}
-
-function defaultListItem(definition: FieldDefinitionLike): Record<string, unknown> {
-  return Object.fromEntries(
-    itemFieldEntries(definition)
-      .filter(([, field]) => field.default !== null && field.default !== undefined)
-      .map(([key, field]) => [key, field.default]),
-  );
-}
-
 function ListFieldValueInput({
   definition,
   value,
   onChange,
   disabled,
 }: FieldValueInputProps) {
-  const items = Array.isArray(value)
-    ? value.filter((item): item is Record<string, unknown> => item !== null && typeof item === "object" && !Array.isArray(item))
-    : [];
-  const fields = itemFieldEntries(definition);
+  const valid = value == null || (Array.isArray(value) && value.every(isListRow));
+  const items = Array.isArray(value) && value.every(isListRow) ? value : [];
+  const fields = orderedItemFields(definition);
 
   const updateItem = (index: number, key: string, nextValue: unknown) => {
     onChange(items.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: nextValue } : item));
   };
+
+  if (!valid) {
+    return (
+      <div className="space-y-2">
+        <p role="alert" className="text-xs text-destructive">Stored value is not a list of rows. Replace it before saving.</p>
+        <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => onChange([])}>
+          Replace with empty list
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -230,7 +231,7 @@ function ListFieldValueInput({
         variant="outline"
         size="sm"
         disabled={disabled || fields.length === 0}
-        onClick={() => onChange([...items, defaultListItem(definition)])}
+        onClick={() => onChange([...items, newListRow(definition)])}
       >
         <Plus />
         Add item

@@ -17,6 +17,10 @@ const mocks = vi.hoisted(() => {
         fields: { serial: { ...STRING, label: "Serial", required: true, default: "UNKNOWN" }, location: { ...STRING, label: "Location" } },
         mapping: {},
       },
+      {
+        type_id: "counter", label: "Counter", description: null, mapping: {},
+        fields: { quantity: { ...STRING, type: "integer", ui: "number", label: "Quantity", default: 10 } },
+      },
     ] as unknown[],
     updateEndpoint: vi.fn(),
   };
@@ -85,5 +89,39 @@ describe("ReassignEndpointDialog", () => {
     await userEvent.type(inputs[inputs.length - 1], "hall");
     await userEvent.click(screen.getByRole("button", { name: "Reassign" }));
     expect(mocks.updateEndpoint.mock.calls[0][0].body.endpoint_data).toEqual({ serial: "S-1", location: "hall" });
+  });
+
+  it("defers an untouched required null with a default to the backend without displaying a fallback", async () => {
+    render(<ReassignEndpointDialog open onOpenChange={() => {}} endpointId="e-null" currentTypeId="plc"
+      currentData={{ serial: { value: null, field: null } }} onReassigned={() => {}} />);
+    await selectType("Sensor");
+    expect(screen.queryByDisplayValue("UNKNOWN")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Reassign" }));
+    expect(mocks.updateEndpoint).toHaveBeenCalledWith({
+      endpointId: "e-null", body: { type_id: "sensor", endpoint_data: {} },
+    });
+  });
+
+  it("sends an optional value explicitly cleared during retype instead of silently preserving it", async () => {
+    render(<ReassignEndpointDialog open onOpenChange={() => {}} endpointId="e-clear" currentTypeId="plc"
+      currentData={{ serial: { value: "S-1", field: null }, location: { value: "old hall", field: null } }}
+      onReassigned={() => {}} />);
+    await selectType("Sensor");
+    await userEvent.clear(screen.getByDisplayValue("old hall"));
+    await userEvent.click(screen.getByRole("button", { name: "Reassign" }));
+    expect(mocks.updateEndpoint).toHaveBeenCalledWith({
+      endpointId: "e-clear", body: { type_id: "sensor", endpoint_data: { serial: "S-1", location: "" } },
+    });
+  });
+
+  it("sends an explicit null when a numeric control is cleared during retype", async () => {
+    render(<ReassignEndpointDialog open onOpenChange={() => {}} endpointId="e-number" currentTypeId="plc"
+      currentData={{ quantity: { value: 2, field: null } }} onReassigned={() => {}} />);
+    await selectType("Counter");
+    await userEvent.clear(screen.getByRole("spinbutton"));
+    await userEvent.click(screen.getByRole("button", { name: "Reassign" }));
+    expect(mocks.updateEndpoint).toHaveBeenCalledWith({
+      endpointId: "e-number", body: { type_id: "counter", endpoint_data: { quantity: null } },
+    });
   });
 });

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import AssignEndpointDialog from "../AssignEndpointDialog";
+import AssignEndpointDialog, { type ExistingEndpoint } from "../AssignEndpointDialog";
 
 const mocks = vi.hoisted(() => ({
   types: [
@@ -96,5 +96,27 @@ describe("AssignEndpointDialog", () => {
     const body = mocks.updateEndpoint.mock.calls[0][0].body;
     expect(body.type_id).toBeUndefined();
     expect(body.endpoint_data.addr).toBe("");
+  });
+
+  it.each<ExistingEndpoint["endpoint_data"]>([{}, { serial: { value: null, field: null } }])("does not restore defaults in same-type edits of missing or null values: %j", async (endpoint_data) => {
+    render(<AssignEndpointDialog open onOpenChange={() => {}} deviceId="d"
+      existingEndpoint={{ endpoint_id: "e-null", type_id: "no-ip", endpoint_data }}
+      onCreated={() => {}} />);
+    expect(screen.queryByDisplayValue("UNKNOWN")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(mocks.updateEndpoint).toHaveBeenCalledWith({
+      endpointId: "e-null",
+      body: { endpoint_data: { serial: null, location: null } },
+    });
+  });
+
+  it("keeps explicitly cleared retype values in the patch", async () => {
+    render(<AssignEndpointDialog open onOpenChange={() => {}} deviceId="d" existingEndpoint={EXISTING} onCreated={() => {}} />);
+    await selectType("No IP");
+    await userEvent.clear(screen.getByDisplayValue("S-1"));
+    await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(mocks.updateEndpoint).toHaveBeenCalledWith({
+      endpointId: "e1", body: { type_id: "no-ip", endpoint_data: { serial: "" } },
+    });
   });
 });

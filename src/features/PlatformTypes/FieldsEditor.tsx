@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import type { RoleOption } from "./typeRoles";
 import FieldInfoTooltip from "./FieldInfoTooltip";
+import { fieldDefinitionWrite } from "./listFields";
 
 export type FieldDefinition = components["schemas"]["FieldDefinition"];
 export type FieldDefinitionPatch = components["schemas"]["FieldDefinitionUpdate"];
@@ -124,21 +125,8 @@ export function buildFieldsPayload(
   }
 
   for (const row of rows) {
-    const definition = { ...row.definition } as FieldDefinitionPatch;
-    delete definition.item_order;
-    if (row.definition.type === "list") {
-      const currentItems = row.definition.item_fields ?? {};
-      const previousKey = row.originalKey === row.key.trim() ? row.originalKey : null;
-      const previousItems = previousKey ? originalFields[previousKey]?.item_fields ?? {} : {};
-      const itemFields: Record<string, FieldDefinition | null> = { ...currentItems };
-      for (const key of Object.keys(previousItems)) {
-        if (!(key in currentItems)) itemFields[key] = null;
-      }
-      definition.item_fields = itemFields;
-    } else {
-      delete definition.item_fields;
-    }
-    payload[row.key.trim()] = definition;
+    const original = row.originalKey === row.key.trim() ? originalFields[row.originalKey] : undefined;
+    payload[row.key.trim()] = fieldDefinitionWrite(row.definition, original);
   }
 
   return payload;
@@ -585,12 +573,28 @@ export default function FieldsEditor({ rows, onChange, duplicateKeys, showListVi
               )}
 
               {!isList && <div className={showOptions ? "col-span-3" : "col-span-7"}>
-                <Field label="Default value" info="The initial value suggested for this field. It must match the selected data type and any configured validation rules.">
-                  <FieldValueInput
-                    definition={row.definition}
-                    value={row.definition.default}
-                    onChange={(value) => updateDefinition(row.id, { default: value })}
-                  />
+                <Field label="Default value" info="Used to initialize new values. Changing or clearing a default does not replace values already saved. It must match the field's type and validation rules.">
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <FieldValueInput
+                        definition={row.definition}
+                        value={row.definition.default}
+                        onChange={(value) => updateDefinition(row.id, { default: value })}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      disabled={row.definition.default == null}
+                      aria-label={`Clear default for ${trimmedKey || row.definition.label || "field"}`}
+                      title="Clear default"
+                      onClick={() => updateDefinition(row.id, { default: null })}
+                    >
+                      <XCircleIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </Field>
               </div>}
             </div>

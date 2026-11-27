@@ -4,8 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { Accordion } from "@/components/ui/accordion";
 import type { MappedEndpoint } from "@/generated/edge-administration/hooks/network/usePostNetworkOverview";
 import EndpointAccordionItem from "../EndpointAccordionItem";
-import { endpointListKey } from "../overviewMerge";
+import { endpointListKey, mergeConfiguredEndpoints } from "../overviewMerge";
 import { ShowConnectionStateContext } from "../connectionStateContext";
+import type { components } from "@/generated/edge-administration/types";
 
 const { typesRef, updateEndpoint, updateService, deleteEndpoint, deleteService } = vi.hoisted(() => ({
   typesRef: { current: [] as unknown[] },
@@ -38,7 +39,9 @@ vi.mock("@/features/authorization/permissions/use-permissions", () => ({
 }));
 vi.mock("../AssignEndpointDialog", () => ({ default: () => null }));
 vi.mock("../AssignServiceDialog", () => ({ default: () => null }));
-vi.mock("../BrowseDialog", () => ({ default: () => null }));
+vi.mock("../BrowseDialog", () => ({
+  default: ({ ip, port }: { ip: string; port: number }) => <p>Browsing {ip}:{port}</p>,
+}));
 
 const STRING = { type: "string", ui: "input", required: false, changeable: true, show_in_list: true, default: null } as const;
 
@@ -136,7 +139,7 @@ describe("EndpointAccordionItem", () => {
 
   it("shows list item values instead of an item count", async () => {
     const user = userEvent.setup();
-    const equipmentField = {
+    const equipmentField: components["schemas"]["FieldDefinition"] = {
       type: "list",
       label: "Equipments",
       required: false,
@@ -205,10 +208,56 @@ describe("EndpointAccordionItem", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Endpoint details" }));
-
     expect(screen.getByText("IP address")).toBeInTheDocument();
     expect(screen.queryByText("Address")).not.toBeInTheDocument();
     expect(screen.getAllByText("10.0.0.8", { exact: true })).toHaveLength(1);
+  });
+
+  it("preserves explicit null item values instead of displaying column defaults", async () => {
+    const equipment = {
+      ...STRING, type: "list" as const, label: "Equipment", ui: null,
+      item_fields: { serial: { ...STRING, label: "Serial", default: "DEFAULT-SERIAL" } },
+      item_order: ["serial"],
+    };
+    renderItem({
+      endpoint_id: "null-row", type_id: "sensor", type_label: "Sensor",
+      status: "unknown", source: "configured", ports: [],
+      endpoint_data: { equipment: { value: [{ id: "row", serial: null }], field: equipment } },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Endpoint details" }));
+    expect(screen.getByRole("list", { name: "Equipment items" })).toHaveTextContent("Item 1");
+    expect(screen.queryByText("DEFAULT-SERIAL")).not.toBeInTheDocument();
+  });
+
+  it("keeps configured services sharing a port as independently selectable tabs", async () => {
+    renderItem({
+      endpoint_id: "same-port", type_id: "sensor", type_label: "Sensor", status: "unknown", source: "configured",
+      ports: [
+        { service_id: "s1", port: 4840, source: "configured", status: "online", type_label: "First" },
+        { service_id: "s2", port: 4840, source: "configured", status: "offline", type_label: "Second" },
+      ],
+    });
+    expect(screen.getByRole("tab", { name: /First/ })).toHaveAttribute("aria-selected", "true");
+    await userEvent.click(screen.getByRole("tab", { name: /Second/ }));
+    expect(screen.getByRole("tab", { name: /Second/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /First/ })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("uses the current configured host for Browse after reconciling a stale scan", async () => {
+    const stale: MappedEndpoint = {
+      endpoint_id: "browse", type_id: "sensor", type_label: "Sensor", ip: "10.0.0.1",
+      status: "online", source: "configured", ports: [
+        { service_id: "s1", port: 4840, source: "configured", status: "online", browser_kind: "opcua" },
+      ],
+    };
+    const [current] = mergeConfiguredEndpoints([stale], [{ ...stale, ip: "10.0.0.9" }]);
+    render(<ShowConnectionStateContext.Provider value={false}>
+      <Accordion type="single" defaultValue={endpointListKey(current)}>
+        <EndpointAccordionItem endpoint={current} deviceId="dev-1" onCreated={() => {}} onOpenDetails={() => {}} />
+      </Accordion>
+    </ShowConnectionStateContext.Provider>);
+    await userEvent.click(screen.getByRole("button", { name: "Browse" }));
+    expect(screen.getByText("Browsing 10.0.0.9:4840")).toBeInTheDocument();
   });
 
   it("edits and saves endpoint fields inline", async () => {
